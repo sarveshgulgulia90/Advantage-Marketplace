@@ -1,0 +1,490 @@
+import { useState, useEffect } from "react";
+
+const NAVY = "#0B1F5E";
+const RED  = "#CC1A1A";
+const ADMIN_PASSWORD = "advantage1995";
+const STORAGE_KEY    = "advantage_products";
+
+const CATS  = ["Laptops","Desktops","Printers","Accessories"];
+const ICONS = ["💻","🖥️","🖨️","⌨️","🖱️","💾","🔌","📱"];
+
+/* Default spec keys per category — admin sees these as input fields */
+const SPEC_KEYS = {
+  Laptops:     ["Processor","RAM","Storage","Display","Graphics","Operating System","Battery","Ports","Connectivity","Weight","Warranty"],
+  Desktops:    ["Processor","RAM","Storage","Form Factor","Graphics","Operating System","Ports","Optical Drive","Connectivity","Warranty"],
+  Printers:    ["Type","Print Technology","Print Speed","Print Resolution","Connectivity","Scanner","Paper Size","Ink / Toner","Page Yield","Warranty"],
+  Accessories: ["Type","Connectivity","Compatibility","Interface","Dimensions","Weight","Warranty"],
+};
+
+const EMPTY_FORM = {
+  name:"", cat:"Laptops", price:"", icon:"💻", isNew:false,
+  spec:"",        /* short summary shown on card */
+  specs:{},       /* full key-value spec table  */
+  highlights:["","","",""],
+};
+
+/* ══ helpers ══ */
+function loadProducts(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||"null"); }
+  catch { return null; }
+}
+function saveProducts(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+
+/* ══ Stat box ══ */
+function Stat({label,value,color="#0B1F5E"}){
+  return(
+    <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:"20px 24px",flex:1,minWidth:120}}>
+      <div style={{fontSize:28,fontWeight:800,color,lineHeight:1}}>{value}</div>
+      <div style={{fontSize:11,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"#aaa",marginTop:6}}>{label}</div>
+    </div>
+  );
+}
+
+/* ══ Main Admin Component ══ */
+export default function Admin({ defaultProducts, onExit }){
+  const[authed,  setAuthed ] = useState(false);
+  const[pw,      setPw     ] = useState("");
+  const[pwErr,   setPwErr  ] = useState(false);
+  const[products,setProducts] = useState(()=>loadProducts() || defaultProducts);
+  const[tab,     setTab    ] = useState("products"); /* products | add | edit */
+  const[form,    setForm   ] = useState(EMPTY_FORM);
+  const[editId,  setEditId ] = useState(null);
+  const[toast,   setToast  ] = useState(null);
+  const[delConfirm,setDelConfirm] = useState(null);
+  const[filterCat,setFilterCat] = useState("All");
+
+  function showToast(msg, type="success"){
+    setToast({msg,type});
+    setTimeout(()=>setToast(null), 2800);
+  }
+
+  function persist(updated){ setProducts(updated); saveProducts(updated); }
+
+  /* ── login ── */
+  function login(){
+    if(pw===ADMIN_PASSWORD){ setAuthed(true); setPwErr(false); }
+    else setPwErr(true);
+  }
+
+  /* ── spec helpers ── */
+  function specKeys(){ return SPEC_KEYS[form.cat]||SPEC_KEYS.Accessories; }
+
+  function setSpecVal(key,val){
+    setForm(f=>({...f, specs:{...f.specs,[key]:val}}));
+  }
+
+  function setHighlight(i,val){
+    const h=[...form.highlights];
+    h[i]=val;
+    setForm(f=>({...f,highlights:h}));
+  }
+
+  /* auto-generate short spec summary from specs object */
+  function autoSummary(specs, cat){
+    const keys = SPEC_KEYS[cat]||[];
+    return keys.slice(0,4).map(k=>specs[k]).filter(Boolean).join(" · ");
+  }
+
+  /* ── save product ── */
+  function handleSave(){
+    if(!form.name.trim()||!form.price.trim()){
+      showToast("Name and Price are required","error"); return;
+    }
+    const summary = form.spec.trim() || autoSummary(form.specs, form.cat);
+    const highlights = form.highlights.filter(h=>h.trim());
+    let updated;
+    if(editId!==null){
+      updated = products.map(p=>p.id===editId ? {...form,id:editId,spec:summary,highlights} : p);
+      showToast(`"${form.name}" updated`);
+    } else {
+      const newId = Date.now();
+      updated = [...products, {...form,id:newId,spec:summary,highlights}];
+      showToast(`"${form.name}" added`);
+    }
+    persist(updated);
+    setForm(EMPTY_FORM); setEditId(null); setTab("products");
+  }
+
+  /* ── edit ── */
+  function handleEdit(p){
+    setForm({
+      name:p.name, cat:p.cat, price:p.price, icon:p.icon,
+      isNew:p.isNew||false, spec:p.spec||"",
+      specs:p.specs||{}, highlights:p.highlights||["","","",""],
+    });
+    setEditId(p.id);
+    setTab("add");
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  /* ── delete ── */
+  function handleDelete(id){
+    const updated=products.filter(p=>p.id!==id);
+    persist(updated); setDelConfirm(null);
+    showToast("Product deleted","error");
+  }
+
+  /* ── toggle NEW ── */
+  function toggleNew(id){
+    const updated=products.map(p=>p.id===id?{...p,isNew:!p.isNew}:p);
+    persist(updated);
+  }
+
+  /* ── reset to defaults ── */
+  function resetToDefaults(){
+    persist(defaultProducts);
+    showToast("Reset to default products");
+  }
+
+  const filtered = filterCat==="All" ? products : products.filter(p=>p.cat===filterCat);
+
+  /* ══════════════════════════════════════════════
+     LOGIN SCREEN
+  ══════════════════════════════════════════════ */
+  if(!authed) return(
+    <div style={{minHeight:"100vh",background:"#f0f2f8",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:20}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'DM Sans',sans-serif;}`}</style>
+      <div style={{background:"#fff",width:"100%",maxWidth:400,padding:"48px 40px",border:"1px solid #e8e8e8"}}>
+        {/* Logo */}
+        <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:32}}>
+          <div style={{background:NAVY,padding:"5px 12px",display:"flex",alignItems:"center"}}>
+            <span style={{fontSize:18,fontWeight:800,color:"#fff"}}>AD</span>
+            <span style={{fontSize:18,fontWeight:800,color:RED}}>V</span>
+            <span style={{fontSize:18,fontWeight:800,color:"#fff"}}>ANTAGE</span>
+          </div>
+          <div style={{background:"#fff",border:`1px solid ${NAVY}`,padding:"2px 8px",alignSelf:"stretch",display:"flex",alignItems:"center"}}>
+            <span style={{fontSize:8,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:NAVY}}>ADMIN</span>
+          </div>
+        </div>
+        <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"#aaa",marginBottom:6}}>Admin Access</div>
+        <h2 style={{fontSize:24,fontWeight:800,color:NAVY,marginBottom:28}}>Sign In</h2>
+        <input type="password" placeholder="Admin password" value={pw}
+          onChange={e=>{setPw(e.target.value);setPwErr(false);}}
+          onKeyDown={e=>e.key==="Enter"&&login()}
+          style={{width:"100%",border:`1.5px solid ${pwErr?RED:"#ddd"}`,padding:"12px 14px",fontSize:14,outline:"none",marginBottom:8,fontFamily:"inherit",transition:"border-color .15s"}}
+          onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=pwErr?RED:"#ddd"}/>
+        {pwErr&&<div style={{fontSize:13,color:RED,marginBottom:12,fontWeight:500}}>Incorrect password.</div>}
+        <button onClick={login}
+          style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"13px",fontSize:14,fontWeight:700,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",transition:"background .15s",marginTop:pwErr?0:8}}
+          onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
+          Sign In →
+        </button>
+        <button onClick={onExit} style={{width:"100%",marginTop:12,background:"none",border:"none",fontSize:13,color:"#aaa",cursor:"pointer",padding:"8px 0"}}>← Back to Website</button>
+      </div>
+    </div>
+  );
+
+  /* ══════════════════════════════════════════════
+     ADMIN PANEL
+  ══════════════════════════════════════════════ */
+  return(
+    <div style={{minHeight:"100vh",background:"#f5f7fa",fontFamily:"'DM Sans',sans-serif"}}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'DM Sans',sans-serif;background:#f5f7fa;}
+        button,input,textarea,select{font-family:inherit;}
+
+        .adm-inp{width:100%;border:1.5px solid #e0e0e0;padding:10px 13px;font-size:14px;outline:none;background:#fff;transition:border-color .15s;color:#111;}
+        .adm-inp:focus{border-color:${NAVY};}
+        select.adm-inp{cursor:pointer;}
+        textarea.adm-inp{resize:vertical;}
+
+        .tab-btn{padding:9px 20px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:all .15s;letter-spacing:.02em;}
+        .tab-btn.active{background:${NAVY};color:#fff;}
+        .tab-btn:not(.active){background:#fff;color:#555;border:1.5px solid #e0e0e0;}
+        .tab-btn:not(.active):hover{border-color:${NAVY};color:${NAVY};}
+
+        .prod-row{background:#fff;border:1.5px solid #e8e8e8;padding:16px 20px;display:flex;align-items:center;gap:16px;transition:border-color .2s;}
+        .prod-row:hover{border-color:${NAVY};}
+
+        .action-btn{padding:7px 14px;font-size:12px;font-weight:600;border:none;cursor:pointer;letter-spacing:.03em;transition:all .15s;}
+
+        .cat-filter{padding:7px 16px;font-size:12px;font-weight:600;border:1.5px solid #e0e0e0;background:#fff;cursor:pointer;transition:all .15s;color:#555;}
+        .cat-filter.on{background:${NAVY};color:#fff;border-color:${NAVY};}
+        .cat-filter:not(.on):hover{border-color:${NAVY};color:${NAVY};}
+
+        .spec-row{display:grid;grid-template-columns:180px 1fr;gap:10px;align-items:center;margin-bottom:8px;}
+        .spec-label{font-size:12px;font-weight:600;color:#555;letter-spacing:.03em;}
+
+        .toggle{width:44px;height:24px;border-radius:12px;position:relative;cursor:pointer;transition:background .2s;border:none;flex-shrink:0;}
+        .toggle-knob{position:absolute;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+      `}</style>
+
+      {/* ── TOP BAR ── */}
+      <div style={{background:NAVY,height:56,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 32px",position:"sticky",top:0,zIndex:100}}>
+        <div style={{display:"flex",alignItems:"center",gap:16}}>
+          <div style={{display:"flex",alignItems:"center",gap:0}}>
+            <div style={{background:"rgba(255,255,255,.1)",padding:"4px 10px",display:"flex",alignItems:"center"}}>
+              <span style={{fontSize:16,fontWeight:800,color:"#fff"}}>AD</span>
+              <span style={{fontSize:16,fontWeight:800,color:RED}}>V</span>
+              <span style={{fontSize:16,fontWeight:800,color:"#fff"}}>ANTAGE</span>
+            </div>
+            <div style={{background:"rgba(255,255,255,.08)",padding:"2px 8px",alignSelf:"stretch",display:"flex",alignItems:"center",borderLeft:`2px solid ${RED}`}}>
+              <span style={{fontSize:9,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"rgba(255,255,255,.7)"}}>ADMIN</span>
+            </div>
+          </div>
+          <span style={{fontSize:13,color:"rgba(255,255,255,.4)"}}>Store Management Panel</span>
+        </div>
+        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+          <span style={{fontSize:12,color:"rgba(255,255,255,.4)"}}>
+            {products.length} products · {products.filter(p=>p.isNew).length} new
+          </span>
+          <button onClick={onExit}
+            style={{background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",color:"rgba(255,255,255,.8)",padding:"7px 16px",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all .15s"}}
+            onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.2)"}
+            onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.1)"}>
+            ← View Website
+          </button>
+          <button onClick={()=>setAuthed(false)}
+            style={{background:"none",border:"1px solid rgba(255,255,255,.15)",color:"rgba(255,255,255,.4)",padding:"7px 14px",fontSize:12,cursor:"pointer"}}>
+            Logout
+          </button>
+        </div>
+      </div>
+
+      <div style={{maxWidth:1200,margin:"0 auto",padding:"32px 24px"}}>
+
+        {/* ── STATS ROW ── */}
+        <div style={{display:"flex",gap:12,marginBottom:28,flexWrap:"wrap"}}>
+          <Stat label="Total Products" value={products.length}/>
+          <Stat label="Laptops"        value={products.filter(p=>p.cat==="Laptops").length}    color={NAVY}/>
+          <Stat label="Desktops"       value={products.filter(p=>p.cat==="Desktops").length}   color={NAVY}/>
+          <Stat label="Printers"       value={products.filter(p=>p.cat==="Printers").length}   color={NAVY}/>
+          <Stat label="Accessories"    value={products.filter(p=>p.cat==="Accessories").length} color={NAVY}/>
+          <Stat label="NEW Badges"     value={products.filter(p=>p.isNew).length} color={RED}/>
+        </div>
+
+        {/* ── TABS ── */}
+        <div style={{display:"flex",gap:8,marginBottom:24}}>
+          <button className={`tab-btn ${tab==="products"?"active":""}`} onClick={()=>{setTab("products");setForm(EMPTY_FORM);setEditId(null);}}>
+            📋 All Products ({products.length})
+          </button>
+          <button className={`tab-btn ${tab==="add"?"active":""}`} onClick={()=>{setTab("add");if(!editId){setForm(EMPTY_FORM);}}}>
+            {editId!==null?"✏️ Edit Product":"➕ Add Product"}
+          </button>
+          {editId!==null&&(
+            <button className="tab-btn" style={{color:RED,borderColor:RED}}
+              onClick={()=>{setForm(EMPTY_FORM);setEditId(null);setTab("products");}}>
+              ✕ Cancel Edit
+            </button>
+          )}
+        </div>
+
+        {/* ════════════════════════════════
+            TAB: ALL PRODUCTS
+        ════════════════════════════════ */}
+        {tab==="products"&&(
+          <div>
+            {/* Category filter */}
+            <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {["All",...CATS].map(c=>(
+                  <button key={c} className={`cat-filter ${filterCat===c?"on":""}`} onClick={()=>setFilterCat(c)}>{c}</button>
+                ))}
+              </div>
+              <button onClick={()=>{if(window.confirm("Reset all products to defaults? This cannot be undone."))resetToDefaults();}}
+                style={{background:"none",border:"1.5px solid #e0e0e0",padding:"7px 14px",fontSize:12,fontWeight:600,color:"#888",cursor:"pointer"}}>
+                ↺ Reset to Defaults
+              </button>
+            </div>
+
+            {/* Product list */}
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {filtered.length===0&&(
+                <div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid #e8e8e8",color:"#aaa",fontSize:14}}>
+                  No products in this category.
+                  <button onClick={()=>{setTab("add");setForm({...EMPTY_FORM,cat:filterCat==="All"?"Laptops":filterCat});}}
+                    style={{marginLeft:12,background:NAVY,color:"#fff",border:"none",padding:"6px 14px",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                    + Add One
+                  </button>
+                </div>
+              )}
+              {filtered.map(p=>(
+                <div key={p.id} className="prod-row">
+                  <span style={{fontSize:28,flexShrink:0}}>{p.icon}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
+                      <span style={{fontWeight:700,fontSize:15,color:NAVY}}>{p.name}</span>
+                      {p.isNew&&<span style={{background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"2px 8px",letterSpacing:".06em",textTransform:"uppercase"}}>NEW</span>}
+                    </div>
+                    <div style={{fontSize:11,color:"#888",display:"flex",gap:12,flexWrap:"wrap"}}>
+                      <span style={{color:RED,fontWeight:600,textTransform:"uppercase",letterSpacing:".06em"}}>{p.cat}</span>
+                      <span>{p.spec}</span>
+                    </div>
+                  </div>
+                  <div style={{fontWeight:800,fontSize:16,color:NAVY,flexShrink:0}}>{p.price}</div>
+                  <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+                    {/* NEW toggle */}
+                    <button className="toggle"
+                      style={{background:p.isNew?RED:"#e0e0e0"}}
+                      onClick={()=>toggleNew(p.id)}
+                      title={p.isNew?"Remove NEW badge":"Mark as NEW"}>
+                      <div className="toggle-knob" style={{left:p.isNew?22:3}}/>
+                    </button>
+                    <span style={{fontSize:11,color:p.isNew?RED:"#aaa",fontWeight:600,minWidth:32}}>{p.isNew?"NEW":"—"}</span>
+                    <button className="action-btn"
+                      style={{background:"#eef2ff",color:NAVY}}
+                      onMouseEnter={e=>{e.target.style.background=NAVY;e.target.style.color="#fff";}}
+                      onMouseLeave={e=>{e.target.style.background="#eef2ff";e.target.style.color=NAVY;}}
+                      onClick={()=>handleEdit(p)}>
+                      Edit
+                    </button>
+                    <button className="action-btn"
+                      style={{background:"#fff0f0",color:RED}}
+                      onClick={()=>setDelConfirm(p.id)}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════════════════════
+            TAB: ADD / EDIT PRODUCT
+        ════════════════════════════════ */}
+        {tab==="add"&&(
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24,alignItems:"start"}}>
+
+            {/* ── LEFT: Basic info ── */}
+            <div style={{background:"#fff",border:"1.5px solid #e8e8e8",padding:"28px"}}>
+              <h3 style={{fontWeight:800,fontSize:18,color:NAVY,marginBottom:4}}>{editId!==null?"Edit Product":"Add New Product"}</h3>
+              <p style={{fontSize:13,color:"#888",marginBottom:24}}>Basic information shown on product card.</p>
+
+              <div style={{display:"flex",flexDirection:"column",gap:16}}>
+                {/* Name */}
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#777",display:"block",marginBottom:6}}>Product Name *</label>
+                  <input className="adm-inp" placeholder="e.g. HP Pavilion 15 Laptop" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/>
+                </div>
+
+                {/* Category + Price */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#777",display:"block",marginBottom:6}}>Category *</label>
+                    <select className="adm-inp" value={form.cat} onChange={e=>setForm(f=>({...f,cat:e.target.value,specs:{}}))}>
+                      {CATS.map(c=><option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#777",display:"block",marginBottom:6}}>Price *</label>
+                    <input className="adm-inp" placeholder="₹52,990" value={form.price} onChange={e=>setForm(f=>({...f,price:e.target.value}))}/>
+                  </div>
+                </div>
+
+                {/* Icon */}
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#777",display:"block",marginBottom:8}}>Icon</label>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    {ICONS.map(ic=>(
+                      <button key={ic} onClick={()=>setForm(f=>({...f,icon:ic}))}
+                        style={{fontSize:24,padding:"8px 10px",border:`2px solid ${form.icon===ic?NAVY:"#e0e0e0"}`,background:form.icon===ic?"#eef2ff":"#fff",cursor:"pointer",transition:"all .15s"}}>
+                        {ic}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Short spec summary */}
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#777",display:"block",marginBottom:6}}>
+                    Short Spec Summary <span style={{color:"#aaa",fontWeight:400,textTransform:"none",letterSpacing:0}}>(shown on card — auto-generated if left blank)</span>
+                  </label>
+                  <input className="adm-inp" placeholder="Intel i5 · 8GB RAM · 512GB SSD · Win 11" value={form.spec} onChange={e=>setForm(f=>({...f,spec:e.target.value}))}/>
+                </div>
+
+                {/* NEW badge toggle */}
+                <div style={{display:"flex",alignItems:"center",gap:12,paddingTop:4}}>
+                  <label style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#777"}}>Mark as NEW</label>
+                  <button className="toggle" style={{background:form.isNew?RED:"#e0e0e0"}} onClick={()=>setForm(f=>({...f,isNew:!f.isNew}))}>
+                    <div className="toggle-knob" style={{left:form.isNew?22:3}}/>
+                  </button>
+                  <span style={{fontSize:13,fontWeight:600,color:form.isNew?RED:"#aaa"}}>{form.isNew?"Shows NEW badge":"No badge"}</span>
+                </div>
+
+                {/* Key Highlights */}
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#777",display:"block",marginBottom:8}}>Key Highlights <span style={{fontWeight:400,color:"#aaa",textTransform:"none",letterSpacing:0}}>(up to 4)</span></label>
+                  {form.highlights.map((h,i)=>(
+                    <input key={i} className="adm-inp" style={{marginBottom:8}} placeholder={`Highlight ${i+1}`}
+                      value={h} onChange={e=>setHighlight(i,e.target.value)}/>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ── RIGHT: Full Specs ── */}
+            <div>
+              <div style={{background:"#fff",border:"1.5px solid #e8e8e8",padding:"28px",marginBottom:16}}>
+                <h3 style={{fontWeight:800,fontSize:18,color:NAVY,marginBottom:4}}>Full Specifications</h3>
+                <p style={{fontSize:13,color:"#888",marginBottom:24}}>These appear in the full specs table on the product page.</p>
+                {specKeys().map(key=>(
+                  <div key={key} className="spec-row">
+                    <div className="spec-label">{key}</div>
+                    <input className="adm-inp" placeholder={`Enter ${key}`}
+                      value={form.specs[key]||""}
+                      onChange={e=>setSpecVal(key,e.target.value)}/>
+                  </div>
+                ))}
+              </div>
+
+              {/* Preview card */}
+              {form.name&&(
+                <div style={{background:"#fff",border:"1.5px solid #e8e8e8",padding:"20px",marginBottom:16}}>
+                  <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#aaa",marginBottom:14}}>Card Preview</div>
+                  <div style={{background:"#f5f5f5",height:100,display:"flex",alignItems:"center",justifyContent:"center",fontSize:48,marginBottom:14,position:"relative"}}>
+                    {form.isNew&&<span style={{position:"absolute",top:8,left:8,background:RED,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 8px",letterSpacing:".08em",textTransform:"uppercase"}}>NEW</span>}
+                    {form.icon}
+                  </div>
+                  <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:RED,marginBottom:4}}>{form.cat}</div>
+                  <div style={{fontWeight:700,fontSize:15,color:NAVY,marginBottom:4}}>{form.name}</div>
+                  <div style={{fontSize:11,color:"#888",marginBottom:8}}>{form.spec||autoSummary(form.specs,form.cat)||"Specs will appear here"}</div>
+                  <div style={{fontWeight:800,fontSize:18,color:NAVY}}>{form.price||"Price"}</div>
+                </div>
+              )}
+
+              {/* Save button */}
+              <button onClick={handleSave}
+                style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"15px",fontSize:15,fontWeight:700,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",transition:"background .15s"}}
+                onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
+                {editId!==null?"✓ Update Product":"✓ Save Product"}
+              </button>
+              {editId!==null&&(
+                <button onClick={()=>{setForm(EMPTY_FORM);setEditId(null);setTab("products");}}
+                  style={{width:"100%",marginTop:8,background:"#fff",border:"1.5px solid #e0e0e0",color:"#555",padding:"12px",fontSize:13,fontWeight:600,cursor:"pointer"}}>
+                  Cancel
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── DELETE CONFIRM MODAL ── */}
+      {delConfirm&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#fff",maxWidth:380,width:"100%",padding:"40px 32px",textAlign:"center"}}>
+            <div style={{fontSize:40,marginBottom:16}}>🗑️</div>
+            <div style={{fontWeight:800,fontSize:20,color:NAVY,marginBottom:8}}>Delete this product?</div>
+            <p style={{fontSize:14,color:"#666",lineHeight:1.6,marginBottom:28}}>This will remove it from the website immediately. This cannot be undone.</p>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>setDelConfirm(null)}
+                style={{flex:1,background:"#fff",border:"1.5px solid #e0e0e0",padding:"12px",fontSize:14,fontWeight:600,cursor:"pointer"}}>Cancel</button>
+              <button onClick={()=>handleDelete(delConfirm)}
+                style={{flex:1,background:RED,color:"#fff",border:"none",padding:"12px",fontSize:14,fontWeight:700,cursor:"pointer"}}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TOAST ── */}
+      {toast&&(
+        <div style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:toast.type==="error"?RED:NAVY,color:"#fff",padding:"12px 24px",fontSize:14,fontWeight:600,zIndex:3000,boxShadow:"0 4px 20px rgba(0,0,0,.2)",whiteSpace:"nowrap"}}>
+          {toast.type==="error"?"⚠️":"✓"} {toast.msg}
+        </div>
+      )}
+    </div>
+  );
+}

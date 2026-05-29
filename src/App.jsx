@@ -1,7 +1,25 @@
 import { useState, useEffect, useRef } from "react";
+import Admin from "./Admin";
 
 const NAVY = "#0B1F5E";
 const RED  = "#CC1A1A";
+
+/* ── load products: localStorage overrides defaults ── */
+function useProducts(defaults){
+  const[products,setProducts]=useState(()=>{
+    try{ const s=localStorage.getItem("advantage_products"); return s?JSON.parse(s):defaults; }
+    catch{ return defaults; }
+  });
+  useEffect(()=>{
+    const fn=()=>{
+      try{ const s=localStorage.getItem("advantage_products"); if(s)setProducts(JSON.parse(s)); }
+      catch{}
+    };
+    window.addEventListener("storage",fn);
+    return()=>window.removeEventListener("storage",fn);
+  },[]);
+  return products;
+}
 
 /* ══════════════════════════════════════════════
    PRODUCTS — full specs for product page + admin
@@ -41,7 +59,7 @@ const PRODUCTS = [
       "Ports":            "2× USB-A 3.2, 1× USB-C, HDMI 1.4, 3.5mm",
       "Connectivity":     "Wi-Fi 6, Bluetooth 5.1",
       "Weight":           "1.62 kg",
-      "Warranty":         "1 Year Warranty",
+      "Warranty":         "1 Year On-site Warranty",
     },
     highlights:["AMD Ryzen 5 Processor","16GB RAM — Best Value","9 Hr Battery Life","Slim & Lightweight Design"],
   },
@@ -51,16 +69,16 @@ const PRODUCTS = [
     spec:"Intel i3-1215U · 8GB RAM · 512GB SSD · OLED",
     specs:{
       "Processor":        "Intel Core i3-1215U (12th Gen, 6 Cores)",
-      "RAM":              "8GB DDR4 (1 Slot, Expandable to 16GB)",
+      "RAM":              "8GB DDR4 (1 Slot, Expandable to 12GB)",
       "Storage":          "512GB M.2 NVMe SSD",
       "Display":          "15.6\" FHD OLED (1920×1080, 600 Nits, VESA HDR True Black)",
       "Graphics":         "Intel UHD Graphics",
       "Operating System": "Windows 11 Home",
       "Battery":          "42Wh, Up to 6 Hours",
-      "Ports":            "1× USB-A 3.2, 2× USB-A 2.0, 1× USB-C, HDMI, 3.5mm headphone jack",
+      "Ports":            "1× USB-A 3.2, 2× USB-A 2.0, 1× USB-C, HDMI, 3.5mm",
       "Connectivity":     "Wi-Fi 6E, Bluetooth 5.0",
       "Weight":           "1.80 kg",
-      "Warranty":         "1 Year Warranty",
+      "Warranty":         "1 Year On-site Warranty",
     },
     highlights:["OLED Display — Vivid Colours","12th Gen Intel Core i3","512GB Fast SSD","TÜV Rheinland Eye Care Certified"],
   },
@@ -79,7 +97,7 @@ const PRODUCTS = [
       "Ports":            "2× USB-A, 1× USB-C, HDMI, SD Card, RJ-45, 3.5mm",
       "Connectivity":     "Wi-Fi 6, Bluetooth 5.2",
       "Weight":           "1.86 kg",
-      "Warranty":         "1 Year Warranty",
+      "Warranty":         "1 Year On-site Warranty",
     },
     highlights:["Dual Storage — SSD + HDD","16GB RAM Standard","RJ-45 Ethernet Port","Dell Reliability & Build"],
   },
@@ -97,7 +115,7 @@ const PRODUCTS = [
       "Ports":            "USB-A 3.2 (Front & Rear), USB-C, DisplayPort, VGA, RJ-45",
       "Optical Drive":    "DVD-RW (Optional)",
       "Connectivity":     "Intel Gigabit Ethernet, Wi-Fi Optional",
-      "Warranty":         "1 Year Warranty",
+      "Warranty":         "1 Year On-site Warranty",
     },
     highlights:["12th Gen Intel Core i3","Windows 11 Pro Included","Easily Upgradeable","Ideal for Office Use"],
   },
@@ -115,7 +133,7 @@ const PRODUCTS = [
       "Ports":            "4× USB-A, 1× USB-C, HDMI, DisplayPort, RJ-45",
       "Optical Drive":    "No ODD",
       "Connectivity":     "Gigabit Ethernet, Bluetooth 5.0, Wi-Fi 6",
-      "Warranty":         "1 Year Support",
+      "Warranty":         "1 Year ProSupport On-site",
     },
     highlights:["Core i5 12th Gen SFF PC","512GB NVMe SSD — Fast Boot","Win 11 Pro for Business","Dell ProSupport Warranty"],
   },
@@ -133,7 +151,7 @@ const PRODUCTS = [
       "Paper Size":        "A4, A5, B5, Letter, Legal, Envelopes",
       "Ink Bottles":       "GI-73 Black, Cyan, Magenta, Yellow",
       "Page Yield":        "Approx. 6,000 (B), 7,700 (Color)",
-      "Warranty":          "1 Year Warranty",
+      "Warranty":          "1 Year On-site",
     },
     highlights:["High-Yield Ink Tank","Wi-Fi Direct Printing","Low Cost Per Page","Print + Scan + Copy"],
   },
@@ -151,7 +169,7 @@ const PRODUCTS = [
       "Duty Cycle":        "Up to 5,000 Pages/Month",
       "Toner Cartridge":   "HP 106A Black (~1,000 pages)",
       "Dimensions":        "339 × 195 × 235 mm",
-      "Warranty":          "1 Year Warranty",
+      "Warranty":          "1 Year On-site",
     },
     highlights:["Fast 20ppm Print Speed","Compact Office Design","Low Running Cost","HP Reliable Laser Quality"],
   },
@@ -364,8 +382,14 @@ function ProductCard({p,onQuote,onView,delay}){
       <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
         style={{background:"#fff",border:`1px solid ${hov?NAVY:"#e8e8e8"}`,transition:"border-color .2s",position:"relative",height:"100%"}}>
         {p.isNew&&<div style={{position:"absolute",top:12,left:12,background:RED,color:"#fff",fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",padding:"3px 10px",zIndex:1}}>NEW</div>}
-        <div style={{background:"#f5f5f5",height:200,display:"flex",alignItems:"center",justifyContent:"center",fontSize:80,cursor:"pointer"}}
-          onClick={()=>onView(p)}>{p.icon}</div>
+        {/* Image or emoji fallback */}
+        <div style={{background:"#f5f5f5",height:200,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden"}}
+          onClick={()=>onView(p)}>
+          {p.image
+            ? <img src={p.image} alt={p.name} style={{width:"100%",height:"100%",objectFit:"contain",padding:"12px"}}/>
+            : <span style={{fontSize:80}}>{p.icon}</span>
+          }
+        </div>
         <div style={{padding:"16px 18px 20px"}}>
           <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:RED,marginBottom:5}}>{p.cat}</div>
           <div style={{fontWeight:700,fontSize:17,color:NAVY,marginBottom:6,lineHeight:1.2,cursor:"pointer"}} onClick={()=>onView(p)}>{p.name}</div>
@@ -419,17 +443,23 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
 
           {/* ── LEFT: Image ── */}
           <div>
-            <div style={{background:"#f5f5f5",border:"1px solid #e8e8e8",display:"flex",alignItems:"center",justifyContent:"center",fontSize:160,padding:"60px 32px",position:"relative",minHeight:320}}>
-              {p.isNew&&<div style={{position:"absolute",top:16,left:16,background:RED,color:"#fff",fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",padding:"5px 14px"}}>NEW</div>}
-              {p.icon}
+            <div style={{background:"#f5f5f5",border:"1px solid #e8e8e8",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",minHeight:320,overflow:"hidden"}}>
+              {p.isNew&&<div style={{position:"absolute",top:16,left:16,background:RED,color:"#fff",fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",padding:"5px 14px",zIndex:1}}>NEW</div>}
+              {p.image
+                ? <img src={p.image} alt={p.name} style={{width:"100%",height:"100%",objectFit:"contain",padding:"32px",maxHeight:380}}/>
+                : <span style={{fontSize:160,padding:"40px 32px",display:"block"}}>{p.icon}</span>
+              }
             </div>
             {/* Thumbnail row */}
             <div style={{display:"flex",gap:8,marginTop:10}}>
               {[0,1,2].map(i=>(
-                <div key={i} style={{flex:1,background:"#f5f5f5",border:`1.5px solid ${i===0?NAVY:"#e8e8e8"}`,height:72,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,cursor:"pointer",opacity:i===0?1:.45,transition:"all .15s"}}
+                <div key={i} style={{flex:1,background:"#f5f5f5",border:`1.5px solid ${i===0?NAVY:"#e8e8e8"}`,height:72,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",opacity:i===0?1:.5,transition:"all .15s"}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor=NAVY;e.currentTarget.style.opacity="1";}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor=i===0?NAVY:"#e8e8e8";e.currentTarget.style.opacity=i===0?"1":".45";}}>
-                  {p.icon}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=i===0?NAVY:"#e8e8e8";e.currentTarget.style.opacity=i===0?"1":".5";}}>
+                  {p.image
+                    ? <img src={p.image} alt="" style={{width:"100%",height:"100%",objectFit:"contain",padding:"6px"}}/>
+                    : <span style={{fontSize:28}}>{p.icon}</span>
+                  }
                 </div>
               ))}
             </div>
@@ -440,6 +470,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
                 {icon:"📍",text:"Anand Arcade, Opposite Civil Hospital, Silchar – 788001"},
                 {icon:"📞",text:"03842-230952 · 9435070738"},
                 {icon:"🕙",text:"Mon – Sat · 10:00 AM – 8:00 PM"},
+                {icon:"✅",text:"In-store demo available on request"},
               ].map((item,i)=>(
                 <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:12,color:"#444",marginBottom:8,fontWeight:500}}>
                   <span style={{flexShrink:0}}>{item.icon}</span><span>{item.text}</span>
@@ -530,7 +561,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
               </tr>
               <tr style={{background:Object.keys(p.specs).length%2!==0?"#f9f9fb":"#fff"}}>
                 <td style={{padding:"14px 24px",fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777"}}>Price</td>
-                <td style={{padding:"14px 24px",fontSize:16,fontWeight:800,color:RED}}>{p.price} <span style={{fontSize:12,fontWeight:400,color:"#888"}}></span></td>
+                <td style={{padding:"14px 24px",fontSize:16,fontWeight:800,color:RED}}>{p.price} <span style={{fontSize:12,fontWeight:400,color:"#888"}}>— Contact for best deal</span></td>
               </tr>
             </tbody>
           </table>
@@ -567,7 +598,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
 
 /* ══════ MAIN ══════ */
 export default function App(){
-  const scrollY=useScrollY();
+  const[adminOpen,setAdminOpen]=useState(false);
   const[activeMenu,setActiveMenu]=useState(null);
   const[slide,setSlide]=useState(0);
   const[activeCat,setActiveCat]=useState("All");
@@ -577,6 +608,17 @@ export default function App(){
   const[searchQuery,setSearchQuery]=useState("");
   const menuRef=useRef(null);
   const searchRef=useRef(null);
+  const liveProducts=useProducts(PRODUCTS);
+
+  const scrollY=useScrollY();
+
+  /* open admin via URL hash: go to /#admin in browser */
+  useEffect(()=>{
+    if(window.location.hash==="#admin") setAdminOpen(true);
+    const fn=()=>{ if(window.location.hash==="#admin") setAdminOpen(true); };
+    window.addEventListener("hashchange",fn);
+    return()=>window.removeEventListener("hashchange",fn);
+  },[]);
 
   useEffect(()=>{const t=setInterval(()=>setSlide(s=>(s+1)%HERO_SLIDES.length),5000);return()=>clearInterval(t);},[]);
   useEffect(()=>{const fn=e=>{if(menuRef.current&&!menuRef.current.contains(e.target))setActiveMenu(null);};document.addEventListener("mousedown",fn);return()=>document.removeEventListener("mousedown",fn);},[]);
@@ -584,12 +626,20 @@ export default function App(){
 
   const q=searchQuery.trim().toLowerCase();
   const displayed=(()=>{
-    let base=activeCat==="All"?PRODUCTS:PRODUCTS.filter(p=>p.cat===activeCat);
-    if(q) base=PRODUCTS.filter(p=>p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q));
+    let base=activeCat==="All"?liveProducts:liveProducts.filter(p=>p.cat===activeCat);
+    if(q) base=liveProducts.filter(p=>p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q));
     return base;
   })();
   const cur=HERO_SLIDES[slide];
   function scroll(id){document.getElementById(id)?.scrollIntoView({behavior:"smooth"});}
+
+  /* ── Admin view ── */
+  if(adminOpen) return(
+    <Admin
+      defaultProducts={PRODUCTS}
+      onExit={()=>{setAdminOpen(false);history.pushState("","",window.location.pathname);}}
+    />
+  );
 
   /* ── Product page view ── */
   if(selectedProduct) return(
