@@ -375,13 +375,22 @@ function QuoteModal({product,onClose}){
 }
 
 /* ══════ PRODUCT CARD ══════ */
-function ProductCard({p,onQuote,onView,delay}){
+function ProductCard({p,onQuote,onView,onCompare,compareList=[],delay}){
   const[hov,setHov]=useState(false);
+  const inCompare = compareList.some(c=>c.id===p.id);
   return(
     <Fade delay={delay}>
       <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
         style={{background:"#fff",border:`1px solid ${hov?NAVY:"#e8e8e8"}`,transition:"border-color .2s",position:"relative",height:"100%"}}>
         {p.isNew&&<div style={{position:"absolute",top:12,left:12,background:RED,color:"#fff",fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",padding:"3px 10px",zIndex:1}}>NEW</div>}
+        {/* Compare toggle */}
+        <div style={{position:"absolute",top:12,right:12,zIndex:1}}>
+          <button onClick={e=>{e.stopPropagation();onCompare(p);}}
+            title={inCompare?"Remove from compare":"Add to compare"}
+            style={{background:inCompare?NAVY:"rgba(255,255,255,.9)",color:inCompare?"#fff":"#888",border:`1.5px solid ${inCompare?NAVY:"#ddd"}`,borderRadius:4,padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",transition:"all .15s"}}>
+            {inCompare?"✓ Added":"+ Compare"}
+          </button>
+        </div>
         {/* Image or emoji fallback */}
         <div style={{background:"#f5f5f5",height:200,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden"}}
           onClick={()=>onView(p)}>
@@ -415,6 +424,291 @@ function ProductCard({p,onQuote,onView,delay}){
         </div>
       </div>
     </Fade>
+  );
+}
+
+/* ══════ COMPARE BAR ══════ */
+function CompareBar({list,onRemove,onClear,onCompare}){
+  if(list.length===0) return null;
+  return(
+    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:800,background:"#fff",borderTop:`3px solid ${NAVY}`,boxShadow:"0 -4px 24px rgba(11,31,94,.15)",padding:"14px 32px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+      <div style={{fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:NAVY,flexShrink:0}}>
+        Compare ({list.length}/3)
+      </div>
+      <div style={{display:"flex",gap:10,flex:1,flexWrap:"wrap"}}>
+        {list.map(p=>(
+          <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,background:"#f0f2f8",border:`1px solid #dde2f0`,padding:"6px 12px 6px 8px"}}>
+            <span style={{fontSize:18}}>{p.icon}</span>
+            <span style={{fontSize:13,fontWeight:600,color:NAVY}}>{p.name}</span>
+            <button onClick={()=>onRemove(p.id)}
+              style={{background:"none",border:"none",cursor:"pointer",color:"#aaa",fontSize:16,lineHeight:1,padding:0,marginLeft:4}}
+              onMouseEnter={e=>e.target.style.color=RED} onMouseLeave={e=>e.target.style.color="#aaa"}>×</button>
+          </div>
+        ))}
+        {/* Empty slots */}
+        {Array(3-list.length).fill(0).map((_,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:8,background:"#f9f9f9",border:"1.5px dashed #ddd",padding:"6px 20px",color:"#bbb",fontSize:12,fontWeight:500}}>
+            + Add product
+          </div>
+        ))}
+      </div>
+      <div style={{display:"flex",gap:10,flexShrink:0}}>
+        <button onClick={onClear}
+          style={{background:"none",border:"1.5px solid #ddd",color:"#666",padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all .15s"}}
+          onMouseEnter={e=>e.currentTarget.style.borderColor=NAVY} onMouseLeave={e=>e.currentTarget.style.borderColor="#ddd"}>
+          Clear All
+        </button>
+        <button onClick={onCompare} disabled={list.length<2}
+          style={{background:list.length>=2?NAVY:"#ccc",color:"#fff",border:"none",padding:"9px 24px",fontSize:13,fontWeight:700,cursor:list.length>=2?"pointer":"not-allowed",letterSpacing:".04em",textTransform:"uppercase",transition:"background .15s"}}
+          onMouseEnter={e=>{if(list.length>=2)e.target.style.background=RED;}} onMouseLeave={e=>{if(list.length>=2)e.target.style.background=NAVY;}}>
+          Compare Now →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════ COMPARE MODAL ══════ */
+function CompareModal({list,onClose,onQuote}){
+  useEffect(()=>{
+    document.body.style.overflow="hidden";
+    return()=>{document.body.style.overflow="";};
+  },[]);
+
+  const allKeys=[...new Set(list.flatMap(p=>Object.keys(p.specs||{})))];
+
+  /* ── Smart scoring: extract number from a string ── */
+  function extractNum(str=""){
+    const m=str.match(/[\d,]+\.?\d*/);
+    return m?parseFloat(m[0].replace(/,/g,"")):null;
+  }
+
+  /* Higher-is-better keys */
+  const higherBetter=["RAM","Storage","Display","Battery","Print Speed","Refresh Rate","Transfer Speed","Capacity","Page Yield"];
+  /* Lower-is-better keys */
+  const lowerBetter=["Weight","Price","Response Time"];
+
+  function getWinner(key){
+    const vals=list.map(p=>{
+      const raw=(p.specs||{})[key]||"";
+      return{p,raw,num:extractNum(raw)};
+    });
+    const withNums=vals.filter(v=>v.num!==null);
+    if(withNums.length<2) return null;
+    const isLower=lowerBetter.some(k=>key.toLowerCase().includes(k.toLowerCase()));
+    const isHigher=higherBetter.some(k=>key.toLowerCase().includes(k.toLowerCase()));
+    if(!isLower&&!isHigher) return null;
+    const winner=isLower
+      ? withNums.reduce((a,b)=>a.num<b.num?a:b)
+      : withNums.reduce((a,b)=>a.num>b.num?a:b);
+    return winner.p.id;
+  }
+
+  function getPriceWinner(){
+    const vals=list.map(p=>({p,num:extractNum(p.price||"")})).filter(v=>v.num!==null);
+    if(vals.length<2) return null;
+    return vals.reduce((a,b)=>a.num<b.num?a:b).p.id;
+  }
+
+  /* ── Auto-generate "Best for" badges per product ── */
+  function getBadges(p){
+    const badges=[];
+    const specs=p.specs||{};
+    const ram=extractNum(specs["RAM"]||"");
+    const storage=extractNum(specs["Storage"]||"");
+    const battery=extractNum(specs["Battery"]||"");
+    const weight=extractNum(specs["Weight"]||"");
+    const price=extractNum(p.price||"");
+
+    // Best value — lowest price
+    const prices=list.map(x=>extractNum(x.price||"")).filter(Boolean);
+    if(price&&price===Math.min(...prices)) badges.push({label:"Best Value",color:"#16a34a"});
+
+    // Best performance — highest RAM
+    const rams=list.map(x=>extractNum((x.specs||{})["RAM"]||"")).filter(Boolean);
+    if(ram&&ram===Math.max(...rams)&&rams.length>1) badges.push({label:"Best Performance",color:"#7c3aed"});
+
+    // Best storage
+    const stores=list.map(x=>extractNum((x.specs||{})["Storage"]||"")).filter(Boolean);
+    if(storage&&storage===Math.max(...stores)&&stores.length>1) badges.push({label:"Most Storage",color:"#0057b8"});
+
+    // Best battery
+    const batts=list.map(x=>extractNum((x.specs||{})["Battery"]||"")).filter(Boolean);
+    if(battery&&battery===Math.max(...batts)&&batts.length>1) badges.push({label:"Best Battery",color:"#d97706"});
+
+    // Most portable
+    const weights=list.map(x=>extractNum((x.specs||{})["Weight"]||"")).filter(Boolean);
+    if(weight&&weight===Math.min(...weights)&&weights.length>1) badges.push({label:"Most Portable",color:"#0891b2"});
+
+    // Cat-specific
+    if(p.cat==="Laptops"&&!badges.find(b=>b.label==="Best Value")&&ram>=16) badges.push({label:"For Professionals",color:"#374151"});
+    if(p.cat==="Printers"){
+      const speed=extractNum(specs["Print Speed"]||"");
+      const speeds=list.filter(x=>x.cat==="Printers").map(x=>extractNum((x.specs||{})["Print Speed"]||"")).filter(Boolean);
+      if(speed&&speed===Math.max(...speeds)&&speeds.length>1) badges.push({label:"Fastest Print",color:"#b45309"});
+    }
+
+    return badges;
+  }
+
+  const priceWinner=getPriceWinner();
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:2000,display:"flex",flexDirection:"column"}}>
+
+      {/* Header */}
+      <div style={{background:NAVY,padding:"16px 32px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontWeight:800,fontSize:18,color:"#fff"}}>Compare Products</span>
+          <span style={{fontSize:12,color:"rgba(255,255,255,.45)",background:"rgba(255,255,255,.1)",padding:"3px 10px"}}>
+            {list.length} products · scroll to see full specs
+          </span>
+        </div>
+        <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,.2)",color:"rgba(255,255,255,.7)",fontSize:14,fontWeight:600,cursor:"pointer",padding:"6px 14px",fontFamily:"inherit"}} onMouseEnter={e=>e.target.style.background="rgba(255,255,255,.1)"} onMouseLeave={e=>e.target.style.background="none"}>
+          ✕ Close
+        </button>
+      </div>
+
+      {/* Scrollable content */}
+      <div style={{flex:1,overflowY:"auto",background:"#f5f7fa"}}>
+        <div style={{maxWidth:1200,margin:"0 auto",padding:"28px 24px"}}>
+
+          {/* ── VERDICT CARDS ── */}
+          <div style={{display:"grid",gridTemplateColumns:`repeat(${list.length},1fr)`,gap:12,marginBottom:24}}>
+            {list.map(p=>{
+              const badges=getBadges(p);
+              const isPriceBest=priceWinner===p.id;
+              return(
+                <div key={p.id} style={{background:"#fff",border:`2px solid ${badges.length>0?NAVY:"#e8e8e8"}`,padding:"20px 18px",textAlign:"center",position:"relative"}}>
+                  {badges.length>0&&(
+                    <div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>
+                      ★ {badges[0].label}
+                    </div>
+                  )}
+                  <div style={{marginTop:badges.length>0?16:0}}>
+                    {/* Image */}
+                    <div style={{height:90,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10,overflow:"hidden"}}>
+                      {p.image
+                        ? <img src={p.image} alt={p.name} style={{maxHeight:"100%",maxWidth:"100%",objectFit:"contain"}}/>
+                        : <span style={{fontSize:48}}>{p.icon}</span>
+                      }
+                    </div>
+                    <div style={{fontSize:11,fontWeight:700,color:RED,letterSpacing:".06em",textTransform:"uppercase",marginBottom:4}}>{p.cat}</div>
+                    <div style={{fontWeight:800,fontSize:15,color:NAVY,marginBottom:6,lineHeight:1.3}}>{p.name}</div>
+                    <div style={{fontWeight:800,fontSize:20,color:isPriceBest?"#16a34a":NAVY,marginBottom:4}}>{p.price}</div>
+                    {isPriceBest&&<div style={{fontSize:11,color:"#16a34a",fontWeight:700,marginBottom:8}}>✓ Lowest Price</div>}
+                    {/* All badges */}
+                    <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center",marginBottom:12}}>
+                      {badges.map((b,i)=>(
+                        <span key={i} style={{background:b.color,color:"#fff",fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:2,letterSpacing:".04em"}}>
+                          {b.label}
+                        </span>
+                      ))}
+                      {badges.length===0&&<span style={{fontSize:11,color:"#aaa"}}>No standout category</span>}
+                    </div>
+                    <button onClick={()=>{onClose();onQuote(p);}}
+                      style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"9px 0",fontSize:12,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",transition:"background .15s"}}
+                      onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
+                      Enquire
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ── SPEC TABLE ── */}
+          <table style={{width:"100%",borderCollapse:"collapse",background:"#fff",border:"1px solid #e8e8e8"}}>
+            <thead>
+              <tr style={{background:NAVY}}>
+                <td style={{padding:"12px 20px",fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.5)",width:"22%"}}>Specification</td>
+                {list.map(p=>(
+                  <td key={p.id} style={{padding:"12px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)",fontWeight:700,fontSize:13,color:"#fff"}}>
+                    {p.name}
+                  </td>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {/* Price */}
+              <tr style={{background:"#f0f2f8",borderBottom:"2px solid #dde2f0"}}>
+                <td style={{padding:"14px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#555"}}>Price</td>
+                {list.map(p=>(
+                  <td key={p.id} style={{padding:"14px 18px",textAlign:"center",borderLeft:"1px solid #e8e8e8",fontWeight:800,fontSize:18,
+                    color:priceWinner===p.id?"#16a34a":NAVY}}>
+                    {p.price}
+                    {priceWinner===p.id&&<div style={{fontSize:10,color:"#16a34a",fontWeight:700,marginTop:2}}>BEST PRICE</div>}
+                  </td>
+                ))}
+              </tr>
+
+              {/* All spec rows */}
+              {allKeys.map((key,i)=>{
+                const winnerId=getWinner(key);
+                const vals=list.map(p=>(p.specs||{})[key]||"—");
+                const allSame=vals.every(v=>v===vals[0]);
+                return(
+                  <tr key={key} style={{borderBottom:"1px solid #f0f0f0",background:i%2===0?"#fff":"#fafafa"}}>
+                    <td style={{padding:"13px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777",verticalAlign:"top"}}>{key}</td>
+                    {list.map(p=>{
+                      const val=(p.specs||{})[key]||"—";
+                      const isWinner=winnerId===p.id;
+                      return(
+                        <td key={p.id} style={{
+                          padding:"13px 18px",textAlign:"center",
+                          borderLeft:"1px solid #e8e8e8",
+                          fontSize:13,lineHeight:1.55,verticalAlign:"top",
+                          fontWeight:isWinner?700:400,
+                          color:isWinner?"#15803d":NAVY,
+                          background:isWinner?"#f0fdf4":(!allSame&&val!=="—"?"#fffbeb":"transparent"),
+                        }}>
+                          {val}
+                          {isWinner&&val!=="—"&&<div style={{fontSize:10,color:"#16a34a",fontWeight:700,marginTop:3}}>✓ BEST</div>}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+
+              {/* Highlights */}
+              <tr style={{borderBottom:"1px solid #e8e8e8",background:"#f9f9fb"}}>
+                <td style={{padding:"14px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777",verticalAlign:"top"}}>Key Highlights</td>
+                {list.map(p=>(
+                  <td key={p.id} style={{padding:"14px 18px",textAlign:"left",borderLeft:"1px solid #e8e8e8",verticalAlign:"top"}}>
+                    {(p.highlights||[]).filter(Boolean).map((h,i)=>(
+                      <div key={i} style={{fontSize:12,color:"#444",marginBottom:5,display:"flex",alignItems:"flex-start",gap:6}}>
+                        <span style={{color:RED,fontWeight:700,flexShrink:0}}>✓</span>{h}
+                      </div>
+                    ))}
+                  </td>
+                ))}
+              </tr>
+
+              {/* Verdict */}
+              <tr style={{background:"#0B1F5E"}}>
+                <td style={{padding:"16px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>Our Pick</td>
+                {list.map(p=>{
+                  const badges=getBadges(p);
+                  return(
+                    <td key={p.id} style={{padding:"16px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)"}}>
+                      {badges.length>0
+                        ? <span style={{background:badges[0].color,color:"#fff",fontSize:11,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>★ {badges[0].label}</span>
+                        : <span style={{fontSize:12,color:"rgba(255,255,255,.3)"}}>—</span>
+                      }
+                    </td>
+                  );
+                })}
+              </tr>
+            </tbody>
+          </table>
+
+          <div style={{marginTop:14,fontSize:12,color:"#aaa",textAlign:"center"}}>
+            🟢 Green = winner in that category &nbsp;·&nbsp; 🟡 Yellow = value differs between products
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -494,7 +788,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
 
             {/* Price */}
             <div style={{fontSize:42,fontWeight:800,color:NAVY,letterSpacing:"-.02em",lineHeight:1,marginBottom:6}}>{p.price}</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:28}}>Contact us for buying options.</div>
+            <div style={{fontSize:13,color:"#888",marginBottom:28}}>Contact us for bulk pricing, EMI options & best deals.</div>
 
             {/* CTA buttons */}
             <div style={{display:"flex",gap:12,marginBottom:32,flexWrap:"wrap"}}>
@@ -600,6 +894,8 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
 export default function App(){
   const[adminOpen,setAdminOpen]=useState(false);
   const[mobileMenuOpen,setMobileMenuOpen]=useState(false);
+  const[compareList,setCompareList]=useState([]);
+  const[compareOpen,setCompareOpen]=useState(false);
   const[activeMenu,setActiveMenu]=useState(null);
   const[slide,setSlide]=useState(0);
   const[activeCat,setActiveCat]=useState("All");
@@ -633,6 +929,14 @@ export default function App(){
   })();
   const cur=HERO_SLIDES[slide];
   function scroll(id){document.getElementById(id)?.scrollIntoView({behavior:"smooth"});}
+
+  function handleCompare(p){
+    setCompareList(list=>{
+      if(list.some(c=>c.id===p.id)) return list.filter(c=>c.id!==p.id);
+      if(list.length>=3) return list; // max 3
+      return [...list,p];
+    });
+  }
 
   /* ── Admin view ── */
   if(adminOpen) return(
@@ -1034,7 +1338,7 @@ export default function App(){
             </div>
           ):(
             <div className="product-grid">
-              {displayed.map((p,i)=><ProductCard key={p.id} p={p} onQuote={setModal} onView={setSelectedProduct} delay={i*.04}/>)}
+              {displayed.map((p,i)=><ProductCard key={p.id} p={p} onQuote={setModal} onView={setSelectedProduct} onCompare={handleCompare} compareList={compareList} delay={i*.04}/>)}
             </div>
           )}
         </div>
@@ -1152,7 +1456,18 @@ export default function App(){
         </div>
       </footer>
 
-      <button className="wa-float" onClick={()=>window.open("https://wa.me/919435070738?text=Hi%2C+I+want+to+enquire+about+your+products+and+services.","_blank")}>
+      {/* ── COMPARE BAR ── */}
+      <CompareBar
+        list={compareList}
+        onRemove={id=>setCompareList(l=>l.filter(p=>p.id!==id))}
+        onClear={()=>setCompareList([])}
+        onCompare={()=>setCompareOpen(true)}
+      />
+
+      {/* ── COMPARE MODAL ── */}
+      {compareOpen&&<CompareModal list={compareList} onClose={()=>setCompareOpen(false)} onQuote={setModal}/>}
+
+      <button className="wa-float" style={{bottom:compareList.length>0?90:24}} onClick={()=>window.open("https://wa.me/919435070738?text=Hi%2C+I+want+to+enquire+about+your+products+and+services.","_blank")}>
         💬 WhatsApp
       </button>
 
