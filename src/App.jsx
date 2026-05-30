@@ -494,7 +494,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
 
             {/* Price */}
             <div style={{fontSize:42,fontWeight:800,color:NAVY,letterSpacing:"-.02em",lineHeight:1,marginBottom:6}}>{p.price}</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:28}}>Contact us for bulk pricing, EMI options & best deals.</div>
+            <div style={{fontSize:13,color:"#888",marginBottom:28}}>Contact us for buying options.</div>
 
             {/* CTA buttons */}
             <div style={{display:"flex",gap:12,marginBottom:32,flexWrap:"wrap"}}>
