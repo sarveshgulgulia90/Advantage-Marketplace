@@ -18,6 +18,7 @@ const SPEC_KEYS = {
 
 const EMPTY_FORM = {
   name:"", cat:"Laptops", price:"", icon:"💻", isNew:false,
+  image:"",       /* base64 or URL */
   spec:"",        /* short summary shown on card */
   specs:{},       /* full key-value spec table  */
   highlights:["","","",""],
@@ -29,6 +30,61 @@ function loadProducts(){
   catch { return null; }
 }
 function saveProducts(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+
+/* ══ Seed Banner ══ */
+function SeedBanner({ products }){
+  const[status,setStatus]=useState(null); // null | "loading" | "done" | "error" | "exists"
+  const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  const token = localStorage.getItem("advantage_admin_token") || "advantage_admin_secret_2025";
+
+  async function seed(){
+    setStatus("loading");
+    try{
+      const res = await fetch(`${API}/products/seed`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-admin-token":token},
+        body: JSON.stringify(products),
+      });
+      const data = await res.json();
+      if(!res.ok){
+        setStatus(data.error?.includes("already")?"exists":"error");
+      } else {
+        setStatus("done");
+      }
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if(status==="done") return(
+    <div style={{background:"#dcfce7",border:"1px solid #86efac",padding:"14px 20px",marginBottom:24,display:"flex",alignItems:"center",gap:12,fontSize:13}}>
+      <span style={{color:"#16a34a",fontSize:18}}>✓</span>
+      <span style={{fontWeight:600,color:"#15803d"}}>Products seeded to MongoDB successfully! The website now loads from the database.</span>
+    </div>
+  );
+
+  if(status==="exists") return(
+    <div style={{background:"#fef9c3",border:"1px solid #fde047",padding:"14px 20px",marginBottom:24,fontSize:13,fontWeight:500,color:"#854d0e"}}>
+      ⚠️ Products already exist in the database. Delete all first if you want to re-seed.
+    </div>
+  );
+
+  return(
+    <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",padding:"14px 20px",marginBottom:24,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+      <div>
+        <div style={{fontWeight:700,fontSize:14,color:NAVY}}>First time setup — Seed products to MongoDB</div>
+        <div style={{fontSize:12,color:"#555",marginTop:3}}>This pushes all {products.length} products from local storage into the database. Run once.</div>
+      </div>
+      <div style={{display:"flex",gap:10,alignItems:"center"}}>
+        {status==="error"&&<span style={{fontSize:12,color:RED,fontWeight:600}}>Failed — is the backend running?</span>}
+        <button onClick={seed} disabled={status==="loading"}
+          style={{background:NAVY,color:"#fff",border:"none",padding:"10px 22px",fontSize:13,fontWeight:700,cursor:status==="loading"?"wait":"pointer",letterSpacing:".04em",textTransform:"uppercase",opacity:status==="loading"?0.7:1}}>
+          {status==="loading"?"Seeding...":"Seed to Database →"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 /* ══ Stat box ══ */
 function Stat({label,value,color="#0B1F5E"}){
@@ -110,6 +166,7 @@ export default function Admin({ defaultProducts, onExit }){
     setForm({
       name:p.name, cat:p.cat, price:p.price, icon:p.icon,
       isNew:p.isNew||false, spec:p.spec||"",
+      image:p.image||"",
       specs:p.specs||{}, highlights:p.highlights||["","","",""],
     });
     setEditId(p.id);
@@ -246,7 +303,7 @@ export default function Admin({ defaultProducts, onExit }){
       <div style={{maxWidth:1200,margin:"0 auto",padding:"32px 24px"}}>
 
         {/* ── STATS ROW ── */}
-        <div style={{display:"flex",gap:12,marginBottom:28,flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
           <Stat label="Total Products" value={products.length}/>
           <Stat label="Laptops"        value={products.filter(p=>p.cat==="Laptops").length}    color={NAVY}/>
           <Stat label="Desktops"       value={products.filter(p=>p.cat==="Desktops").length}   color={NAVY}/>
@@ -254,6 +311,9 @@ export default function Admin({ defaultProducts, onExit }){
           <Stat label="Accessories"    value={products.filter(p=>p.cat==="Accessories").length} color={NAVY}/>
           <Stat label="NEW Badges"     value={products.filter(p=>p.isNew).length} color={RED}/>
         </div>
+
+        {/* ── SEED BANNER ── */}
+        <SeedBanner products={products}/>
 
         {/* ── TABS ── */}
         <div style={{display:"flex",gap:8,marginBottom:24}}>
@@ -374,9 +434,11 @@ export default function Admin({ defaultProducts, onExit }){
                   </div>
                 </div>
 
-                {/* Icon */}
+                {/* Icon — fallback only when no image uploaded */}
                 <div>
-                  <label style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#777",display:"block",marginBottom:8}}>Icon</label>
+                  <label style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#777",display:"block",marginBottom:8}}>
+                    Fallback Icon <span style={{fontWeight:400,color:"#aaa",textTransform:"none",letterSpacing:0}}>(used only if no image uploaded)</span>
+                  </label>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                     {ICONS.map(ic=>(
                       <button key={ic} onClick={()=>setForm(f=>({...f,icon:ic}))}
@@ -385,6 +447,61 @@ export default function Admin({ defaultProducts, onExit }){
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Product Image Upload */}
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#777",display:"block",marginBottom:8}}>
+                    Product Image <span style={{fontWeight:400,color:"#aaa",textTransform:"none",letterSpacing:0}}>(upload or paste URL)</span>
+                  </label>
+
+                  {/* Upload button */}
+                  <div style={{border:"2px dashed #dde2f0",padding:"20px",textAlign:"center",background:"#f9fbff",marginBottom:10,position:"relative",cursor:"pointer"}}
+                    onClick={()=>document.getElementById("img-upload").click()}
+                    onDragOver={e=>e.preventDefault()}
+                    onDrop={e=>{
+                      e.preventDefault();
+                      const file=e.dataTransfer.files[0];
+                      if(file&&file.type.startsWith("image/")){
+                        const reader=new FileReader();
+                        reader.onload=ev=>setForm(f=>({...f,image:ev.target.result}));
+                        reader.readAsDataURL(file);
+                      }
+                    }}>
+                    <input id="img-upload" type="file" accept="image/*" style={{display:"none"}}
+                      onChange={e=>{
+                        const file=e.target.files[0];
+                        if(file){
+                          const reader=new FileReader();
+                          reader.onload=ev=>setForm(f=>({...f,image:ev.target.result}));
+                          reader.readAsDataURL(file);
+                        }
+                      }}/>
+                    {form.image ? (
+                      <div style={{position:"relative",display:"inline-block"}}>
+                        <img src={form.image} alt="" style={{maxHeight:120,maxWidth:"100%",objectFit:"contain",display:"block",margin:"0 auto"}}/>
+                        <button onClick={e=>{e.stopPropagation();setForm(f=>({...f,image:""}));}}
+                          style={{position:"absolute",top:-8,right:-8,background:RED,color:"#fff",border:"none",width:22,height:22,borderRadius:"50%",fontSize:12,cursor:"pointer",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          ×
+                        </button>
+                      </div>
+                    ):(
+                      <div>
+                        <div style={{fontSize:28,marginBottom:8}}>📷</div>
+                        <div style={{fontSize:13,fontWeight:600,color:NAVY}}>Click to upload or drag & drop</div>
+                        <div style={{fontSize:11,color:"#aaa",marginTop:4}}>JPG, PNG, WebP — recommend 600×400px</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* OR paste URL */}
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                    <div style={{flex:1,height:1,background:"#e8e8e8"}}/>
+                    <span style={{fontSize:11,color:"#aaa",fontWeight:600}}>OR</span>
+                    <div style={{flex:1,height:1,background:"#e8e8e8"}}/>
+                  </div>
+                  <input className="adm-inp" placeholder="Paste image URL (https://...)" value={form.image.startsWith("data:")?"":(form.image||"")}
+                    onChange={e=>setForm(f=>({...f,image:e.target.value}))}/>
                 </div>
 
                 {/* Short spec summary */}
@@ -434,9 +551,12 @@ export default function Admin({ defaultProducts, onExit }){
               {form.name&&(
                 <div style={{background:"#fff",border:"1.5px solid #e8e8e8",padding:"20px",marginBottom:16}}>
                   <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#aaa",marginBottom:14}}>Card Preview</div>
-                  <div style={{background:"#f5f5f5",height:100,display:"flex",alignItems:"center",justifyContent:"center",fontSize:48,marginBottom:14,position:"relative"}}>
+                  <div style={{background:"#f5f5f5",height:100,display:"flex",alignItems:"center",justifyContent:"center",fontSize:48,marginBottom:14,position:"relative",overflow:"hidden"}}>
                     {form.isNew&&<span style={{position:"absolute",top:8,left:8,background:RED,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 8px",letterSpacing:".08em",textTransform:"uppercase"}}>NEW</span>}
-                    {form.icon}
+                    {form.image
+                      ? <img src={form.image} alt="" style={{width:"100%",height:"100%",objectFit:"contain"}}/>
+                      : form.icon
+                    }
                   </div>
                   <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:RED,marginBottom:4}}>{form.cat}</div>
                   <div style={{fontWeight:700,fontSize:15,color:NAVY,marginBottom:4}}>{form.name}</div>

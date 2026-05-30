@@ -599,6 +599,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
 /* ══════ MAIN ══════ */
 export default function App(){
   const[adminOpen,setAdminOpen]=useState(false);
+  const[mobileMenuOpen,setMobileMenuOpen]=useState(false);
   const[activeMenu,setActiveMenu]=useState(null);
   const[slide,setSlide]=useState(0);
   const[activeCat,setActiveCat]=useState("All");
@@ -814,8 +815,23 @@ export default function App(){
         .search-banner strong{color:${NAVY};}
         .search-banner button{background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:${RED};padding:0;}
         @media(max-width:1100px){.cat-grid{grid-template-columns:repeat(4,1fr);}.product-grid{grid-template-columns:repeat(3,1fr);}.brands-row{grid-template-columns:repeat(6,1fr);}}
-        @media(max-width:768px){.util-bar{display:none;}.nav-cats{display:none;}.hero-icon{display:none;}.hero-title{font-size:40px;}.product-grid{grid-template-columns:repeat(2,1fr);}.srv-grid{grid-template-columns:repeat(2,1fr);}.about-grid{grid-template-columns:1fr;}.about-left{border-right:none;border-bottom:1px solid #dde2f0;}.cat-grid{grid-template-columns:repeat(4,1fr);}.footer-main{grid-template-columns:1fr 1fr;gap:32px;}.info-bar-inner{grid-template-columns:1fr 1fr;}.brands-row{grid-template-columns:repeat(4,1fr);}}
+        @media(max-width:768px){.util-bar{display:none;}.nav-cats{display:none;}.nav-right .nav-icon-btn:not(.keep){display:none;}.nav-cta{display:none;}.hamburger{display:flex!important;}.hero-icon{display:none;}.hero-title{font-size:40px;}.product-grid{grid-template-columns:repeat(2,1fr);}.srv-grid{grid-template-columns:repeat(2,1fr);}.about-grid{grid-template-columns:1fr;}.about-left{border-right:none;border-bottom:1px solid #dde2f0;}.cat-grid{grid-template-columns:repeat(4,1fr);}.footer-main{grid-template-columns:1fr 1fr;gap:32px;}.info-bar-inner{grid-template-columns:1fr 1fr;}.brands-row{grid-template-columns:repeat(4,1fr);}}
         @media(max-width:480px){.product-grid{grid-template-columns:1fr;}.cat-grid{grid-template-columns:repeat(2,1fr);}.srv-grid{grid-template-columns:1fr;}.footer-main{grid-template-columns:1fr;}.info-bar-inner{grid-template-columns:1fr;}.brands-row{grid-template-columns:repeat(3,1fr);}.hero-title{font-size:32px;}.section{padding:48px 20px;}}
+
+        /* HAMBURGER */
+        .hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:8px;margin-left:auto;}
+        .hamburger span{display:block;width:22px;height:2px;background:#0B1F5E;transition:all .25s;border-radius:2px;}
+        .hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+        .hamburger.open span:nth-child(2){opacity:0;}
+        .hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+
+        /* MOBILE MENU DRAWER */
+        .mobile-drawer{position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:1100;overflow-y:auto;transform:translateX(100%);transition:transform .3s ease;}
+        .mobile-drawer.open{transform:translateX(0);}
+        .mob-cat{display:block;padding:16px 24px;font-size:15px;font-weight:600;color:#111;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .15s;}
+        .mob-cat:hover{background:#f5f7fa;}
+        .mob-sub{padding:10px 24px 10px 36px;font-size:13px;color:#666;border-bottom:1px solid #f8f8f8;cursor:pointer;display:block;transition:background .15s;}
+        .mob-sub:hover{background:#f5f7fa;color:#0B1F5E;}
       `}</style>
 
       <div className="util-bar">
@@ -852,10 +868,14 @@ export default function App(){
                   onKeyDown={e=>{if(e.key==="Escape"){setSearchOpen(false);setSearchQuery("");}if(e.key==="Enter"&&searchQuery.trim())scroll("products-section");}}/>
                 {searchQuery&&<button className="search-clear" onClick={()=>setSearchQuery("")}>×</button>}
               </div>
-              <button className="nav-icon-btn" onClick={()=>{if(searchOpen&&!searchQuery)setSearchOpen(false);else{setSearchOpen(true);setActiveMenu(null);}}} style={{color:searchOpen?NAVY:"#333"}}>🔍</button>
+              <button className="nav-icon-btn keep" onClick={()=>{if(searchOpen&&!searchQuery)setSearchOpen(false);else{setSearchOpen(true);setActiveMenu(null);}}} style={{color:searchOpen?NAVY:"#333"}}>🔍</button>
             </div>
             <button className="nav-icon-btn" onClick={()=>window.open("https://wa.me/919435070738","_blank")}>💬</button>
             <button className="nav-cta" onClick={()=>{setModal("contact");setActiveMenu(null);}}>Get Quote</button>
+            {/* Hamburger — mobile only */}
+            <button className={`hamburger ${mobileMenuOpen?"open":""}`} onClick={()=>setMobileMenuOpen(o=>!o)} aria-label="Menu">
+              <span/><span/><span/>
+            </button>
           </div>
         </div>
         <div className="mega-wrap" onMouseLeave={()=>setActiveMenu(null)}>
@@ -874,6 +894,74 @@ export default function App(){
           ))}
         </div>
       </div>
+
+      {/* ── MOBILE DRAWER ── */}
+      <div className={`mobile-drawer ${mobileMenuOpen?"open":""}`}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",height:58,borderBottom:`3px solid ${NAVY}`,position:"sticky",top:0,background:"#fff",zIndex:10}}>
+          <div style={{display:"flex",alignItems:"center"}}>
+            <div style={{background:NAVY,padding:"5px 12px",display:"flex",alignItems:"center"}}>
+              <span style={{fontSize:18,fontWeight:800,color:"#fff"}}>AD</span>
+              <span style={{fontSize:18,fontWeight:800,color:RED}}>V</span>
+              <span style={{fontSize:18,fontWeight:800,color:"#fff"}}>ANTAGE</span>
+            </div>
+            <div style={{background:"#fff",border:`1px solid ${NAVY}`,padding:"2px 8px",alignSelf:"stretch",display:"flex",alignItems:"center"}}>
+              <span style={{fontSize:8,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:NAVY}}>SILCHAR</span>
+            </div>
+          </div>
+          <button onClick={()=>setMobileMenuOpen(false)} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#333",lineHeight:1,padding:4}}>×</button>
+        </div>
+
+        {/* Quick action buttons */}
+        <div style={{display:"flex",borderBottom:"1px solid #e8e8e8"}}>
+          <button onClick={()=>{setModal("contact");setMobileMenuOpen(false);}}
+            style={{flex:1,background:RED,color:"#fff",border:"none",padding:"14px",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",fontFamily:"inherit"}}>
+            Get Quote
+          </button>
+          <button onClick={()=>window.open("https://wa.me/919435070738","_blank")}
+            style={{flex:1,background:"#25D366",color:"#fff",border:"none",padding:"14px",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,fontFamily:"inherit"}}>
+            💬 WhatsApp
+          </button>
+        </div>
+
+        {/* Browse categories */}
+        <div style={{paddingTop:12}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"#aaa",padding:"8px 24px 4px"}}>Shop</div>
+          {[{icon:"🏪",label:"All Products"},...CATEGORIES].map((c,i)=>(
+            <div key={c.label} className="mob-cat" onClick={()=>{
+              setActiveCat(i===0?"All":c.label);
+              setMobileMenuOpen(false);
+              setTimeout(()=>scroll("products-section"),120);
+            }}>
+              {c.icon} &nbsp;{c.label}
+            </div>
+          ))}
+        </div>
+
+        {/* Services */}
+        <div style={{borderTop:"1px solid #f0f0f0",paddingTop:12}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"#aaa",padding:"8px 24px 4px"}}>Services</div>
+          {["Laptop Repair","Desktop Repair","Printer Service","Onsite Support"].map(s=>(
+            <div key={s} className="mob-sub" onClick={()=>{setModal("contact");setMobileMenuOpen(false);}}>
+              {s}
+            </div>
+          ))}
+        </div>
+
+        {/* Contact strip */}
+        <div style={{background:"#f5f7fa",margin:"16px",padding:"16px 18px"}}>
+          <div style={{fontSize:12,fontWeight:700,color:NAVY,marginBottom:10,textTransform:"uppercase",letterSpacing:".06em"}}>Visit Us</div>
+          {[
+            {icon:"📍",text:"Anand Arcade, Opp. Civil Hospital, Silchar – 788001"},
+            {icon:"📞",text:"03842-230952 · 9435070738"},
+            {icon:"🕙",text:"Mon – Sat · 10:00 AM – 8:00 PM"},
+          ].map((c,i)=>(
+            <div key={i} style={{display:"flex",gap:8,fontSize:12,color:"#555",marginBottom:7,alignItems:"flex-start",fontWeight:500}}>
+              <span style={{flexShrink:0}}>{c.icon}</span><span>{c.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {mobileMenuOpen&&<div onClick={()=>setMobileMenuOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1099}}/>}
 
       <section className="hero" style={{background:cur.bg}}>
         <div className="hero-inner">
