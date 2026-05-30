@@ -433,7 +433,7 @@ function CompareBar({list,onRemove,onClear,onCompare}){
   return(
     <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:800,background:"#fff",borderTop:`3px solid ${NAVY}`,boxShadow:"0 -4px 24px rgba(11,31,94,.15)",padding:"14px 32px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
       <div style={{fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:NAVY,flexShrink:0}}>
-        Compare ({list.length}/3)
+        Compare ({list.length} products)
       </div>
       <div style={{display:"flex",gap:10,flex:1,flexWrap:"wrap"}}>
         {list.map(p=>(
@@ -443,12 +443,6 @@ function CompareBar({list,onRemove,onClear,onCompare}){
             <button onClick={()=>onRemove(p.id)}
               style={{background:"none",border:"none",cursor:"pointer",color:"#aaa",fontSize:16,lineHeight:1,padding:0,marginLeft:4}}
               onMouseEnter={e=>e.target.style.color=RED} onMouseLeave={e=>e.target.style.color="#aaa"}>×</button>
-          </div>
-        ))}
-        {/* Empty slots */}
-        {Array(3-list.length).fill(0).map((_,i)=>(
-          <div key={i} style={{display:"flex",alignItems:"center",gap:8,background:"#f9f9f9",border:"1.5px dashed #ddd",padding:"6px 20px",color:"#bbb",fontSize:12,fontWeight:500}}>
-            + Add product
           </div>
         ))}
       </div>
@@ -470,6 +464,333 @@ function CompareBar({list,onRemove,onClear,onCompare}){
 
 /* ══════ COMPARE MODAL ══════ */
 function CompareModal({list,onClose,onQuote}){
+  useEffect(()=>{
+    document.body.style.overflow="hidden";
+    return()=>{document.body.style.overflow="";};
+  },[]);
+
+  const[useCase,setUseCase]=useState("");
+  const[aiResult,setAiResult]=useState(null);
+  const[aiLoading,setAiLoading]=useState(false);
+  const[aiError,setAiError]=useState(null);
+
+  const SUGGESTIONS=["Gaming","Office & Work","College/Student","Video Editing","Budget Buy","Everyday Home Use","Programming","Best Battery Life"];
+
+  async function askAI(customUseCase){
+    const query=customUseCase||useCase;
+    if(!query.trim()) return;
+    setAiLoading(true); setAiResult(null); setAiError(null);
+
+    const productSummary=list.map((p,i)=>`
+Product ${i+1}: ${p.name}
+Price: ${p.price}
+Category: ${p.cat}
+Specs: ${Object.entries(p.specs||{}).map(([k,v])=>`${k}: ${v}`).join(", ")}
+Highlights: ${(p.highlights||[]).join(", ")}
+    `).join("\n---\n");
+
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514",
+          max_tokens:1000,
+          tools:[{type:"web_search_20250305",name:"web_search"}],
+          messages:[{
+            role:"user",
+            content:`You are a helpful computer store assistant at Advantage Silchar, India.
+
+A customer wants to buy a computer/laptop for: "${query}"
+
+Here are the products they are comparing:
+${productSummary}
+
+Please:
+1. Search the web for real-world reviews or ratings for these products if helpful
+2. Recommend the BEST product for their specific use case
+3. Explain WHY it is best for "${query}" in simple terms
+4. Point out any trade-offs they should know
+5. Give a 1-line verdict for each product
+
+Respond in JSON only (no markdown):
+{
+  "winner": "exact product name",
+  "reason": "2-3 sentences why this is best for the use case",
+  "verdicts": [{"name":"product name","verdict":"one line","rating":"Excellent/Good/Average/Not Recommended"}],
+  "tip": "one practical buying tip for this customer"
+}`
+          }]
+        })
+      });
+      const data=await res.json();
+      const text=data.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"";
+      const clean=text.replace(/```json|```/g,"").trim();
+      setAiResult(JSON.parse(clean));
+    } catch(e){
+      setAiError("Couldn't get AI analysis. Please check your connection.");
+    }
+    setAiLoading(false);
+  }
+
+  const allKeys=[...new Set(list.flatMap(p=>Object.keys(p.specs||{})))];
+
+  function extractNum(str=""){
+    const m=str.match(/[\d,]+\.?\d*/);
+    return m?parseFloat(m[0].replace(/,/g,"")):null;
+  }
+  const higherBetter=["RAM","Storage","Battery","Print Speed","Refresh Rate","Transfer Speed","Capacity","Page Yield"];
+  const lowerBetter=["Weight","Price","Response Time"];
+  function getWinner(key){
+    const vals=list.map(p=>({p,num:extractNum((p.specs||{})[key]||"")})).filter(v=>v.num!==null);
+    if(vals.length<2) return null;
+    const isLower=lowerBetter.some(k=>key.toLowerCase().includes(k.toLowerCase()));
+    const isHigher=higherBetter.some(k=>key.toLowerCase().includes(k.toLowerCase()));
+    if(!isLower&&!isHigher) return null;
+    return(isLower?vals.reduce((a,b)=>a.num<b.num?a:b):vals.reduce((a,b)=>a.num>b.num?a:b)).p.id;
+  }
+  function getPriceWinner(){
+    const vals=list.map(p=>({p,num:extractNum(p.price||"")})).filter(v=>v.num!==null);
+    return vals.length<2?null:vals.reduce((a,b)=>a.num<b.num?a:b).p.id;
+  }
+  function getBadges(p){
+    const badges=[];const specs=p.specs||{};
+    const prices=list.map(x=>extractNum(x.price||"")).filter(Boolean);
+    const rams=list.map(x=>extractNum((x.specs||{})["RAM"]||"")).filter(Boolean);
+    const stores=list.map(x=>extractNum((x.specs||{})["Storage"]||"")).filter(Boolean);
+    const batts=list.map(x=>extractNum((x.specs||{})["Battery"]||"")).filter(Boolean);
+    const weights=list.map(x=>extractNum((x.specs||{})["Weight"]||"")).filter(Boolean);
+    const price=extractNum(p.price||"");const ram=extractNum(specs["RAM"]||"");
+    const storage=extractNum(specs["Storage"]||"");const battery=extractNum(specs["Battery"]||"");
+    const weight=extractNum(specs["Weight"]||"");
+    if(price&&price===Math.min(...prices)) badges.push({label:"Best Value",color:"#16a34a"});
+    if(ram&&rams.length>1&&ram===Math.max(...rams)) badges.push({label:"Best Performance",color:"#7c3aed"});
+    if(storage&&stores.length>1&&storage===Math.max(...stores)) badges.push({label:"Most Storage",color:"#0057b8"});
+    if(battery&&batts.length>1&&battery===Math.max(...batts)) badges.push({label:"Best Battery",color:"#d97706"});
+    if(weight&&weights.length>1&&weight===Math.min(...weights)) badges.push({label:"Most Portable",color:"#0891b2"});
+    return badges;
+  }
+  const priceWinner=getPriceWinner();
+  const ratingColor={"Excellent":"#16a34a","Good":"#0891b2","Average":"#d97706","Not Recommended":"#dc2626"};
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:2000,display:"flex",flexDirection:"column"}}>
+      {/* Header */}
+      <div style={{background:NAVY,padding:"16px 32px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontWeight:800,fontSize:18,color:"#fff"}}>Compare Products</span>
+          <span style={{fontSize:12,color:"rgba(255,255,255,.45)",background:"rgba(255,255,255,.1)",padding:"3px 10px"}}>{list.length} products</span>
+        </div>
+        <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,.2)",color:"rgba(255,255,255,.7)",fontSize:14,fontWeight:600,cursor:"pointer",padding:"6px 14px",fontFamily:"inherit"}}>✕ Close</button>
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",background:"#f5f7fa"}}>
+        <div style={{maxWidth:1200,margin:"0 auto",padding:"28px 24px"}}>
+
+          {/* ── AI COMPARISON SECTION ── */}
+          <div style={{background:"#fff",border:`2px solid ${NAVY}`,padding:"24px 28px",marginBottom:24}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+              <span style={{fontSize:20}}>🤖</span>
+              <span style={{fontWeight:800,fontSize:17,color:NAVY}}>AI-Powered Comparison</span>
+              <span style={{fontSize:11,background:"#eef2ff",color:NAVY,padding:"2px 8px",fontWeight:600,letterSpacing:".04em"}}>Powered by Claude</span>
+            </div>
+            <p style={{fontSize:13,color:"#666",marginBottom:16}}>Tell us what you need — Claude will analyze all products and recommend the best one for you.</p>
+
+            {/* Suggestion chips */}
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+              {SUGGESTIONS.map(s=>(
+                <button key={s} onClick={()=>{setUseCase(s);askAI(s);}}
+                  style={{background:useCase===s?"#0B1F5E":"#f0f2f8",color:useCase===s?"#fff":"#444",border:`1px solid ${useCase===s?NAVY:"#dde2f0"}`,padding:"6px 14px",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all .15s",borderRadius:2}}>
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom input */}
+            <div style={{display:"flex",gap:10}}>
+              <input value={useCase} onChange={e=>setUseCase(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&askAI()}
+                placeholder="Or describe your need — e.g. 'I need a laptop for video calls and Excel'"
+                style={{flex:1,border:"1.5px solid #dde2f0",padding:"11px 14px",fontSize:14,fontFamily:"inherit",outline:"none"}}
+                onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#dde2f0"}/>
+              <button onClick={()=>askAI()} disabled={!useCase.trim()||aiLoading}
+                style={{background:useCase.trim()&&!aiLoading?RED:"#ccc",color:"#fff",border:"none",padding:"11px 24px",fontSize:13,fontWeight:700,cursor:useCase.trim()&&!aiLoading?"pointer":"not-allowed",letterSpacing:".04em",textTransform:"uppercase",transition:"background .15s",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+                {aiLoading?"Analysing...":"Ask AI →"}
+              </button>
+            </div>
+
+            {/* Loading */}
+            {aiLoading&&(
+              <div style={{marginTop:20,padding:"20px",background:"#f0f2f8",textAlign:"center"}}>
+                <div style={{fontSize:13,color:NAVY,fontWeight:600,marginBottom:6}}>🔍 Claude is analysing the products{useCase?" for "+useCase:""}...</div>
+                <div style={{fontSize:12,color:"#888"}}>Searching for reviews and comparing specs</div>
+              </div>
+            )}
+
+            {/* Error */}
+            {aiError&&<div style={{marginTop:16,padding:"12px 16px",background:"#fff0f0",border:"1px solid #fecaca",fontSize:13,color:"#dc2626",fontWeight:500}}>{aiError}</div>}
+
+            {/* AI Result */}
+            {aiResult&&!aiLoading&&(
+              <div style={{marginTop:20}}>
+                {/* Winner banner */}
+                <div style={{background:NAVY,color:"#fff",padding:"16px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:14}}>
+                  <span style={{fontSize:28}}>🏆</span>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.55)",marginBottom:4}}>Best for "{useCase}"</div>
+                    <div style={{fontWeight:800,fontSize:18}}>{aiResult.winner}</div>
+                  </div>
+                </div>
+                {/* Reason */}
+                <div style={{background:"#f0fdf4",border:"1px solid #86efac",padding:"14px 18px",marginBottom:16,fontSize:14,color:"#15803d",lineHeight:1.7,fontWeight:500}}>
+                  {aiResult.reason}
+                </div>
+                {/* Per-product verdicts */}
+                <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(list.length,3)},1fr)`,gap:10,marginBottom:16}}>
+                  {(aiResult.verdicts||[]).map((v,i)=>(
+                    <div key={i} style={{background:"#fff",border:"1px solid #e8e8e8",padding:"14px 16px"}}>
+                      <div style={{fontWeight:700,fontSize:13,color:NAVY,marginBottom:6}}>{v.name}</div>
+                      <div style={{fontSize:12,color:"#555",lineHeight:1.6,marginBottom:8}}>{v.verdict}</div>
+                      <span style={{background:ratingColor[v.rating]||"#888",color:"#fff",fontSize:10,fontWeight:700,padding:"2px 10px",letterSpacing:".04em",textTransform:"uppercase"}}>
+                        {v.rating}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {/* Tip */}
+                {aiResult.tip&&(
+                  <div style={{background:"#fffbeb",border:"1px solid #fde68a",padding:"12px 16px",fontSize:13,color:"#92400e",display:"flex",gap:10,alignItems:"flex-start"}}>
+                    <span style={{fontSize:16,flexShrink:0}}>💡</span>
+                    <span style={{fontWeight:500}}><strong>Buying Tip:</strong> {aiResult.tip}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── VERDICT CARDS ── */}
+          <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(list.length,4)},1fr)`,gap:12,marginBottom:24}}>
+            {list.map(p=>{
+              const badges=getBadges(p);
+              const isPriceBest=priceWinner===p.id;
+              const aiVerdict=aiResult?.verdicts?.find(v=>v.name===p.name);
+              return(
+                <div key={p.id} style={{background:"#fff",border:`2px solid ${aiResult?.winner===p.name?RED:badges.length>0?NAVY:"#e8e8e8"}`,padding:"20px 18px",textAlign:"center",position:"relative"}}>
+                  {aiResult?.winner===p.name&&(
+                    <div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>
+                      🏆 AI PICK
+                    </div>
+                  )}
+                  {!aiResult&&badges.length>0&&(
+                    <div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>
+                      ★ {badges[0].label}
+                    </div>
+                  )}
+                  <div style={{marginTop:badges.length>0||aiResult?.winner===p.name?16:0}}>
+                    <div style={{height:80,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10,overflow:"hidden"}}>
+                      {p.image?<img src={p.image} alt={p.name} style={{maxHeight:"100%",maxWidth:"100%",objectFit:"contain"}}/>:<span style={{fontSize:44}}>{p.icon}</span>}
+                    </div>
+                    <div style={{fontSize:10,fontWeight:700,color:RED,letterSpacing:".06em",textTransform:"uppercase",marginBottom:3}}>{p.cat}</div>
+                    <div style={{fontWeight:800,fontSize:14,color:NAVY,marginBottom:4,lineHeight:1.3}}>{p.name}</div>
+                    <div style={{fontWeight:800,fontSize:18,color:isPriceBest?"#16a34a":NAVY,marginBottom:4}}>{p.price}</div>
+                    {aiVerdict&&<div style={{fontSize:11,background:ratingColor[aiVerdict.rating]||"#888",color:"#fff",padding:"2px 8px",marginBottom:8,display:"inline-block",fontWeight:700,letterSpacing:".04em",textTransform:"uppercase"}}>{aiVerdict.rating}</div>}
+                    <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center",marginBottom:10}}>
+                      {badges.map((b,i)=><span key={i} style={{background:b.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",letterSpacing:".04em"}}>{b.label}</span>)}
+                    </div>
+                    <button onClick={()=>{onClose();onQuote(p);}}
+                      style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"8px 0",fontSize:11,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",transition:"background .15s"}}
+                      onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
+                      Enquire
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ── SPEC TABLE ── */}
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",background:"#fff",border:"1px solid #e8e8e8",minWidth:600}}>
+              <thead>
+                <tr style={{background:NAVY}}>
+                  <td style={{padding:"12px 20px",fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.5)",width:"20%",minWidth:130}}>Specification</td>
+                  {list.map(p=>(
+                    <td key={p.id} style={{padding:"12px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)",fontWeight:700,fontSize:12,color:"#fff"}}>
+                      {p.name}
+                    </td>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{background:"#f0f2f8",borderBottom:"2px solid #dde2f0"}}>
+                  <td style={{padding:"14px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#555"}}>Price</td>
+                  {list.map(p=>(
+                    <td key={p.id} style={{padding:"14px 18px",textAlign:"center",borderLeft:"1px solid #e8e8e8",fontWeight:800,fontSize:17,color:priceWinner===p.id?"#16a34a":NAVY}}>
+                      {p.price}
+                      {priceWinner===p.id&&<div style={{fontSize:9,color:"#16a34a",fontWeight:700,marginTop:2}}>BEST PRICE</div>}
+                    </td>
+                  ))}
+                </tr>
+                {allKeys.map((key,i)=>{
+                  const winnerId=getWinner(key);
+                  const vals=list.map(p=>(p.specs||{})[key]||"—");
+                  const allSame=vals.every(v=>v===vals[0]);
+                  return(
+                    <tr key={key} style={{borderBottom:"1px solid #f0f0f0",background:i%2===0?"#fff":"#fafafa"}}>
+                      <td style={{padding:"12px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777",verticalAlign:"top"}}>{key}</td>
+                      {list.map(p=>{
+                        const val=(p.specs||{})[key]||"—";
+                        const isWinner=winnerId===p.id;
+                        return(
+                          <td key={p.id} style={{padding:"12px 18px",textAlign:"center",borderLeft:"1px solid #e8e8e8",fontSize:12,lineHeight:1.55,verticalAlign:"top",fontWeight:isWinner?700:400,color:isWinner?"#15803d":NAVY,background:isWinner?"#f0fdf4":(!allSame&&val!=="—"?"#fffbeb":"transparent")}}>
+                            {val}
+                            {isWinner&&val!=="—"&&<div style={{fontSize:9,color:"#16a34a",fontWeight:700,marginTop:2}}>✓ BEST</div>}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+                <tr style={{borderBottom:"1px solid #e8e8e8",background:"#f9f9fb"}}>
+                  <td style={{padding:"13px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777",verticalAlign:"top"}}>Key Highlights</td>
+                  {list.map(p=>(
+                    <td key={p.id} style={{padding:"13px 18px",textAlign:"left",borderLeft:"1px solid #e8e8e8",verticalAlign:"top"}}>
+                      {(p.highlights||[]).filter(Boolean).map((h,i)=>(
+                        <div key={i} style={{fontSize:11,color:"#444",marginBottom:4,display:"flex",gap:5,alignItems:"flex-start"}}>
+                          <span style={{color:RED,fontWeight:700,flexShrink:0}}>✓</span>{h}
+                        </div>
+                      ))}
+                    </td>
+                  ))}
+                </tr>
+                <tr style={{background:NAVY}}>
+                  <td style={{padding:"14px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>Overall Pick</td>
+                  {list.map(p=>{
+                    const badges=getBadges(p);
+                    const isAiWinner=aiResult?.winner===p.name;
+                    return(
+                      <td key={p.id} style={{padding:"14px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)"}}>
+                        {isAiWinner
+                          ? <span style={{background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>🏆 AI Pick</span>
+                          : badges.length>0
+                            ? <span style={{background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>★ {badges[0].label}</span>
+                            : <span style={{fontSize:12,color:"rgba(255,255,255,.3)"}}>—</span>
+                        }
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style={{marginTop:12,fontSize:11,color:"#aaa",textAlign:"center"}}>
+            🟢 Green = best in category &nbsp;·&nbsp; 🟡 Yellow = values differ &nbsp;·&nbsp; 🏆 AI Pick = recommended for your use case
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
   useEffect(()=>{
     document.body.style.overflow="hidden";
     return()=>{document.body.style.overflow="";};
@@ -574,40 +895,28 @@ function CompareModal({list,onClose,onQuote}){
         <div style={{maxWidth:1200,margin:"0 auto",padding:"28px 24px"}}>
 
           {/* ── VERDICT CARDS ── */}
-          <div style={{display:"grid",gridTemplateColumns:`repeat(${list.length},1fr)`,gap:12,marginBottom:24}}>
+          <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(list.length,4)},1fr)`,gap:12,marginBottom:24}}>
             {list.map(p=>{
               const badges=getBadges(p);
               const isPriceBest=priceWinner===p.id;
+              const aiVerdict=aiResult?.verdicts?.find(v=>v.name===p.name);
               return(
-                <div key={p.id} style={{background:"#fff",border:`2px solid ${badges.length>0?NAVY:"#e8e8e8"}`,padding:"20px 18px",textAlign:"center",position:"relative"}}>
-                  {badges.length>0&&(
-                    <div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>
-                      ★ {badges[0].label}
+                <div key={p.id} style={{background:"#fff",border:`2px solid ${aiResult?.winner===p.name?RED:badges.length>0?NAVY:"#e8e8e8"}`,padding:"20px 18px",textAlign:"center",position:"relative"}}>
+                  {aiResult?.winner===p.name&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>🏆 AI PICK</div>}
+                  {!aiResult&&badges.length>0&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>★ {badges[0].label}</div>}
+                  <div style={{marginTop:badges.length>0||aiResult?.winner===p.name?16:0}}>
+                    <div style={{height:80,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10,overflow:"hidden"}}>
+                      {p.image?<img src={p.image} alt={p.name} style={{maxHeight:"100%",maxWidth:"100%",objectFit:"contain"}}/>:<span style={{fontSize:44}}>{p.icon}</span>}
                     </div>
-                  )}
-                  <div style={{marginTop:badges.length>0?16:0}}>
-                    {/* Image */}
-                    <div style={{height:90,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10,overflow:"hidden"}}>
-                      {p.image
-                        ? <img src={p.image} alt={p.name} style={{maxHeight:"100%",maxWidth:"100%",objectFit:"contain"}}/>
-                        : <span style={{fontSize:48}}>{p.icon}</span>
-                      }
-                    </div>
-                    <div style={{fontSize:11,fontWeight:700,color:RED,letterSpacing:".06em",textTransform:"uppercase",marginBottom:4}}>{p.cat}</div>
-                    <div style={{fontWeight:800,fontSize:15,color:NAVY,marginBottom:6,lineHeight:1.3}}>{p.name}</div>
-                    <div style={{fontWeight:800,fontSize:20,color:isPriceBest?"#16a34a":NAVY,marginBottom:4}}>{p.price}</div>
-                    {isPriceBest&&<div style={{fontSize:11,color:"#16a34a",fontWeight:700,marginBottom:8}}>✓ Lowest Price</div>}
-                    {/* All badges */}
-                    <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center",marginBottom:12}}>
-                      {badges.map((b,i)=>(
-                        <span key={i} style={{background:b.color,color:"#fff",fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:2,letterSpacing:".04em"}}>
-                          {b.label}
-                        </span>
-                      ))}
-                      {badges.length===0&&<span style={{fontSize:11,color:"#aaa"}}>No standout category</span>}
+                    <div style={{fontSize:10,fontWeight:700,color:RED,letterSpacing:".06em",textTransform:"uppercase",marginBottom:3}}>{p.cat}</div>
+                    <div style={{fontWeight:800,fontSize:14,color:NAVY,marginBottom:4,lineHeight:1.3}}>{p.name}</div>
+                    <div style={{fontWeight:800,fontSize:18,color:isPriceBest?"#16a34a":NAVY,marginBottom:4}}>{p.price}</div>
+                    {aiVerdict&&<div style={{fontSize:11,background:ratingColor[aiVerdict.rating]||"#888",color:"#fff",padding:"2px 8px",marginBottom:8,display:"inline-block",fontWeight:700,letterSpacing:".04em",textTransform:"uppercase"}}>{aiVerdict.rating}</div>}
+                    <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center",marginBottom:10}}>
+                      {badges.map((b,i)=><span key={i} style={{background:b.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",letterSpacing:".04em"}}>{b.label}</span>)}
                     </div>
                     <button onClick={()=>{onClose();onQuote(p);}}
-                      style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"9px 0",fontSize:12,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",transition:"background .15s"}}
+                      style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"8px 0",fontSize:11,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",transition:"background .15s"}}
                       onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
                       Enquire
                     </button>
@@ -618,93 +927,80 @@ function CompareModal({list,onClose,onQuote}){
           </div>
 
           {/* ── SPEC TABLE ── */}
-          <table style={{width:"100%",borderCollapse:"collapse",background:"#fff",border:"1px solid #e8e8e8"}}>
-            <thead>
-              <tr style={{background:NAVY}}>
-                <td style={{padding:"12px 20px",fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.5)",width:"22%"}}>Specification</td>
-                {list.map(p=>(
-                  <td key={p.id} style={{padding:"12px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)",fontWeight:700,fontSize:13,color:"#fff"}}>
-                    {p.name}
-                  </td>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {/* Price */}
-              <tr style={{background:"#f0f2f8",borderBottom:"2px solid #dde2f0"}}>
-                <td style={{padding:"14px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#555"}}>Price</td>
-                {list.map(p=>(
-                  <td key={p.id} style={{padding:"14px 18px",textAlign:"center",borderLeft:"1px solid #e8e8e8",fontWeight:800,fontSize:18,
-                    color:priceWinner===p.id?"#16a34a":NAVY}}>
-                    {p.price}
-                    {priceWinner===p.id&&<div style={{fontSize:10,color:"#16a34a",fontWeight:700,marginTop:2}}>BEST PRICE</div>}
-                  </td>
-                ))}
-              </tr>
-
-              {/* All spec rows */}
-              {allKeys.map((key,i)=>{
-                const winnerId=getWinner(key);
-                const vals=list.map(p=>(p.specs||{})[key]||"—");
-                const allSame=vals.every(v=>v===vals[0]);
-                return(
-                  <tr key={key} style={{borderBottom:"1px solid #f0f0f0",background:i%2===0?"#fff":"#fafafa"}}>
-                    <td style={{padding:"13px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777",verticalAlign:"top"}}>{key}</td>
-                    {list.map(p=>{
-                      const val=(p.specs||{})[key]||"—";
-                      const isWinner=winnerId===p.id;
-                      return(
-                        <td key={p.id} style={{
-                          padding:"13px 18px",textAlign:"center",
-                          borderLeft:"1px solid #e8e8e8",
-                          fontSize:13,lineHeight:1.55,verticalAlign:"top",
-                          fontWeight:isWinner?700:400,
-                          color:isWinner?"#15803d":NAVY,
-                          background:isWinner?"#f0fdf4":(!allSame&&val!=="—"?"#fffbeb":"transparent"),
-                        }}>
-                          {val}
-                          {isWinner&&val!=="—"&&<div style={{fontSize:10,color:"#16a34a",fontWeight:700,marginTop:3}}>✓ BEST</div>}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-
-              {/* Highlights */}
-              <tr style={{borderBottom:"1px solid #e8e8e8",background:"#f9f9fb"}}>
-                <td style={{padding:"14px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777",verticalAlign:"top"}}>Key Highlights</td>
-                {list.map(p=>(
-                  <td key={p.id} style={{padding:"14px 18px",textAlign:"left",borderLeft:"1px solid #e8e8e8",verticalAlign:"top"}}>
-                    {(p.highlights||[]).filter(Boolean).map((h,i)=>(
-                      <div key={i} style={{fontSize:12,color:"#444",marginBottom:5,display:"flex",alignItems:"flex-start",gap:6}}>
-                        <span style={{color:RED,fontWeight:700,flexShrink:0}}>✓</span>{h}
-                      </div>
-                    ))}
-                  </td>
-                ))}
-              </tr>
-
-              {/* Verdict */}
-              <tr style={{background:"#0B1F5E"}}>
-                <td style={{padding:"16px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>Our Pick</td>
-                {list.map(p=>{
-                  const badges=getBadges(p);
-                  return(
-                    <td key={p.id} style={{padding:"16px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)"}}>
-                      {badges.length>0
-                        ? <span style={{background:badges[0].color,color:"#fff",fontSize:11,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>★ {badges[0].label}</span>
-                        : <span style={{fontSize:12,color:"rgba(255,255,255,.3)"}}>—</span>
-                      }
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",background:"#fff",border:"1px solid #e8e8e8",minWidth:600}}>
+              <thead>
+                <tr style={{background:NAVY}}>
+                  <td style={{padding:"12px 20px",fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.5)",width:"20%",minWidth:130}}>Specification</td>
+                  {list.map(p=>(
+                    <td key={p.id} style={{padding:"12px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)",fontWeight:700,fontSize:12,color:"#fff"}}>{p.name}</td>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{background:"#f0f2f8",borderBottom:"2px solid #dde2f0"}}>
+                  <td style={{padding:"14px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#555"}}>Price</td>
+                  {list.map(p=>(
+                    <td key={p.id} style={{padding:"14px 18px",textAlign:"center",borderLeft:"1px solid #e8e8e8",fontWeight:800,fontSize:17,color:priceWinner===p.id?"#16a34a":NAVY}}>
+                      {p.price}
+                      {priceWinner===p.id&&<div style={{fontSize:9,color:"#16a34a",fontWeight:700,marginTop:2}}>BEST PRICE</div>}
                     </td>
+                  ))}
+                </tr>
+                {allKeys.map((key,i)=>{
+                  const winnerId=getWinner(key);
+                  const vals=list.map(p=>(p.specs||{})[key]||"—");
+                  const allSame=vals.every(v=>v===vals[0]);
+                  return(
+                    <tr key={key} style={{borderBottom:"1px solid #f0f0f0",background:i%2===0?"#fff":"#fafafa"}}>
+                      <td style={{padding:"12px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777",verticalAlign:"top"}}>{key}</td>
+                      {list.map(p=>{
+                        const val=(p.specs||{})[key]||"—";
+                        const isWinner=winnerId===p.id;
+                        return(
+                          <td key={p.id} style={{padding:"12px 18px",textAlign:"center",borderLeft:"1px solid #e8e8e8",fontSize:12,lineHeight:1.55,verticalAlign:"top",fontWeight:isWinner?700:400,color:isWinner?"#15803d":NAVY,background:isWinner?"#f0fdf4":(!allSame&&val!=="—"?"#fffbeb":"transparent")}}>
+                            {val}
+                            {isWinner&&val!=="—"&&<div style={{fontSize:9,color:"#16a34a",fontWeight:700,marginTop:2}}>✓ BEST</div>}
+                          </td>
+                        );
+                      })}
+                    </tr>
                   );
                 })}
-              </tr>
-            </tbody>
-          </table>
-
-          <div style={{marginTop:14,fontSize:12,color:"#aaa",textAlign:"center"}}>
-            🟢 Green = winner in that category &nbsp;·&nbsp; 🟡 Yellow = value differs between products
+                <tr style={{borderBottom:"1px solid #e8e8e8",background:"#f9f9fb"}}>
+                  <td style={{padding:"13px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777",verticalAlign:"top"}}>Key Highlights</td>
+                  {list.map(p=>(
+                    <td key={p.id} style={{padding:"13px 18px",textAlign:"left",borderLeft:"1px solid #e8e8e8",verticalAlign:"top"}}>
+                      {(p.highlights||[]).filter(Boolean).map((h,i)=>(
+                        <div key={i} style={{fontSize:11,color:"#444",marginBottom:4,display:"flex",gap:5,alignItems:"flex-start"}}>
+                          <span style={{color:RED,fontWeight:700,flexShrink:0}}>✓</span>{h}
+                        </div>
+                      ))}
+                    </td>
+                  ))}
+                </tr>
+                <tr style={{background:NAVY}}>
+                  <td style={{padding:"14px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>Overall Pick</td>
+                  {list.map(p=>{
+                    const badges=getBadges(p);
+                    const isAiWinner=aiResult?.winner===p.name;
+                    return(
+                      <td key={p.id} style={{padding:"14px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)"}}>
+                        {isAiWinner
+                          ?<span style={{background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>🏆 AI Pick</span>
+                          :badges.length>0
+                            ?<span style={{background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>★ {badges[0].label}</span>
+                            :<span style={{fontSize:12,color:"rgba(255,255,255,.3)"}}>—</span>
+                        }
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style={{marginTop:12,fontSize:11,color:"#aaa",textAlign:"center"}}>
+            🟢 Green = best in category &nbsp;·&nbsp; 🟡 Yellow = values differ &nbsp;·&nbsp; 🏆 AI Pick = recommended for your use case
           </div>
         </div>
       </div>
@@ -933,8 +1229,7 @@ export default function App(){
   function handleCompare(p){
     setCompareList(list=>{
       if(list.some(c=>c.id===p.id)) return list.filter(c=>c.id!==p.id);
-      if(list.length>=3) return list; // max 3
-      return [...list,p];
+      return [...list,p]; // no limit
     });
   }
 
