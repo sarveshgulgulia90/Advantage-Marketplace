@@ -481,13 +481,13 @@ function CompareModal({list,onClose,onQuote}){
     if(!query.trim()) return;
     setAiLoading(true); setAiResult(null); setAiError(null);
 
-    const productSummary=list.map((p,i)=>`
-Product ${i+1}: ${p.name}
-Price: ${p.price}
-Category: ${p.cat}
-Specs: ${Object.entries(p.specs||{}).map(([k,v])=>`${k}: ${v}`).join(", ")}
-Highlights: ${(p.highlights||[]).join(", ")}
-    `).join("\n---\n");
+    const productSummary=list.map((p,i)=>(
+      "Product "+(i+1)+": "+p.name+"\n"+
+      "Price: "+p.price+"\n"+
+      "Category: "+p.cat+"\n"+
+      "Specs: "+Object.entries(p.specs||{}).map(([k,v])=>k+": "+v).join(", ")+"\n"+
+      "Highlights: "+(p.highlights||[]).join(", ")
+    )).join("\n---\n");
 
     try{
       const res=await fetch("https://api.anthropic.com/v1/messages",{
@@ -535,14 +535,31 @@ Respond in JSON only (no markdown):
 
   const allKeys=[...new Set(list.flatMap(p=>Object.keys(p.specs||{})))];
 
-  function extractNum(str=""){
+  function extractNum(str="",key=""){
+    if(!str||str==="—") return null;
+    const s=str.toUpperCase();
+    // Normalize storage: convert TB to GB so comparisons work
+    if(key&&(key.includes("Storage")||key.includes("Capacity"))){
+      let total=0;
+      const tb=s.match(/(\d+\.?\d*)\s*TB/);
+      const gb=s.match(/(\d+\.?\d*)\s*GB/);
+      if(tb) total+=parseFloat(tb[1])*1024;
+      if(gb) total+=parseFloat(gb[1]);
+      if(total>0) return total;
+    }
+    // Normalize RAM: GB only
+    if(key&&key.includes("RAM")){
+      const gb=s.match(/(\d+\.?\d*)\s*GB/);
+      if(gb) return parseFloat(gb[1]);
+    }
+    // Generic: first number
     const m=str.match(/[\d,]+\.?\d*/);
     return m?parseFloat(m[0].replace(/,/g,"")):null;
   }
   const higherBetter=["RAM","Storage","Battery","Print Speed","Refresh Rate","Transfer Speed","Capacity","Page Yield"];
   const lowerBetter=["Weight","Price","Response Time"];
   function getWinner(key){
-    const vals=list.map(p=>({p,num:extractNum((p.specs||{})[key]||"")})).filter(v=>v.num!==null);
+    const vals=list.map(p=>({p,num:extractNum((p.specs||{})[key]||"",key)})).filter(v=>v.num!==null);
     if(vals.length<2) return null;
     const isLower=lowerBetter.some(k=>key.toLowerCase().includes(k.toLowerCase()));
     const isHigher=higherBetter.some(k=>key.toLowerCase().includes(k.toLowerCase()));
@@ -556,13 +573,13 @@ Respond in JSON only (no markdown):
   function getBadges(p){
     const badges=[];const specs=p.specs||{};
     const prices=list.map(x=>extractNum(x.price||"")).filter(Boolean);
-    const rams=list.map(x=>extractNum((x.specs||{})["RAM"]||"")).filter(Boolean);
-    const stores=list.map(x=>extractNum((x.specs||{})["Storage"]||"")).filter(Boolean);
-    const batts=list.map(x=>extractNum((x.specs||{})["Battery"]||"")).filter(Boolean);
-    const weights=list.map(x=>extractNum((x.specs||{})["Weight"]||"")).filter(Boolean);
-    const price=extractNum(p.price||"");const ram=extractNum(specs["RAM"]||"");
-    const storage=extractNum(specs["Storage"]||"");const battery=extractNum(specs["Battery"]||"");
-    const weight=extractNum(specs["Weight"]||"");
+    const rams=list.map(x=>extractNum((x.specs||{})["RAM"]||"","RAM")).filter(Boolean);
+    const stores=list.map(x=>extractNum((x.specs||{})["Storage"]||"","Storage")).filter(Boolean);
+    const batts=list.map(x=>extractNum((x.specs||{})["Battery"]||"","Battery")).filter(Boolean);
+    const weights=list.map(x=>extractNum((x.specs||{})["Weight"]||"","Weight")).filter(Boolean);
+    const price=extractNum(p.price||"");const ram=extractNum(specs["RAM"]||"","RAM");
+    const storage=extractNum(specs["Storage"]||"","Storage");const battery=extractNum(specs["Battery"]||"","Battery");
+    const weight=extractNum(specs["Weight"]||"","Weight");
     if(price&&price===Math.min(...prices)) badges.push({label:"Best Value",color:"#16a34a"});
     if(ram&&rams.length>1&&ram===Math.max(...rams)) badges.push({label:"Best Performance",color:"#7c3aed"});
     if(storage&&stores.length>1&&storage===Math.max(...stores)) badges.push({label:"Most Storage",color:"#0057b8"});
@@ -791,222 +808,6 @@ Respond in JSON only (no markdown):
     </div>
   );
 }
-  useEffect(()=>{
-    document.body.style.overflow="hidden";
-    return()=>{document.body.style.overflow="";};
-  },[]);
-
-  const allKeys=[...new Set(list.flatMap(p=>Object.keys(p.specs||{})))];
-
-  /* ── Smart scoring: extract number from a string ── */
-  function extractNum(str=""){
-    const m=str.match(/[\d,]+\.?\d*/);
-    return m?parseFloat(m[0].replace(/,/g,"")):null;
-  }
-
-  /* Higher-is-better keys */
-  const higherBetter=["RAM","Storage","Display","Battery","Print Speed","Refresh Rate","Transfer Speed","Capacity","Page Yield"];
-  /* Lower-is-better keys */
-  const lowerBetter=["Weight","Price","Response Time"];
-
-  function getWinner(key){
-    const vals=list.map(p=>{
-      const raw=(p.specs||{})[key]||"";
-      return{p,raw,num:extractNum(raw)};
-    });
-    const withNums=vals.filter(v=>v.num!==null);
-    if(withNums.length<2) return null;
-    const isLower=lowerBetter.some(k=>key.toLowerCase().includes(k.toLowerCase()));
-    const isHigher=higherBetter.some(k=>key.toLowerCase().includes(k.toLowerCase()));
-    if(!isLower&&!isHigher) return null;
-    const winner=isLower
-      ? withNums.reduce((a,b)=>a.num<b.num?a:b)
-      : withNums.reduce((a,b)=>a.num>b.num?a:b);
-    return winner.p.id;
-  }
-
-  function getPriceWinner(){
-    const vals=list.map(p=>({p,num:extractNum(p.price||"")})).filter(v=>v.num!==null);
-    if(vals.length<2) return null;
-    return vals.reduce((a,b)=>a.num<b.num?a:b).p.id;
-  }
-
-  /* ── Auto-generate "Best for" badges per product ── */
-  function getBadges(p){
-    const badges=[];
-    const specs=p.specs||{};
-    const ram=extractNum(specs["RAM"]||"");
-    const storage=extractNum(specs["Storage"]||"");
-    const battery=extractNum(specs["Battery"]||"");
-    const weight=extractNum(specs["Weight"]||"");
-    const price=extractNum(p.price||"");
-
-    // Best value — lowest price
-    const prices=list.map(x=>extractNum(x.price||"")).filter(Boolean);
-    if(price&&price===Math.min(...prices)) badges.push({label:"Best Value",color:"#16a34a"});
-
-    // Best performance — highest RAM
-    const rams=list.map(x=>extractNum((x.specs||{})["RAM"]||"")).filter(Boolean);
-    if(ram&&ram===Math.max(...rams)&&rams.length>1) badges.push({label:"Best Performance",color:"#7c3aed"});
-
-    // Best storage
-    const stores=list.map(x=>extractNum((x.specs||{})["Storage"]||"")).filter(Boolean);
-    if(storage&&storage===Math.max(...stores)&&stores.length>1) badges.push({label:"Most Storage",color:"#0057b8"});
-
-    // Best battery
-    const batts=list.map(x=>extractNum((x.specs||{})["Battery"]||"")).filter(Boolean);
-    if(battery&&battery===Math.max(...batts)&&batts.length>1) badges.push({label:"Best Battery",color:"#d97706"});
-
-    // Most portable
-    const weights=list.map(x=>extractNum((x.specs||{})["Weight"]||"")).filter(Boolean);
-    if(weight&&weight===Math.min(...weights)&&weights.length>1) badges.push({label:"Most Portable",color:"#0891b2"});
-
-    // Cat-specific
-    if(p.cat==="Laptops"&&!badges.find(b=>b.label==="Best Value")&&ram>=16) badges.push({label:"For Professionals",color:"#374151"});
-    if(p.cat==="Printers"){
-      const speed=extractNum(specs["Print Speed"]||"");
-      const speeds=list.filter(x=>x.cat==="Printers").map(x=>extractNum((x.specs||{})["Print Speed"]||"")).filter(Boolean);
-      if(speed&&speed===Math.max(...speeds)&&speeds.length>1) badges.push({label:"Fastest Print",color:"#b45309"});
-    }
-
-    return badges;
-  }
-
-  const priceWinner=getPriceWinner();
-
-  return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:2000,display:"flex",flexDirection:"column"}}>
-
-      {/* Header */}
-      <div style={{background:NAVY,padding:"16px 32px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <span style={{fontWeight:800,fontSize:18,color:"#fff"}}>Compare Products</span>
-          <span style={{fontSize:12,color:"rgba(255,255,255,.45)",background:"rgba(255,255,255,.1)",padding:"3px 10px"}}>
-            {list.length} products · scroll to see full specs
-          </span>
-        </div>
-        <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,.2)",color:"rgba(255,255,255,.7)",fontSize:14,fontWeight:600,cursor:"pointer",padding:"6px 14px",fontFamily:"inherit"}} onMouseEnter={e=>e.target.style.background="rgba(255,255,255,.1)"} onMouseLeave={e=>e.target.style.background="none"}>
-          ✕ Close
-        </button>
-      </div>
-
-      {/* Scrollable content */}
-      <div style={{flex:1,overflowY:"auto",background:"#f5f7fa"}}>
-        <div style={{maxWidth:1200,margin:"0 auto",padding:"28px 24px"}}>
-
-          {/* ── VERDICT CARDS ── */}
-          <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(list.length,4)},1fr)`,gap:12,marginBottom:24}}>
-            {list.map(p=>{
-              const badges=getBadges(p);
-              const isPriceBest=priceWinner===p.id;
-              const aiVerdict=aiResult?.verdicts?.find(v=>v.name===p.name);
-              return(
-                <div key={p.id} style={{background:"#fff",border:`2px solid ${aiResult?.winner===p.name?RED:badges.length>0?NAVY:"#e8e8e8"}`,padding:"20px 18px",textAlign:"center",position:"relative"}}>
-                  {aiResult?.winner===p.name&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>🏆 AI PICK</div>}
-                  {!aiResult&&badges.length>0&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>★ {badges[0].label}</div>}
-                  <div style={{marginTop:badges.length>0||aiResult?.winner===p.name?16:0}}>
-                    <div style={{height:80,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10,overflow:"hidden"}}>
-                      {p.image?<img src={p.image} alt={p.name} style={{maxHeight:"100%",maxWidth:"100%",objectFit:"contain"}}/>:<span style={{fontSize:44}}>{p.icon}</span>}
-                    </div>
-                    <div style={{fontSize:10,fontWeight:700,color:RED,letterSpacing:".06em",textTransform:"uppercase",marginBottom:3}}>{p.cat}</div>
-                    <div style={{fontWeight:800,fontSize:14,color:NAVY,marginBottom:4,lineHeight:1.3}}>{p.name}</div>
-                    <div style={{fontWeight:800,fontSize:18,color:isPriceBest?"#16a34a":NAVY,marginBottom:4}}>{p.price}</div>
-                    {aiVerdict&&<div style={{fontSize:11,background:ratingColor[aiVerdict.rating]||"#888",color:"#fff",padding:"2px 8px",marginBottom:8,display:"inline-block",fontWeight:700,letterSpacing:".04em",textTransform:"uppercase"}}>{aiVerdict.rating}</div>}
-                    <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center",marginBottom:10}}>
-                      {badges.map((b,i)=><span key={i} style={{background:b.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",letterSpacing:".04em"}}>{b.label}</span>)}
-                    </div>
-                    <button onClick={()=>{onClose();onQuote(p);}}
-                      style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"8px 0",fontSize:11,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",transition:"background .15s"}}
-                      onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
-                      Enquire
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* ── SPEC TABLE ── */}
-          <div style={{overflowX:"auto"}}>
-            <table style={{width:"100%",borderCollapse:"collapse",background:"#fff",border:"1px solid #e8e8e8",minWidth:600}}>
-              <thead>
-                <tr style={{background:NAVY}}>
-                  <td style={{padding:"12px 20px",fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.5)",width:"20%",minWidth:130}}>Specification</td>
-                  {list.map(p=>(
-                    <td key={p.id} style={{padding:"12px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)",fontWeight:700,fontSize:12,color:"#fff"}}>{p.name}</td>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr style={{background:"#f0f2f8",borderBottom:"2px solid #dde2f0"}}>
-                  <td style={{padding:"14px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#555"}}>Price</td>
-                  {list.map(p=>(
-                    <td key={p.id} style={{padding:"14px 18px",textAlign:"center",borderLeft:"1px solid #e8e8e8",fontWeight:800,fontSize:17,color:priceWinner===p.id?"#16a34a":NAVY}}>
-                      {p.price}
-                      {priceWinner===p.id&&<div style={{fontSize:9,color:"#16a34a",fontWeight:700,marginTop:2}}>BEST PRICE</div>}
-                    </td>
-                  ))}
-                </tr>
-                {allKeys.map((key,i)=>{
-                  const winnerId=getWinner(key);
-                  const vals=list.map(p=>(p.specs||{})[key]||"—");
-                  const allSame=vals.every(v=>v===vals[0]);
-                  return(
-                    <tr key={key} style={{borderBottom:"1px solid #f0f0f0",background:i%2===0?"#fff":"#fafafa"}}>
-                      <td style={{padding:"12px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777",verticalAlign:"top"}}>{key}</td>
-                      {list.map(p=>{
-                        const val=(p.specs||{})[key]||"—";
-                        const isWinner=winnerId===p.id;
-                        return(
-                          <td key={p.id} style={{padding:"12px 18px",textAlign:"center",borderLeft:"1px solid #e8e8e8",fontSize:12,lineHeight:1.55,verticalAlign:"top",fontWeight:isWinner?700:400,color:isWinner?"#15803d":NAVY,background:isWinner?"#f0fdf4":(!allSame&&val!=="—"?"#fffbeb":"transparent")}}>
-                            {val}
-                            {isWinner&&val!=="—"&&<div style={{fontSize:9,color:"#16a34a",fontWeight:700,marginTop:2}}>✓ BEST</div>}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-                <tr style={{borderBottom:"1px solid #e8e8e8",background:"#f9f9fb"}}>
-                  <td style={{padding:"13px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777",verticalAlign:"top"}}>Key Highlights</td>
-                  {list.map(p=>(
-                    <td key={p.id} style={{padding:"13px 18px",textAlign:"left",borderLeft:"1px solid #e8e8e8",verticalAlign:"top"}}>
-                      {(p.highlights||[]).filter(Boolean).map((h,i)=>(
-                        <div key={i} style={{fontSize:11,color:"#444",marginBottom:4,display:"flex",gap:5,alignItems:"flex-start"}}>
-                          <span style={{color:RED,fontWeight:700,flexShrink:0}}>✓</span>{h}
-                        </div>
-                      ))}
-                    </td>
-                  ))}
-                </tr>
-                <tr style={{background:NAVY}}>
-                  <td style={{padding:"14px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>Overall Pick</td>
-                  {list.map(p=>{
-                    const badges=getBadges(p);
-                    const isAiWinner=aiResult?.winner===p.name;
-                    return(
-                      <td key={p.id} style={{padding:"14px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)"}}>
-                        {isAiWinner
-                          ?<span style={{background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>🏆 AI Pick</span>
-                          :badges.length>0
-                            ?<span style={{background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>★ {badges[0].label}</span>
-                            :<span style={{fontSize:12,color:"rgba(255,255,255,.3)"}}>—</span>
-                        }
-                      </td>
-                    );
-                  })}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div style={{marginTop:12,fontSize:11,color:"#aaa",textAlign:"center"}}>
-            🟢 Green = best in category &nbsp;·&nbsp; 🟡 Yellow = values differ &nbsp;·&nbsp; 🏆 AI Pick = recommended for your use case
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ══════ PRODUCT PAGE ══════ */
 function ProductPage({p,onBack,onQuote,onViewRelated}){
@@ -1084,7 +885,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
 
             {/* Price */}
             <div style={{fontSize:42,fontWeight:800,color:NAVY,letterSpacing:"-.02em",lineHeight:1,marginBottom:6}}>{p.price}</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:28}}>Contact us for bulk pricing, EMI options & best deals.</div>
+            <div style={{fontSize:13,color:"#888",marginBottom:28}}>Contact us for best buying options.</div>
 
             {/* CTA buttons */}
             <div style={{display:"flex",gap:12,marginBottom:32,flexWrap:"wrap"}}>
