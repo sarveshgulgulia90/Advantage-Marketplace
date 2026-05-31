@@ -110,7 +110,7 @@ advantage-silchar/
 ### Clone Repository
 
 ```bash
-git clone [<repository-url>](https://github.com/sarveshgulgulia90/Advantage-Marketplace)
+git clone (https://github.com/sarveshgulgulia90/Advantage-Marketplace)
 cd advantage-silchar
 ```
 
