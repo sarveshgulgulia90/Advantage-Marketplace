@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import Admin from "./Admin";
 
-const NAVY = "#0B1F5E";
-const RED  = "#CC1A1A";
+const NAVY = "#071c61";
+const RED  = "#bd1919";
 
 /* ── load products: localStorage overrides defaults ── */
 function useProducts(defaults){
