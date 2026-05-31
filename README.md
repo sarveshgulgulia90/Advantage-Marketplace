@@ -220,18 +220,6 @@ node server.js
 * Inventory control
 * Content management
 
----
 
-## Future Enhancements
-
-* User authentication
-* Customer accounts
-* Shopping cart functionality
-* Online payment gateway integration
-* Order tracking system
-* Product reviews and ratings
-* Analytics dashboard
-* Email notifications
-* Order management system
 
 
