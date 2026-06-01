@@ -278,9 +278,9 @@ function CompareModal({list,onClose,onQuote}){
         body:JSON.stringify({products:list,useCase:query})
       });
       const data=await res.json();
-      if(!res.ok)throw new Error(data.error||"AI request failed");
+      if(!res.ok)throw new Error(data.error||"AI error");
       setAiResult(data);
-    }catch(e){ setAiError(e.message||"Could not get AI analysis. Is the backend running?"); }
+    }catch(e){ setAiError("AI unavailable right now. Try again or use the spec table below."); }
     setAiLoading(false);
   }
 
