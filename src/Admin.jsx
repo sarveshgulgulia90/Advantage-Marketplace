@@ -35,7 +35,7 @@ function saveProducts(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr
 function SeedBanner({ products }){
   const[status,setStatus]=useState(null); // null | "loading" | "done" | "error" | "exists"
   const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-  const token = localStorage.getItem("advantage_admin_token") || "advantage_admin_secret_2025";
+  const token = import.meta.env.VITE_ADMIN_TOKEN || "advantage_admin_secret_2025";
 
   async function seed(){
     setStatus("loading");
@@ -102,12 +102,43 @@ export default function Admin({ defaultProducts, onExit }){
   const[pw,      setPw     ] = useState("");
   const[pwErr,   setPwErr  ] = useState(false);
   const[products,setProducts] = useState(()=>loadProducts() || defaultProducts);
-  const[tab,     setTab    ] = useState("products"); /* products | add | edit */
+  const[tab,     setTab    ] = useState("products"); /* products | add | inquiries */
   const[form,    setForm   ] = useState(EMPTY_FORM);
   const[editId,  setEditId ] = useState(null);
   const[toast,   setToast  ] = useState(null);
   const[delConfirm,setDelConfirm] = useState(null);
   const[filterCat,setFilterCat] = useState("All");
+  const[inquiries,setInquiries] = useState([]);
+  const[inqLoading,setInqLoading] = useState(false);
+
+  const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  const BACKEND_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || "advantage_admin_secret_2025";
+
+  async function loadInquiries(){
+    setInqLoading(true);
+    try{
+      const res = await fetch(API+"/inquiries",{
+        headers:{"x-admin-token": BACKEND_TOKEN}
+      });
+      const data = await res.json();
+      setInquiries(Array.isArray(data)?data:[]);
+    } catch(e){ setInquiries([]); }
+    setInqLoading(false);
+  }
+
+  async function markRead(id){
+    try{
+      await fetch(API+"/inquiries/"+id+"/read",{method:"PUT",headers:{"x-admin-token":BACKEND_TOKEN}});
+      loadInquiries();
+    } catch(e){}
+  }
+
+  async function deleteInquiry(id){
+    try{
+      await fetch(API+"/inquiries/"+id,{method:"DELETE",headers:{"x-admin-token":BACKEND_TOKEN}});
+      loadInquiries();
+    } catch(e){}
+  }
 
   function showToast(msg, type="success"){
     setToast({msg,type});
@@ -322,6 +353,9 @@ export default function Admin({ defaultProducts, onExit }){
           </button>
           <button className={`tab-btn ${tab==="add"?"active":""}`} onClick={()=>{setTab("add");if(!editId){setForm(EMPTY_FORM);}}}>
             {editId!==null?"✏️ Edit Product":"➕ Add Product"}
+          </button>
+          <button className={`tab-btn ${tab==="inquiries"?"active":""}`} onClick={()=>{setTab("inquiries");loadInquiries();}}>
+            📩 Enquiries {inquiries.filter(i=>!i.read).length>0?"("+inquiries.filter(i=>!i.read).length+" new)":""}
           </button>
           {editId!==null&&(
             <button className="tab-btn" style={{color:RED,borderColor:RED}}
@@ -580,6 +614,44 @@ export default function Admin({ defaultProducts, onExit }){
             </div>
           </div>
         )}
+
+        {/* ════ INQUIRIES TAB ════ */}
+        {tab==="inquiries"&&(
+          <div>
+            {inqLoading&&<div style={{textAlign:"center",padding:40,color:"#888",fontSize:14}}>Loading enquiries...</div>}
+            {!inqLoading&&inquiries.length===0&&(
+              <div style={{textAlign:"center",padding:"48px 20px",background:"#fff",border:"1px solid #e8e8e8",color:"#aaa",fontSize:14}}>
+                No enquiries yet. When customers submit the form, they'll appear here.
+              </div>
+            )}
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {inquiries.map(inq=>(
+                <div key={inq.id} style={{background:"#fff",border:"1.5px solid "+(inq.read?"#e8e8e8":NAVY),padding:"18px 20px",display:"flex",gap:16,alignItems:"flex-start"}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6,flexWrap:"wrap"}}>
+                      <span style={{fontWeight:700,fontSize:15,color:NAVY}}>{inq.name}</span>
+                      <span style={{fontSize:12,color:"#888"}}>📞 {inq.phone}</span>
+                      {inq.email&&<span style={{fontSize:12,color:"#888"}}>✉️ {inq.email}</span>}
+                      {!inq.read&&<span style={{background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"2px 8px",letterSpacing:".04em",textTransform:"uppercase"}}>NEW</span>}
+                    </div>
+                    <div style={{fontSize:12,color:RED,fontWeight:600,marginBottom:6}}>{inq.product}</div>
+                    <div style={{fontSize:13,color:"#444",lineHeight:1.6}}>{inq.message}</div>
+                    <div style={{fontSize:11,color:"#aaa",marginTop:8}}>{new Date(inq.createdAt).toLocaleString("en-IN")}</div>
+                  </div>
+                  <div style={{display:"flex",gap:8,flexShrink:0,flexDirection:"column"}}>
+                    <a href={"https://wa.me/91"+inq.phone+"?text="+encodeURIComponent("Hi "+inq.name+", regarding your enquiry about "+inq.product+"...")} target="_blank" rel="noreferrer"
+                      style={{background:"#25D366",color:"#fff",padding:"7px 12px",fontSize:12,fontWeight:600,cursor:"pointer",textDecoration:"none",display:"block",textAlign:"center"}}>
+                      💬 Reply
+                    </a>
+                    {!inq.read&&<button onClick={()=>markRead(inq.id)} style={{background:"#eef2ff",color:NAVY,border:"none",padding:"7px 12px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Mark Read</button>}
+                    <button onClick={()=>deleteInquiry(inq.id)} style={{background:"#fff0f0",color:RED,border:"none",padding:"7px 12px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* ── DELETE CONFIRM MODAL ── */}

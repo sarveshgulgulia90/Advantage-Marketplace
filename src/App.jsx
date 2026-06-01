@@ -1,290 +1,106 @@
 import { useState, useEffect, useRef } from "react";
 import Admin from "./Admin";
 
-const NAVY = "#071c61";
-const RED  = "#bd1919";
+const NAVY = "#0B1F5E";
+const RED  = "#CC1A1A";
+const API  = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-/* ── load products: localStorage overrides defaults ── */
-function useProducts(defaults){
-  const[products,setProducts]=useState(()=>{
-    try{ const s=localStorage.getItem("advantage_products"); return s?JSON.parse(s):defaults; }
-    catch{ return defaults; }
+function useProducts(defaults) {
+  const [products, setProducts] = useState(() => {
+    try { const s = localStorage.getItem("advantage_products"); return s ? JSON.parse(s) : defaults; }
+    catch { return defaults; }
   });
-  useEffect(()=>{
-    const fn=()=>{
-      try{ const s=localStorage.getItem("advantage_products"); if(s)setProducts(JSON.parse(s)); }
-      catch{}
+  useEffect(() => {
+    const fn = () => {
+      try { const s = localStorage.getItem("advantage_products"); if (s) setProducts(JSON.parse(s)); }
+      catch {}
     };
-    window.addEventListener("storage",fn);
-    return()=>window.removeEventListener("storage",fn);
-  },[]);
+    window.addEventListener("storage", fn);
+    return () => window.removeEventListener("storage", fn);
+  }, []);
   return products;
 }
 
-/* ══════════════════════════════════════════════
-   PRODUCTS — full specs for product page + admin
-══════════════════════════════════════════════ */
 const PRODUCTS = [
-  {
-    id:1, name:"HP Pavilion 15", cat:"Laptops", icon:"💻", isNew:false,
-    price:"₹52,990",
-    spec:"Intel i5-1235U · 8GB RAM · 512GB SSD · Win 11",
-    specs:{
-      "Processor":        "Intel Core i5-1235U (12th Gen, 10 Cores)",
-      "RAM":              "8GB DDR4 (Expandable to 16GB)",
-      "Storage":          "512GB NVMe SSD",
-      "Display":          "15.6\" FHD IPS Anti-Glare (1920×1080)",
-      "Graphics":         "Intel Iris Xe Graphics",
-      "Operating System": "Windows 11 Home",
-      "Battery":          "41Wh Li-ion, Up to 7 Hours",
-      "Ports":            "2× USB-A, 1× USB-C, HDMI, SD Card, 3.5mm Audio",
-      "Connectivity":     "Wi-Fi 6, Bluetooth 5.0",
-      "Weight":           "1.75 kg",
-      "Warranty":         "1 Year On-site Warranty",
-    },
-    highlights:["12th Gen Intel Processor","Fast NVMe SSD","FHD IPS Display","Windows 11 Pre-installed"],
-  },
-  {
-    id:2, name:"Lenovo IdeaPad Slim 3", cat:"Laptops", icon:"💻", isNew:true,
-    price:"₹46,500",
-    spec:"AMD Ryzen 5 · 16GB RAM · 512GB SSD · Win 11",
-    specs:{
-      "Processor":        "AMD Ryzen 5 7520U (4 Cores, up to 4.3GHz)",
-      "RAM":              "16GB LPDDR5 (Soldered)",
-      "Storage":          "512GB NVMe SSD",
-      "Display":          "15.6\" FHD IPS (1920×1080, 300 Nits)",
-      "Graphics":         "AMD Radeon 610M Integrated",
-      "Operating System": "Windows 11 Home",
-      "Battery":          "47Wh, Up to 9 Hours",
-      "Ports":            "2× USB-A 3.2, 1× USB-C, HDMI 1.4, 3.5mm",
-      "Connectivity":     "Wi-Fi 6, Bluetooth 5.1",
-      "Weight":           "1.62 kg",
-      "Warranty":         "1 Year On-site Warranty",
-    },
-    highlights:["AMD Ryzen 5 Processor","16GB RAM — Best Value","9 Hr Battery Life","Slim & Lightweight Design"],
-  },
-  {
-    id:3, name:"Asus VivoBook 15 OLED", cat:"Laptops", icon:"💻", isNew:false,
-    price:"₹44,990",
-    spec:"Intel i3-1215U · 8GB RAM · 512GB SSD · OLED",
-    specs:{
-      "Processor":        "Intel Core i3-1215U (12th Gen, 6 Cores)",
-      "RAM":              "8GB DDR4 (1 Slot, Expandable to 12GB)",
-      "Storage":          "512GB M.2 NVMe SSD",
-      "Display":          "15.6\" FHD OLED (1920×1080, 600 Nits, VESA HDR True Black)",
-      "Graphics":         "Intel UHD Graphics",
-      "Operating System": "Windows 11 Home",
-      "Battery":          "42Wh, Up to 6 Hours",
-      "Ports":            "1× USB-A 3.2, 2× USB-A 2.0, 1× USB-C, HDMI, 3.5mm",
-      "Connectivity":     "Wi-Fi 6E, Bluetooth 5.0",
-      "Weight":           "1.80 kg",
-      "Warranty":         "1 Year On-site Warranty",
-    },
-    highlights:["OLED Display — Vivid Colours","12th Gen Intel Core i3","512GB Fast SSD","TÜV Rheinland Eye Care Certified"],
-  },
-  {
-    id:4, name:"Dell Inspiron 15", cat:"Laptops", icon:"💻", isNew:false,
-    price:"₹55,000",
-    spec:"Intel i5 · 16GB RAM · 1TB HDD + 256GB SSD",
-    specs:{
-      "Processor":        "Intel Core i5-1235U (12th Gen)",
-      "RAM":              "16GB DDR4 (2 Slots, Expandable to 32GB)",
-      "Storage":          "256GB SSD + 1TB HDD",
-      "Display":          "15.6\" FHD WVA Anti-Glare (1920×1080)",
-      "Graphics":         "Intel UHD Graphics + Intel Iris Xe",
-      "Operating System": "Windows 11 Home",
-      "Battery":          "54Wh, Up to 8 Hours",
-      "Ports":            "2× USB-A, 1× USB-C, HDMI, SD Card, RJ-45, 3.5mm",
-      "Connectivity":     "Wi-Fi 6, Bluetooth 5.2",
-      "Weight":           "1.86 kg",
-      "Warranty":         "1 Year On-site Warranty",
-    },
-    highlights:["Dual Storage — SSD + HDD","16GB RAM Standard","RJ-45 Ethernet Port","Dell Reliability & Build"],
-  },
-  {
-    id:5, name:"HP 280 Pro G9 Desktop", cat:"Desktops", icon:"🖥️", isNew:false,
-    price:"₹36,000",
-    spec:"Core i3-12100 · 8GB · 1TB HDD · Win 11",
-    specs:{
-      "Processor":        "Intel Core i3-12100 (12th Gen, 4 Cores, up to 4.3GHz)",
-      "RAM":              "8GB DDR4 (2 DIMM Slots, Expandable to 64GB)",
-      "Storage":          "1TB SATA HDD (7200 RPM)",
-      "Form Factor":      "Micro Tower",
-      "Graphics":         "Intel UHD Graphics 730 (Integrated)",
-      "Operating System": "Windows 11 Pro",
-      "Ports":            "USB-A 3.2 (Front & Rear), USB-C, DisplayPort, VGA, RJ-45",
-      "Optical Drive":    "DVD-RW (Optional)",
-      "Connectivity":     "Intel Gigabit Ethernet, Wi-Fi Optional",
-      "Warranty":         "1 Year On-site Warranty",
-    },
-    highlights:["12th Gen Intel Core i3","Windows 11 Pro Included","Easily Upgradeable","Ideal for Office Use"],
-  },
-  {
-    id:6, name:"Dell Vostro 3020", cat:"Desktops", icon:"🖥️", isNew:true,
-    price:"₹42,500",
-    spec:"Core i5 · 8GB · 512GB SSD · Win 11 Pro",
-    specs:{
-      "Processor":        "Intel Core i5-12400 (12th Gen, 6 Cores, up to 4.4GHz)",
-      "RAM":              "8GB DDR4 (Expandable to 64GB)",
-      "Storage":          "512GB M.2 NVMe SSD",
-      "Form Factor":      "Small Form Factor (SFF)",
-      "Graphics":         "Intel UHD Graphics 730",
-      "Operating System": "Windows 11 Pro",
-      "Ports":            "4× USB-A, 1× USB-C, HDMI, DisplayPort, RJ-45",
-      "Optical Drive":    "No ODD",
-      "Connectivity":     "Gigabit Ethernet, Bluetooth 5.0, Wi-Fi 6",
-      "Warranty":         "1 Year ProSupport On-site",
-    },
-    highlights:["Core i5 12th Gen SFF PC","512GB NVMe SSD — Fast Boot","Win 11 Pro for Business","Dell ProSupport Warranty"],
-  },
-  {
-    id:7, name:"Canon PIXMA G3770", cat:"Printers", icon:"🖨️", isNew:false,
-    price:"₹14,499",
-    spec:"Wireless · All-in-One · Color Ink Tank",
-    specs:{
-      "Type":              "Ink Tank All-in-One (Print, Scan, Copy)",
-      "Print Technology":  "FINE Inkjet",
-      "Print Speed":       "Up to 11 ipm (Black), 6 ipm (Color)",
-      "Print Resolution":  "4800 × 1200 dpi",
-      "Connectivity":      "Wi-Fi, USB",
-      "Scanner":           "Flatbed CIS, 600 × 1200 dpi",
-      "Paper Size":        "A4, A5, B5, Letter, Legal, Envelopes",
-      "Ink Bottles":       "GI-73 Black, Cyan, Magenta, Yellow",
-      "Page Yield":        "Approx. 6,000 (B), 7,700 (Color)",
-      "Warranty":          "1 Year On-site",
-    },
-    highlights:["High-Yield Ink Tank","Wi-Fi Direct Printing","Low Cost Per Page","Print + Scan + Copy"],
-  },
-  {
-    id:8, name:"HP LaserJet 107a", cat:"Printers", icon:"🖨️", isNew:false,
-    price:"₹8,299",
-    spec:"Mono Laser · 20ppm · USB · Compact",
-    specs:{
-      "Type":              "Mono Laser Printer",
-      "Print Speed":       "20 ppm",
-      "Print Resolution":  "600 × 600 dpi (up to 1200 × 1200 dpi)",
-      "First Page Out":    "7.8 seconds",
-      "Connectivity":      "USB 2.0",
-      "Paper Capacity":    "150 Sheet Input Tray",
-      "Duty Cycle":        "Up to 5,000 Pages/Month",
-      "Toner Cartridge":   "HP 106A Black (~1,000 pages)",
-      "Dimensions":        "339 × 195 × 235 mm",
-      "Warranty":          "1 Year On-site",
-    },
-    highlights:["Fast 20ppm Print Speed","Compact Office Design","Low Running Cost","HP Reliable Laser Quality"],
-  },
-  {
-    id:9, name:"Logitech MK235 Combo", cat:"Accessories", icon:"⌨️", isNew:false,
-    price:"₹1,499",
-    spec:"Wireless Keyboard & Mouse Combo · USB",
-    specs:{
-      "Type":              "Wireless Keyboard + Mouse Combo",
-      "Connectivity":      "2.4GHz Wireless via USB Nano Receiver",
-      "Keyboard Layout":   "Full Size, Indian Layout",
-      "Keyboard Battery":  "2× AAA (up to 36 Months)",
-      "Mouse Type":        "Optical, 1000 DPI",
-      "Mouse Battery":     "1× AA (up to 12 Months)",
-      "Range":             "Up to 10 Meters",
-      "Compatibility":     "Windows 7/8/10/11, Chrome OS",
-      "Warranty":          "3 Years",
-    },
-    highlights:["Long Battery Life","Nano USB Receiver","Full-Size Layout","3-Year Logitech Warranty"],
-  },
-  {
-    id:10, name:"Dell 21.5\" Monitor", cat:"Accessories", icon:"🖥️", isNew:false,
-    price:"₹12,800",
-    spec:"FHD IPS · HDMI · VGA · Eye Care · Tilt",
-    specs:{
-      "Screen Size":       "21.5 Inches",
-      "Panel Type":        "IPS",
-      "Resolution":        "1920 × 1080 (Full HD)",
-      "Brightness":        "250 cd/m²",
-      "Refresh Rate":      "75 Hz",
-      "Response Time":     "8ms (GtG)",
-      "Ports":             "1× HDMI, 1× VGA",
-      "Stand":             "Tilt Adjustable",
-      "Eye Care":          "ComfortView Low Blue Light, Flicker-Free",
-      "Warranty":          "3 Years",
-    },
-    highlights:["IPS Panel — Wide Viewing Angle","75Hz Refresh Rate","Flicker-Free & Low Blue Light","HDMI + VGA Connectivity"],
-  },
-  {
-    id:11, name:"HP 27\" FHD Monitor", cat:"Accessories", icon:"🖥️", isNew:true,
-    price:"₹18,500",
-    spec:"Full HD IPS · HDMI · Low Blue Light · 75Hz",
-    specs:{
-      "Screen Size":       "27 Inches",
-      "Panel Type":        "IPS",
-      "Resolution":        "1920 × 1080 (Full HD)",
-      "Brightness":        "300 cd/m²",
-      "Refresh Rate":      "75 Hz",
-      "Response Time":     "5ms (GtG)",
-      "Ports":             "1× HDMI, 1× VGA, 1× Audio Out",
-      "Stand":             "Tilt (−5° to +22°)",
-      "Eye Care":          "HP Eye Ease, Low Blue Light (TÜV Certified)",
-      "Warranty":          "3 Years",
-    },
-    highlights:["Large 27\" Display","TÜV Certified Low Blue Light","75Hz Smooth Display","Ideal for Work & Study"],
-  },
-  {
-    id:12, name:"Seagate 1TB External HDD", cat:"Accessories", icon:"💾", isNew:false,
-    price:"₹3,999",
-    spec:"USB 3.0 · Portable · Windows & Mac",
-    specs:{
-      "Capacity":          "1TB",
-      "Interface":         "USB 3.0 (USB 2.0 Compatible)",
-      "Form Factor":       "2.5\" Portable",
-      "RPM":               "5400 RPM",
-      "Transfer Speed":    "Up to 120 MB/s",
-      "Compatibility":     "Windows, Mac, PS4, Xbox",
-      "Power":             "Bus Powered (No adapter needed)",
-      "Dimensions":        "111.75 × 82 × 13.55 mm",
-      "Weight":            "159 g",
-      "Warranty":          "2 Years",
-    },
-    highlights:["1TB Portable Storage","USB 3.0 Fast Transfer","Works with PC, Mac & Consoles","Bus Powered — No Adapter"],
-  },
+  { id:1,  name:"HP Pavilion 15",           cat:"Laptops",    icon:"💻", isNew:false, price:"₹52,990",
+    spec:"Intel i5-1235U · 8GB RAM · 512GB SSD · Win 11", image:"",
+    specs:{"Processor":"Intel Core i5-1235U (12th Gen, 10 Cores)","RAM":"8GB DDR4 (Expandable to 16GB)","Storage":"512GB NVMe SSD","Display":"15.6\" FHD IPS Anti-Glare (1920×1080)","Graphics":"Intel Iris Xe Graphics","Operating System":"Windows 11 Home","Battery":"41Wh, Up to 7 Hours","Ports":"2× USB-A, 1× USB-C, HDMI, SD Card, 3.5mm","Connectivity":"Wi-Fi 6, Bluetooth 5.0","Weight":"1.75 kg","Warranty":"1 Year On-site"},
+    highlights:["12th Gen Intel Processor","Fast NVMe SSD","FHD IPS Display","Windows 11 Pre-installed"] },
+  { id:2,  name:"Lenovo IdeaPad Slim 3",    cat:"Laptops",    icon:"💻", isNew:true,  price:"₹46,500",
+    spec:"AMD Ryzen 5 · 16GB RAM · 512GB SSD · Win 11", image:"",
+    specs:{"Processor":"AMD Ryzen 5 7520U (4 Cores, up to 4.3GHz)","RAM":"16GB LPDDR5 (Soldered)","Storage":"512GB NVMe SSD","Display":"15.6\" FHD IPS (1920×1080, 300 Nits)","Graphics":"AMD Radeon 610M Integrated","Operating System":"Windows 11 Home","Battery":"47Wh, Up to 9 Hours","Ports":"2× USB-A 3.2, 1× USB-C, HDMI 1.4, 3.5mm","Connectivity":"Wi-Fi 6, Bluetooth 5.1","Weight":"1.62 kg","Warranty":"1 Year On-site"},
+    highlights:["AMD Ryzen 5 Processor","16GB RAM — Best Value","9 Hr Battery Life","Slim & Lightweight"] },
+  { id:3,  name:"Asus VivoBook 15 OLED",    cat:"Laptops",    icon:"💻", isNew:false, price:"₹44,990",
+    spec:"Intel i3-1215U · 8GB RAM · 512GB SSD · OLED", image:"",
+    specs:{"Processor":"Intel Core i3-1215U (12th Gen, 6 Cores)","RAM":"8GB DDR4 (Expandable to 12GB)","Storage":"512GB M.2 NVMe SSD","Display":"15.6\" FHD OLED (1920×1080, 600 Nits, VESA HDR)","Graphics":"Intel UHD Graphics","Operating System":"Windows 11 Home","Battery":"42Wh, Up to 6 Hours","Ports":"1× USB-A 3.2, 2× USB-A 2.0, 1× USB-C, HDMI, 3.5mm","Connectivity":"Wi-Fi 6E, Bluetooth 5.0","Weight":"1.80 kg","Warranty":"1 Year On-site"},
+    highlights:["OLED Display — Vivid Colours","12th Gen Intel Core i3","512GB Fast SSD","TÜV Rheinland Eye Care"] },
+  { id:4,  name:"Dell Inspiron 15",          cat:"Laptops",    icon:"💻", isNew:false, price:"₹55,000",
+    spec:"Intel i5 · 16GB RAM · 1TB HDD + 256GB SSD", image:"",
+    specs:{"Processor":"Intel Core i5-1235U (12th Gen)","RAM":"16GB DDR4 (2 Slots, Expandable to 32GB)","Storage":"256GB SSD + 1TB HDD","Display":"15.6\" FHD WVA Anti-Glare (1920×1080)","Graphics":"Intel UHD Graphics","Operating System":"Windows 11 Home","Battery":"54Wh, Up to 8 Hours","Ports":"2× USB-A, 1× USB-C, HDMI, SD Card, RJ-45, 3.5mm","Connectivity":"Wi-Fi 6, Bluetooth 5.2","Weight":"1.86 kg","Warranty":"1 Year On-site"},
+    highlights:["Dual Storage — SSD + HDD","16GB RAM Standard","RJ-45 Ethernet Port","Dell Reliability"] },
+  { id:5,  name:"HP 280 Pro G9 Desktop",    cat:"Desktops",   icon:"🖥️", isNew:false, price:"₹36,000",
+    spec:"Core i3-12100 · 8GB · 1TB HDD · Win 11", image:"",
+    specs:{"Processor":"Intel Core i3-12100 (12th Gen, 4 Cores, up to 4.3GHz)","RAM":"8GB DDR4 (Expandable to 64GB)","Storage":"1TB SATA HDD","Form Factor":"Micro Tower","Graphics":"Intel UHD Graphics 730","Operating System":"Windows 11 Pro","Ports":"USB-A 3.2, USB-C, DisplayPort, VGA, RJ-45","Connectivity":"Intel Gigabit Ethernet","Warranty":"1 Year On-site"},
+    highlights:["12th Gen Intel Core i3","Windows 11 Pro Included","Easily Upgradeable","Ideal for Office"] },
+  { id:6,  name:"Dell Vostro 3020",          cat:"Desktops",   icon:"🖥️", isNew:true,  price:"₹42,500",
+    spec:"Core i5 · 8GB · 512GB SSD · Win 11 Pro", image:"",
+    specs:{"Processor":"Intel Core i5-12400 (12th Gen, 6 Cores, up to 4.4GHz)","RAM":"8GB DDR4 (Expandable to 64GB)","Storage":"512GB M.2 NVMe SSD","Form Factor":"Small Form Factor (SFF)","Graphics":"Intel UHD Graphics 730","Operating System":"Windows 11 Pro","Ports":"4× USB-A, 1× USB-C, HDMI, DisplayPort, RJ-45","Connectivity":"Gigabit Ethernet, Bluetooth 5.0, Wi-Fi 6","Warranty":"1 Year ProSupport On-site"},
+    highlights:["Core i5 12th Gen SFF PC","512GB NVMe SSD","Win 11 Pro for Business","Dell ProSupport"] },
+  { id:7,  name:"Canon PIXMA G3770",         cat:"Printers",   icon:"🖨️", isNew:false, price:"₹14,499",
+    spec:"Wireless · All-in-One · Color Ink Tank", image:"",
+    specs:{"Type":"Ink Tank All-in-One (Print, Scan, Copy)","Print Technology":"FINE Inkjet","Print Speed":"Up to 11 ipm (Black), 6 ipm (Color)","Print Resolution":"4800 × 1200 dpi","Connectivity":"Wi-Fi, USB","Scanner":"Flatbed CIS, 600 × 1200 dpi","Paper Size":"A4, A5, B5, Letter, Legal","Page Yield":"Approx. 6,000 (Black), 7,700 (Color)","Warranty":"1 Year On-site"},
+    highlights:["High-Yield Ink Tank","Wi-Fi Direct Printing","Low Cost Per Page","Print + Scan + Copy"] },
+  { id:8,  name:"HP LaserJet 107a",          cat:"Printers",   icon:"🖨️", isNew:false, price:"₹8,299",
+    spec:"Mono Laser · 20ppm · USB · Compact", image:"",
+    specs:{"Type":"Mono Laser Printer","Print Speed":"20 ppm","Print Resolution":"600 × 600 dpi (up to 1200 × 1200)","First Page Out":"7.8 seconds","Connectivity":"USB 2.0","Paper Capacity":"150 Sheet Input Tray","Toner Cartridge":"HP 106A Black (~1,000 pages)","Warranty":"1 Year On-site"},
+    highlights:["Fast 20ppm Speed","Compact Office Design","Low Running Cost","HP Laser Quality"] },
+  { id:9,  name:"Logitech MK235 Combo",      cat:"Accessories",icon:"⌨️", isNew:false, price:"₹1,499",
+    spec:"Wireless Keyboard & Mouse Combo · USB", image:"",
+    specs:{"Type":"Wireless Keyboard + Mouse Combo","Connectivity":"2.4GHz Wireless via USB Nano Receiver","Keyboard Layout":"Full Size, Indian Layout","Keyboard Battery":"2× AAA (up to 36 Months)","Mouse Type":"Optical, 1000 DPI","Mouse Battery":"1× AA (up to 12 Months)","Range":"Up to 10 Meters","Compatibility":"Windows 7/8/10/11","Warranty":"3 Years"},
+    highlights:["Long Battery Life","Nano USB Receiver","Full-Size Layout","3-Year Warranty"] },
+  { id:10, name:"Dell 21.5\" Monitor",       cat:"Accessories",icon:"🖥️", isNew:false, price:"₹12,800",
+    spec:"FHD IPS · HDMI · VGA · Eye Care · Tilt", image:"",
+    specs:{"Screen Size":"21.5 Inches","Panel Type":"IPS","Resolution":"1920 × 1080 (Full HD)","Brightness":"250 cd/m²","Refresh Rate":"75 Hz","Response Time":"8ms (GtG)","Ports":"1× HDMI, 1× VGA","Stand":"Tilt Adjustable","Eye Care":"ComfortView, Flicker-Free","Warranty":"3 Years"},
+    highlights:["IPS Panel — Wide Viewing Angle","75Hz Refresh Rate","Flicker-Free & Low Blue Light","HDMI + VGA"] },
+  { id:11, name:"HP 27\" FHD Monitor",       cat:"Accessories",icon:"🖥️", isNew:true,  price:"₹18,500",
+    spec:"Full HD IPS · HDMI · Low Blue Light · 75Hz", image:"",
+    specs:{"Screen Size":"27 Inches","Panel Type":"IPS","Resolution":"1920 × 1080 (Full HD)","Brightness":"300 cd/m²","Refresh Rate":"75 Hz","Response Time":"5ms (GtG)","Ports":"1× HDMI, 1× VGA, 1× Audio Out","Stand":"Tilt (-5° to +22°)","Eye Care":"HP Eye Ease, Low Blue Light (TÜV Certified)","Warranty":"3 Years"},
+    highlights:["Large 27\" Display","TÜV Low Blue Light","75Hz Smooth Display","For Work & Study"] },
+  { id:12, name:"Seagate 1TB External HDD",  cat:"Accessories",icon:"💾", isNew:false, price:"₹3,999",
+    spec:"USB 3.0 · Portable · Windows & Mac", image:"",
+    specs:{"Capacity":"1TB","Interface":"USB 3.0 (USB 2.0 Compatible)","Form Factor":"2.5\" Portable","Transfer Speed":"Up to 120 MB/s","Compatibility":"Windows, Mac, PS4, Xbox","Power":"Bus Powered (No adapter)","Weight":"159 g","Warranty":"2 Years"},
+    highlights:["1TB Portable Storage","USB 3.0 Fast Transfer","Works with PC, Mac & Consoles","Bus Powered"] },
 ];
 
 const MEGA_MENU = {
-  Laptops: {
-    sections: [
-      { head:"By Use",    items:["For Home","For Students","For Work","For Gaming"] },
-      { head:"By Brand",  items:["HP Laptops","Dell Laptops","Lenovo Laptops","Asus Laptops","Acer Laptops","MSI Laptops","Avita Laptops"] },
-      { head:"By Budget", items:["Under ₹30,000","₹30,000–₹50,000","₹50,000–₹80,000","Above ₹80,000","Above ₹1,00,000"] },
-    ],
-  },
-  Desktops: {
-    sections: [
-      { head:"Type",  items:["Tower PCs","All-in-One PCs","Mini PCs","Workstations"] },
-      { head:"Brand", items:["HP Desktops","Dell Desktops","Lenovo Desktops"] },
-    ],
-  },
-  Printers: {
-    sections: [
-      { head:"Type",  items:["Inkjet Printers","Laser Printers","All-in-One Printers","Ink Tank Printers"] },
-      { head:"Brand", items:["HP Printers","Canon Printers","Epson Printers"] },
-    ],
-  },
-  Accessories: {
-    sections: [
-      { head:"Input",             items:["Keyboards","Mouse","Keyboard & Mouse Combos","Webcams"] },
-      { head:"Display & Storage", items:["Monitors","External Hard Drives","Pen Drives","SSDs"] },
-      { head:"Connectivity",      items:["USB Hubs","HDMI Cables","Networking","Adapters"] },
-    ],
-  },
-  "Repair & Service": {
-    sections: [
-      { head:"Device",       items:["Laptop Repair","Desktop Repair","Printer Service","Screen Replacement"] },
-      { head:"Service Type", items:["Carry-in Service","Onsite Visit","OS Installation"] },
-    ],
-  },
+  Laptops: { sections:[
+    { head:"By Use",    items:["For Home","For Students","For Work","For Gaming"] },
+    { head:"By Brand",  items:["HP Laptops","Dell Laptops","Lenovo Laptops","Asus Laptops","Acer Laptops","MSI Laptops"] },
+    { head:"By Budget", items:["Under ₹30,000","₹30,000–₹50,000","₹50,000–₹80,000","Above ₹80,000"] },
+  ]},
+  Desktops: { sections:[
+    { head:"Type",  items:["Tower PCs","All-in-One PCs","Mini PCs","Workstations"] },
+    { head:"Brand", items:["HP Desktops","Dell Desktops","Lenovo Desktops"] },
+  ]},
+  Printers: { sections:[
+    { head:"Type",  items:["Inkjet Printers","Laser Printers","All-in-One Printers","Ink Tank Printers"] },
+    { head:"Brand", items:["HP Printers","Canon Printers","Epson Printers"] },
+  ]},
+  Accessories: { sections:[
+    { head:"Input",             items:["Keyboards","Mouse","Combos","Webcams"] },
+    { head:"Display & Storage", items:["Monitors","External HDDs","Pen Drives","SSDs"] },
+    { head:"Connectivity",      items:["USB Hubs","HDMI Cables","Networking","Adapters"] },
+  ]},
+  "Repair & Service": { sections:[
+    { head:"Device",       items:["Laptop Repair","Desktop Repair","Printer Service","Screen Replacement"] },
+    { head:"Service Type", items:["Carry-in Service","Onsite Visit","OS Installation"] },
+  ]},
 };
 
 const HERO_SLIDES = [
-  { tag:"New Arrivals",            title:"Laptops Built\nFor Every Need",  sub:"Intel 12th Gen · AMD Ryzen · Starting ₹29,999", cta1:"Shop Laptops",  cta2:"Get Quote", cat:"Laptops",  bg:`linear-gradient(135deg,${NAVY} 0%,#071240 100%)`, icon:"💻" },
-  { tag:"Expert Service",          title:"Repair Done\nRight. Fast.",      sub:"Laptops · Desktops · Printers · All Brands",     cta1:"Book Enquiry",  cta2:"Call Us",   cat:"Repair",   bg:`linear-gradient(135deg,#0a0a14 0%,${NAVY} 100%)`, icon:"🔧" },
-  { tag:"Desktops & Workstations", title:"Power That\nMeans Business",     sub:"Assembled PCs · Branded Desktops · Upgrades",    cta1:"Shop Desktops", cta2:"Get Quote", cat:"Desktops", bg:`linear-gradient(135deg,#07122e 0%,#0d1e50 100%)`, icon:"🖥️" },
+  { tag:"New Arrivals",            title:"Laptops Built\nFor Every Need",  sub:"Intel 12th Gen · AMD Ryzen · Starting ₹29,999", cta1:"Shop Laptops",  cta2:"Get Quote", cat:"Laptops",  bg:"linear-gradient(135deg,#0B1F5E 0%,#071240 100%)", icon:"💻" },
+  { tag:"Expert Service",          title:"Repair Done\nRight. Fast.",      sub:"Laptops · Desktops · Printers · All Brands",     cta1:"Book Enquiry",  cta2:"Call Us",   cat:"Repair",   bg:"linear-gradient(135deg,#0a0a14 0%,#0B1F5E 100%)", icon:"🔧" },
+  { tag:"Desktops & Workstations", title:"Power That\nMeans Business",     sub:"Assembled PCs · Branded Desktops · Upgrades",    cta1:"Shop Desktops", cta2:"Get Quote", cat:"Desktops", bg:"linear-gradient(135deg,#07122e 0%,#0d1e50 100%)", icon:"🖥️" },
 ];
 
 const CATEGORIES = [
@@ -300,40 +116,33 @@ const CATEGORIES = [
 
 const SERVICES_LIST = [
   { icon:"💻", title:"Laptop Repair",   items:["Screen replacement","Battery & keyboard","Motherboard repair","Hinge & port fix"] },
-  { icon:"🖥️", title:"Desktop Service", items:["Custom PC assembly","Hardware upgrades","Virus & malware removal"] },
+  { icon:"🖥️", title:"Desktop Service", items:["Custom PC assembly","Hardware upgrades","Virus removal","Data recovery"] },
   { icon:"🖨️", title:"Printer Service", items:["Cartridge & ink refill","Print head cleaning","Network printer setup","Hardware faults"] },
-  { icon:"🏠", title:"Onsite Support",  items:["Home & office visits","LAN & WiFi setup","OS installation"] },
+  { icon:"🏠", title:"Onsite Support",  items:["Home & office visits","LAN & WiFi setup","OS installation","Annual maintenance"] },
 ];
 
 const BRANDS = ["HP","Dell","Lenovo","Asus","Acer","Canon","Epson","Logitech","Intel","AMD","TP-Link"];
 
-/* ══════ HELPERS ══════ */
-function useScrollY(){
-  const[y,setY]=useState(0);
-  useEffect(()=>{const fn=()=>setY(window.scrollY);window.addEventListener("scroll",fn,{passive:true});return()=>window.removeEventListener("scroll",fn);},[]);
-  return y;
-}
-function useInView(t=0.12){
-  const ref=useRef(null);const[v,setV]=useState(false);
-  useEffect(()=>{const o=new IntersectionObserver(([e])=>{if(e.isIntersecting)setV(true)},{threshold:t});if(ref.current)o.observe(ref.current);return()=>o.disconnect();},[t]);
-  return[ref,v];
-}
-function Fade({children,delay=0}){
-  const[ref,v]=useInView();
-  return <div ref={ref} style={{opacity:v?1:0,transform:v?"none":"translateY(16px)",transition:`opacity .5s ease ${delay}s,transform .5s ease ${delay}s`}}>{children}</div>;
-}
+// ─── HELPERS ───────────────────────────────────────────────────────
+function useScrollY(){ const[y,setY]=useState(0); useEffect(()=>{const fn=()=>setY(window.scrollY);window.addEventListener("scroll",fn,{passive:true});return()=>window.removeEventListener("scroll",fn);},[]);return y; }
+function useInView(t=0.12){ const ref=useRef(null);const[v,setV]=useState(false);useEffect(()=>{const o=new IntersectionObserver(([e])=>{if(e.isIntersecting)setV(true)},{threshold:t});if(ref.current)o.observe(ref.current);return()=>o.disconnect();},[t]);return[ref,v]; }
+function Fade({children,delay=0}){ const[ref,v]=useInView();return <div ref={ref} style={{opacity:v?1:0,transform:v?"none":"translateY(16px)",transition:"opacity .5s ease "+delay+"s,transform .5s ease "+delay+"s"}}>{children}</div>; }
 
-/* ══════ QUOTE MODAL ══════ */
+// ─── QUOTE MODAL ───────────────────────────────────────────────────
 function QuoteModal({product,onClose}){
-  const[form,setForm]=useState({name:"",phone:"",msg:product&&product!=="contact"?`Hi, I'm interested in ${product.name} (${product.price}). Please share availability and best price.`:""});
+  const isContact = product==="contact";
+  const[form,setForm]=useState({name:"",phone:"",email:"",msg:!isContact&&product?"Hi, I'm interested in "+product.name+" ("+product.price+"). Please share availability and best price.":""});
   const[sent,setSent]=useState(false);
-  useEffect(()=>{
-    const fn=e=>{if(e.key==="Escape")onClose();};
-    window.addEventListener("keydown",fn);
-    document.body.style.overflow="hidden";
-    return()=>{window.removeEventListener("keydown",fn);document.body.style.overflow="";};
-  },[onClose]);
-  const inp={border:"1px solid #ddd",padding:"11px 13px",fontSize:14,fontFamily:"inherit",outline:"none",width:"100%",transition:"border-color .15s"};
+  const[loading,setLoading]=useState(false);
+  useEffect(()=>{ const fn=e=>{if(e.key==="Escape")onClose();}; window.addEventListener("keydown",fn); document.body.style.overflow="hidden"; return()=>{window.removeEventListener("keydown",fn);document.body.style.overflow="";}; },[onClose]);
+  async function submit(){
+    if(!form.name||!form.phone)return;
+    setLoading(true);
+    try{ await fetch(API+"/inquiries",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:form.name,phone:form.phone,email:form.email,product:!isContact&&product?product.name:"General",message:form.msg})}); }
+    catch(e){}
+    setLoading(false); setSent(true);
+  }
+  const inp={border:"1px solid #ddd",padding:"11px 13px",fontSize:14,fontFamily:"inherit",outline:"none",width:"100%",transition:"border-color .15s",color:"#111"};
   return(
     <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{background:"#fff",width:"100%",maxWidth:460}}>
@@ -341,31 +150,32 @@ function QuoteModal({product,onClose}){
           <>
             <div style={{padding:"24px 28px 18px",borderBottom:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div>
-                <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#999",marginBottom:4}}>{product==="contact"?"Contact Us":"Request a Quote"}</div>
-                <div style={{fontWeight:700,fontSize:20,color:NAVY,lineHeight:1.2}}>{product==="contact"?"Get in Touch":product.name}</div>
-                {product!=="contact"&&<div style={{fontSize:13,color:RED,fontWeight:600,marginTop:2}}>{product.price}</div>}
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#999",marginBottom:4}}>{isContact?"Contact Us":"Request a Quote"}</div>
+                <div style={{fontWeight:700,fontSize:20,color:NAVY,lineHeight:1.2}}>{isContact?"Get in Touch":product.name}</div>
+                {!isContact&&<div style={{fontSize:13,color:RED,fontWeight:600,marginTop:2}}>{product.price}</div>}
               </div>
               <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#aaa",lineHeight:1}}>×</button>
             </div>
             <div style={{padding:"22px 28px 28px",display:"flex",flexDirection:"column",gap:12}}>
               <input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Your Name *" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
               <input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="Phone Number *" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+              <input value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="Email (optional)" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
               <textarea value={form.msg} onChange={e=>setForm({...form,msg:e.target.value})} rows={3} style={{...inp,resize:"vertical"}} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
-              <button disabled={!form.name||!form.phone} onClick={()=>setSent(true)}
+              <button disabled={!form.name||!form.phone||loading} onClick={submit}
                 style={{background:form.name&&form.phone?NAVY:"#ccc",color:"#fff",border:"none",padding:"13px",fontSize:14,fontWeight:700,fontFamily:"inherit",cursor:form.name&&form.phone?"pointer":"not-allowed",letterSpacing:".04em",textTransform:"uppercase"}}>
-                Submit Enquiry
+                {loading?"Sending...":"Submit Enquiry"}
               </button>
-              <button onClick={()=>window.open(`https://wa.me/919435070738?text=${encodeURIComponent(form.msg||"Hi, I want to enquire.")}`, "_blank")}
+              <button onClick={()=>window.open("https://wa.me/919435070738?text="+encodeURIComponent(form.msg||"Hi, I want to enquire."),"_blank")}
                 style={{background:"#25D366",color:"#fff",border:"none",padding:"12px",fontSize:14,fontWeight:600,fontFamily:"inherit",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                <span style={{fontSize:16}}>💬</span> Send via WhatsApp
+                <span>💬</span> Send via WhatsApp
               </button>
             </div>
           </>
         ):(
           <div style={{padding:"48px 28px",textAlign:"center"}}>
             <div style={{fontSize:44,marginBottom:16,color:RED}}>✓</div>
-            <div style={{fontWeight:700,fontSize:20,color:NAVY,marginBottom:8}}>Enquiry Received</div>
-            <p style={{fontSize:14,color:"#666",lineHeight:1.7,marginBottom:28}}>We'll call <strong>{form.phone}</strong> shortly.<br/>Or reach us at <strong style={{color:RED}}>9435070738</strong>.</p>
+            <div style={{fontWeight:700,fontSize:20,color:NAVY,marginBottom:8}}>Enquiry Received!</div>
+            <p style={{fontSize:14,color:"#666",lineHeight:1.7,marginBottom:28}}>We'll call <strong>{form.phone}</strong> shortly.<br/>Or call us at <strong style={{color:RED}}>9435070738</strong>.</p>
             <button onClick={onClose} style={{background:NAVY,color:"#fff",border:"none",padding:"12px 32px",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",fontFamily:"inherit"}}>Close</button>
           </div>
         )}
@@ -374,30 +184,23 @@ function QuoteModal({product,onClose}){
   );
 }
 
-/* ══════ PRODUCT CARD ══════ */
+// ─── PRODUCT CARD ──────────────────────────────────────────────────
 function ProductCard({p,onQuote,onView,onCompare,compareList=[],delay}){
   const[hov,setHov]=useState(false);
-  const inCompare = compareList.some(c=>c.id===p.id);
+  const inCmp=compareList.some(c=>c.id===p.id);
   return(
     <Fade delay={delay}>
       <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-        style={{background:"#fff",border:`1px solid ${hov?NAVY:"#e8e8e8"}`,transition:"border-color .2s",position:"relative",height:"100%"}}>
+        style={{background:"#fff",border:"1px solid "+(hov?NAVY:"#e8e8e8"),transition:"border-color .2s",position:"relative",height:"100%"}}>
         {p.isNew&&<div style={{position:"absolute",top:12,left:12,background:RED,color:"#fff",fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",padding:"3px 10px",zIndex:1}}>NEW</div>}
-        {/* Compare toggle */}
         <div style={{position:"absolute",top:12,right:12,zIndex:1}}>
-          <button onClick={e=>{e.stopPropagation();onCompare(p);}}
-            title={inCompare?"Remove from compare":"Add to compare"}
-            style={{background:inCompare?NAVY:"rgba(255,255,255,.9)",color:inCompare?"#fff":"#888",border:`1.5px solid ${inCompare?NAVY:"#ddd"}`,borderRadius:4,padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",transition:"all .15s"}}>
-            {inCompare?"✓ Added":"+ Compare"}
+          <button onClick={e=>{e.stopPropagation();onCompare&&onCompare(p);}}
+            style={{background:inCmp?NAVY:"rgba(255,255,255,.9)",color:inCmp?"#fff":"#888",border:"1.5px solid "+(inCmp?NAVY:"#ddd"),padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",transition:"all .15s"}}>
+            {inCmp?"✓ Added":"+ Compare"}
           </button>
         </div>
-        {/* Image or emoji fallback */}
-        <div style={{background:"#f5f5f5",height:200,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden"}}
-          onClick={()=>onView(p)}>
-          {p.image
-            ? <img src={p.image} alt={p.name} style={{width:"100%",height:"100%",objectFit:"contain",padding:"12px"}}/>
-            : <span style={{fontSize:80}}>{p.icon}</span>
-          }
+        <div style={{background:"#f5f5f5",height:200,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden"}} onClick={()=>onView(p)}>
+          {p.image?<img src={p.image} alt={p.name} style={{width:"100%",height:"100%",objectFit:"contain",padding:12}}/>:<span style={{fontSize:80}}>{p.icon}</span>}
         </div>
         <div style={{padding:"16px 18px 20px"}}>
           <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:RED,marginBottom:5}}>{p.cat}</div>
@@ -406,7 +209,7 @@ function ProductCard({p,onQuote,onView,onCompare,compareList=[],delay}){
           <div style={{fontWeight:800,fontSize:20,color:NAVY,marginBottom:14}}>{p.price}</div>
           <div style={{display:"flex",gap:8}}>
             <button onClick={()=>onView(p)}
-              style={{flex:1,background:"#fff",color:NAVY,border:`1.5px solid ${NAVY}`,padding:"9px 0",fontSize:12,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
+              style={{flex:1,background:"#fff",color:NAVY,border:"1.5px solid "+NAVY,padding:"9px 0",fontSize:12,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
               onMouseEnter={e=>{e.target.style.background=NAVY;e.target.style.color="#fff";}} onMouseLeave={e=>{e.target.style.background="#fff";e.target.style.color=NAVY;}}>
               View
             </button>
@@ -415,7 +218,7 @@ function ProductCard({p,onQuote,onView,onCompare,compareList=[],delay}){
               onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
               Enquire
             </button>
-            <button onClick={()=>window.open(`https://wa.me/919435070738?text=Hi%2C+I'm+interested+in+${encodeURIComponent(p.name)}+at+${encodeURIComponent(p.price)}`,"_blank")}
+            <button onClick={()=>window.open("https://wa.me/919435070738?text=Hi%2C+I'm+interested+in+"+encodeURIComponent(p.name)+"_at_"+encodeURIComponent(p.price),"_blank")}
               style={{width:40,background:"#fff",border:"1px solid #e8e8e8",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"border-color .15s"}}
               onMouseEnter={e=>e.target.style.borderColor=NAVY} onMouseLeave={e=>e.target.style.borderColor="#e8e8e8"}>
               💬
@@ -427,31 +230,23 @@ function ProductCard({p,onQuote,onView,onCompare,compareList=[],delay}){
   );
 }
 
-/* ══════ COMPARE BAR ══════ */
+// ─── COMPARE BAR ───────────────────────────────────────────────────
 function CompareBar({list,onRemove,onClear,onCompare}){
-  if(list.length===0) return null;
+  if(list.length===0)return null;
   return(
-    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:800,background:"#fff",borderTop:`3px solid ${NAVY}`,boxShadow:"0 -4px 24px rgba(11,31,94,.15)",padding:"14px 32px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-      <div style={{fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:NAVY,flexShrink:0}}>
-        Compare ({list.length} products)
-      </div>
+    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:800,background:"#fff",borderTop:"3px solid "+NAVY,boxShadow:"0 -4px 24px rgba(11,31,94,.15)",padding:"14px 32px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+      <div style={{fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:NAVY,flexShrink:0}}>Compare ({list.length})</div>
       <div style={{display:"flex",gap:10,flex:1,flexWrap:"wrap"}}>
         {list.map(p=>(
-          <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,background:"#f0f2f8",border:`1px solid #dde2f0`,padding:"6px 12px 6px 8px"}}>
+          <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,background:"#f0f2f8",border:"1px solid #dde2f0",padding:"6px 12px 6px 8px"}}>
             <span style={{fontSize:18}}>{p.icon}</span>
             <span style={{fontSize:13,fontWeight:600,color:NAVY}}>{p.name}</span>
-            <button onClick={()=>onRemove(p.id)}
-              style={{background:"none",border:"none",cursor:"pointer",color:"#aaa",fontSize:16,lineHeight:1,padding:0,marginLeft:4}}
-              onMouseEnter={e=>e.target.style.color=RED} onMouseLeave={e=>e.target.style.color="#aaa"}>×</button>
+            <button onClick={()=>onRemove(p.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#aaa",fontSize:16,lineHeight:1,padding:0,marginLeft:4}} onMouseEnter={e=>e.target.style.color=RED} onMouseLeave={e=>e.target.style.color="#aaa"}>×</button>
           </div>
         ))}
       </div>
       <div style={{display:"flex",gap:10,flexShrink:0}}>
-        <button onClick={onClear}
-          style={{background:"none",border:"1.5px solid #ddd",color:"#666",padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all .15s"}}
-          onMouseEnter={e=>e.currentTarget.style.borderColor=NAVY} onMouseLeave={e=>e.currentTarget.style.borderColor="#ddd"}>
-          Clear All
-        </button>
+        <button onClick={onClear} style={{background:"none",border:"1.5px solid #ddd",color:"#666",padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Clear All</button>
         <button onClick={onCompare} disabled={list.length<2}
           style={{background:list.length>=2?NAVY:"#ccc",color:"#fff",border:"none",padding:"9px 24px",fontSize:13,fontWeight:700,cursor:list.length>=2?"pointer":"not-allowed",letterSpacing:".04em",textTransform:"uppercase",transition:"background .15s"}}
           onMouseEnter={e=>{if(list.length>=2)e.target.style.background=RED;}} onMouseLeave={e=>{if(list.length>=2)e.target.style.background=NAVY;}}>
@@ -462,141 +257,105 @@ function CompareBar({list,onRemove,onClear,onCompare}){
   );
 }
 
-/* ══════ COMPARE MODAL ══════ */
+// ─── COMPARE MODAL ─────────────────────────────────────────────────
 function CompareModal({list,onClose,onQuote}){
-  useEffect(()=>{
-    document.body.style.overflow="hidden";
-    return()=>{document.body.style.overflow="";};
-  },[]);
-
   const[useCase,setUseCase]=useState("");
   const[aiResult,setAiResult]=useState(null);
   const[aiLoading,setAiLoading]=useState(false);
-  const[aiError,setAiError]=useState(null);
+  const[aiError,setAiError]=useState("");
+  useEffect(()=>{ document.body.style.overflow="hidden"; return()=>{document.body.style.overflow="";}; },[]);
 
-  const SUGGESTIONS=["Gaming","Office & Work","College/Student","Video Editing","Budget Buy","Everyday Home Use","Programming","Best Battery Life"];
+  const SUGGESTIONS=["Gaming","Office & Work","College/Student","Video Editing","Budget Buy","Best Battery Life","Programming","Everyday Home Use"];
 
-  async function askAI(customUseCase){
-    const query=customUseCase||useCase;
-    if(!query.trim()) return;
-    setAiLoading(true); setAiResult(null); setAiError(null);
-
-    const productSummary=list.map((p,i)=>(
-      "Product "+(i+1)+": "+p.name+"\n"+
-      "Price: "+p.price+"\n"+
-      "Category: "+p.cat+"\n"+
-      "Specs: "+Object.entries(p.specs||{}).map(([k,v])=>k+": "+v).join(", ")+"\n"+
-      "Highlights: "+(p.highlights||[]).join(", ")
-    )).join("\n---\n");
-
+  async function askAI(q){
+    const query=q||useCase;
+    if(!query.trim())return;
+    setAiLoading(true); setAiResult(null); setAiError("");
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
+      const res=await fetch(API+"/ai/compare",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:1000,
-          tools:[{type:"web_search_20250305",name:"web_search"}],
-          messages:[{
-            role:"user",
-            content:`You are a helpful computer store assistant at Advantage Silchar, India.
-
-A customer wants to buy a computer/laptop for: "${query}"
-
-Here are the products they are comparing:
-${productSummary}
-
-Please:
-1. Search the web for real-world reviews or ratings for these products if helpful
-2. Recommend the BEST product for their specific use case
-3. Explain WHY it is best for "${query}" in simple terms
-4. Point out any trade-offs they should know
-5. Give a 1-line verdict for each product
-
-Respond in JSON only (no markdown):
-{
-  "winner": "exact product name",
-  "reason": "2-3 sentences why this is best for the use case",
-  "verdicts": [{"name":"product name","verdict":"one line","rating":"Excellent/Good/Average/Not Recommended"}],
-  "tip": "one practical buying tip for this customer"
-}`
-          }]
-        })
+        body:JSON.stringify({products:list,useCase:query})
       });
       const data=await res.json();
-      const text=data.content?.filter(b=>b.type==="text").map(b=>b.text).join("")||"";
-      const clean=text.replace(/```json|```/g,"").trim();
-      setAiResult(JSON.parse(clean));
-    } catch(e){
-      setAiError("Couldn't get AI analysis. Please check your connection.");
-    }
+      if(!res.ok)throw new Error(data.error||"AI request failed");
+      setAiResult(data);
+    }catch(e){ setAiError(e.message||"Could not get AI analysis. Is the backend running?"); }
     setAiLoading(false);
   }
 
-  const allKeys=[...new Set(list.flatMap(p=>Object.keys(p.specs||{})))];
-
-  function extractNum(str="",key=""){
-    if(!str||str==="—") return null;
+  // ── Smart comparison helpers ──
+  function parseStorage(str){
+    if(!str||str==="—")return null;
     const s=str.toUpperCase();
-    // Normalize storage: convert TB to GB so comparisons work
-    if(key&&(key.includes("Storage")||key.includes("Capacity"))){
-      let total=0;
-      const tb=s.match(/(\d+\.?\d*)\s*TB/);
-      const gb=s.match(/(\d+\.?\d*)\s*GB/);
-      if(tb) total+=parseFloat(tb[1])*1024;
-      if(gb) total+=parseFloat(gb[1]);
-      if(total>0) return total;
-    }
-    // Normalize RAM: GB only
-    if(key&&key.includes("RAM")){
-      const gb=s.match(/(\d+\.?\d*)\s*GB/);
-      if(gb) return parseFloat(gb[1]);
-    }
-    // Generic: first number
+    let total=0;
+    const tb=s.match(/(\d+\.?\d*)\s*TB/);
+    const gb=s.match(/(\d+\.?\d*)\s*GB/);
+    if(tb)total+=parseFloat(tb[1])*1024;
+    if(gb)total+=parseFloat(gb[1]);
+    return total>0?total:null;
+  }
+  function parseRAM(str){
+    if(!str||str==="—")return null;
+    const m=str.toUpperCase().match(/(\d+)\s*GB/);
+    return m?parseInt(m[1]):null;
+  }
+  function parseGeneric(str){
+    if(!str||str==="—")return null;
     const m=str.match(/[\d,]+\.?\d*/);
     return m?parseFloat(m[0].replace(/,/g,"")):null;
   }
-  const higherBetter=["RAM","Storage","Battery","Print Speed","Refresh Rate","Transfer Speed","Capacity","Page Yield"];
-  const lowerBetter=["Weight","Price","Response Time"];
+  function extractVal(str,key){
+    if(key==="Storage"||key==="Capacity")return parseStorage(str);
+    if(key==="RAM")return parseRAM(str);
+    return parseGeneric(str);
+  }
+
+  const higherBetter=["RAM","Storage","Battery","Print Speed","Refresh Rate","Transfer Speed","Capacity","Page Yield","Brightness"];
+  const lowerBetter=["Weight","Response Time"];
+
   function getWinner(key){
-    const vals=list.map(p=>({p,num:extractNum((p.specs||{})[key]||"",key)})).filter(v=>v.num!==null);
-    if(vals.length<2) return null;
-    const isLower=lowerBetter.some(k=>key.toLowerCase().includes(k.toLowerCase()));
+    const vals=list.map(p=>({p,num:extractVal((p.specs||{})[key]||"",key)})).filter(v=>v.num!==null);
+    if(vals.length<2)return null;
     const isHigher=higherBetter.some(k=>key.toLowerCase().includes(k.toLowerCase()));
-    if(!isLower&&!isHigher) return null;
-    return(isLower?vals.reduce((a,b)=>a.num<b.num?a:b):vals.reduce((a,b)=>a.num>b.num?a:b)).p.id;
+    const isLower=lowerBetter.some(k=>key.toLowerCase().includes(k.toLowerCase()));
+    if(!isHigher&&!isLower)return null;
+    return(isHigher?vals.reduce((a,b)=>a.num>b.num?a:b):vals.reduce((a,b)=>a.num<b.num?a:b)).p.id;
   }
   function getPriceWinner(){
-    const vals=list.map(p=>({p,num:extractNum(p.price||"")})).filter(v=>v.num!==null);
+    const vals=list.map(p=>({p,num:parseGeneric(p.price||"")})).filter(v=>v.num!==null);
     return vals.length<2?null:vals.reduce((a,b)=>a.num<b.num?a:b).p.id;
   }
   function getBadges(p){
-    const badges=[];const specs=p.specs||{};
-    const prices=list.map(x=>extractNum(x.price||"")).filter(Boolean);
-    const rams=list.map(x=>extractNum((x.specs||{})["RAM"]||"","RAM")).filter(Boolean);
-    const stores=list.map(x=>extractNum((x.specs||{})["Storage"]||"","Storage")).filter(Boolean);
-    const batts=list.map(x=>extractNum((x.specs||{})["Battery"]||"","Battery")).filter(Boolean);
-    const weights=list.map(x=>extractNum((x.specs||{})["Weight"]||"","Weight")).filter(Boolean);
-    const price=extractNum(p.price||"");const ram=extractNum(specs["RAM"]||"","RAM");
-    const storage=extractNum(specs["Storage"]||"","Storage");const battery=extractNum(specs["Battery"]||"","Battery");
-    const weight=extractNum(specs["Weight"]||"","Weight");
-    if(price&&price===Math.min(...prices)) badges.push({label:"Best Value",color:"#16a34a"});
-    if(ram&&rams.length>1&&ram===Math.max(...rams)) badges.push({label:"Best Performance",color:"#7c3aed"});
-    if(storage&&stores.length>1&&storage===Math.max(...stores)) badges.push({label:"Most Storage",color:"#0057b8"});
-    if(battery&&batts.length>1&&battery===Math.max(...batts)) badges.push({label:"Best Battery",color:"#d97706"});
-    if(weight&&weights.length>1&&weight===Math.min(...weights)) badges.push({label:"Most Portable",color:"#0891b2"});
+    const badges=[];const sp=p.specs||{};
+    const prices=list.map(x=>parseGeneric(x.price||"")).filter(Boolean);
+    const rams=list.map(x=>parseRAM((x.specs||{})["RAM"]||"")).filter(Boolean);
+    const stores=list.map(x=>parseStorage((x.specs||{})["Storage"]||"")).filter(Boolean);
+    const batts=list.map(x=>parseGeneric((x.specs||{})["Battery"]||"")).filter(Boolean);
+    const weights=list.map(x=>parseGeneric((x.specs||{})["Weight"]||"")).filter(Boolean);
+    const price=parseGeneric(p.price||"");
+    const ram=parseRAM(sp["RAM"]||"");
+    const storage=parseStorage(sp["Storage"]||"");
+    const battery=parseGeneric(sp["Battery"]||"");
+    const weight=parseGeneric(sp["Weight"]||"");
+    if(price&&prices.length>1&&price===Math.min(...prices))badges.push({label:"Best Value",color:"#16a34a"});
+    if(ram&&rams.length>1&&ram===Math.max(...rams))badges.push({label:"Best Performance",color:"#7c3aed"});
+    if(storage&&stores.length>1&&storage===Math.max(...stores))badges.push({label:"Most Storage",color:"#0057b8"});
+    if(battery&&batts.length>1&&battery===Math.max(...batts))badges.push({label:"Best Battery",color:"#d97706"});
+    if(weight&&weights.length>1&&weight===Math.min(...weights))badges.push({label:"Most Portable",color:"#0891b2"});
     return badges;
   }
+
+  const allKeys=[...new Set(list.flatMap(p=>Object.keys(p.specs||{})))];
   const priceWinner=getPriceWinner();
   const ratingColor={"Excellent":"#16a34a","Good":"#0891b2","Average":"#d97706","Not Recommended":"#dc2626"};
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:2000,display:"flex",flexDirection:"column"}}>
-      {/* Header */}
       <div style={{background:NAVY,padding:"16px 32px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <span style={{fontWeight:800,fontSize:18,color:"#fff"}}>Compare Products</span>
-          <span style={{fontSize:12,color:"rgba(255,255,255,.45)",background:"rgba(255,255,255,.1)",padding:"3px 10px"}}>{list.length} products</span>
+          <span style={{fontSize:12,color:"rgba(255,255,255,.4)",background:"rgba(255,255,255,.1)",padding:"3px 10px"}}>{list.length} products</span>
         </div>
         <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,.2)",color:"rgba(255,255,255,.7)",fontSize:14,fontWeight:600,cursor:"pointer",padding:"6px 14px",fontFamily:"inherit"}}>✕ Close</button>
       </div>
@@ -604,118 +363,82 @@ Respond in JSON only (no markdown):
       <div style={{flex:1,overflowY:"auto",background:"#f5f7fa"}}>
         <div style={{maxWidth:1200,margin:"0 auto",padding:"28px 24px"}}>
 
-          {/* ── AI COMPARISON SECTION ── */}
-          <div style={{background:"#fff",border:`2px solid ${NAVY}`,padding:"24px 28px",marginBottom:24}}>
+          {/* AI Section */}
+          <div style={{background:"#fff",border:"2px solid "+NAVY,padding:"24px 28px",marginBottom:24}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
               <span style={{fontSize:20}}>🤖</span>
-              <span style={{fontWeight:800,fontSize:17,color:NAVY}}>AI-Powered Comparison</span>
-              <span style={{fontSize:11,background:"#eef2ff",color:NAVY,padding:"2px 8px",fontWeight:600,letterSpacing:".04em"}}>Powered by Claude</span>
+              <span style={{fontWeight:800,fontSize:17,color:NAVY}}>AI-Powered Recommendation</span>
+              <span style={{fontSize:11,background:"#eef2ff",color:NAVY,padding:"2px 8px",fontWeight:600}}>Powered by Gemini</span>
             </div>
-            <p style={{fontSize:13,color:"#666",marginBottom:16}}>Tell us what you need — Claude will analyze all products and recommend the best one for you.</p>
-
-            {/* Suggestion chips */}
+            <p style={{fontSize:13,color:"#666",marginBottom:16}}>Tell us what you need — AI will recommend the best product for you.</p>
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
               {SUGGESTIONS.map(s=>(
                 <button key={s} onClick={()=>{setUseCase(s);askAI(s);}}
-                  style={{background:useCase===s?"#0B1F5E":"#f0f2f8",color:useCase===s?"#fff":"#444",border:`1px solid ${useCase===s?NAVY:"#dde2f0"}`,padding:"6px 14px",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all .15s",borderRadius:2}}>
+                  style={{background:useCase===s?NAVY:"#f0f2f8",color:useCase===s?"#fff":"#444",border:"1px solid "+(useCase===s?NAVY:"#dde2f0"),padding:"6px 14px",fontSize:12,fontWeight:600,cursor:"pointer",transition:"all .15s"}}>
                   {s}
                 </button>
               ))}
             </div>
-
-            {/* Custom input */}
             <div style={{display:"flex",gap:10}}>
               <input value={useCase} onChange={e=>setUseCase(e.target.value)}
                 onKeyDown={e=>e.key==="Enter"&&askAI()}
-                placeholder="Or describe your need — e.g. 'I need a laptop for video calls and Excel'"
-                style={{flex:1,border:"1.5px solid #dde2f0",padding:"11px 14px",fontSize:14,fontFamily:"inherit",outline:"none"}}
+                placeholder="Or describe your need — e.g. 'laptop for video calls and Excel'"
+                style={{flex:1,border:"1.5px solid #dde2f0",padding:"11px 14px",fontSize:14,fontFamily:"inherit",outline:"none",color:"#111"}}
                 onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#dde2f0"}/>
               <button onClick={()=>askAI()} disabled={!useCase.trim()||aiLoading}
-                style={{background:useCase.trim()&&!aiLoading?RED:"#ccc",color:"#fff",border:"none",padding:"11px 24px",fontSize:13,fontWeight:700,cursor:useCase.trim()&&!aiLoading?"pointer":"not-allowed",letterSpacing:".04em",textTransform:"uppercase",transition:"background .15s",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+                style={{background:useCase.trim()&&!aiLoading?RED:"#ccc",color:"#fff",border:"none",padding:"11px 24px",fontSize:13,fontWeight:700,cursor:useCase.trim()&&!aiLoading?"pointer":"not-allowed",letterSpacing:".04em",textTransform:"uppercase",fontFamily:"inherit",whiteSpace:"nowrap"}}>
                 {aiLoading?"Analysing...":"Ask AI →"}
               </button>
             </div>
-
-            {/* Loading */}
-            {aiLoading&&(
-              <div style={{marginTop:20,padding:"20px",background:"#f0f2f8",textAlign:"center"}}>
-                <div style={{fontSize:13,color:NAVY,fontWeight:600,marginBottom:6}}>🔍 Claude is analysing the products{useCase?" for "+useCase:""}...</div>
-                <div style={{fontSize:12,color:"#888"}}>Searching for reviews and comparing specs</div>
-              </div>
-            )}
-
-            {/* Error */}
-            {aiError&&<div style={{marginTop:16,padding:"12px 16px",background:"#fff0f0",border:"1px solid #fecaca",fontSize:13,color:"#dc2626",fontWeight:500}}>{aiError}</div>}
-
-            {/* AI Result */}
+            {aiLoading&&<div style={{marginTop:16,padding:"14px",background:"#f0f2f8",textAlign:"center",fontSize:13,color:NAVY,fontWeight:600}}>🔍 Analysing products for "{useCase}"...</div>}
+            {aiError&&<div style={{marginTop:12,padding:"12px 16px",background:"#fff0f0",border:"1px solid #fecaca",fontSize:13,color:"#dc2626",fontWeight:500}}>⚠️ {aiError}</div>}
             {aiResult&&!aiLoading&&(
               <div style={{marginTop:20}}>
-                {/* Winner banner */}
-                <div style={{background:NAVY,color:"#fff",padding:"16px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:14}}>
+                <div style={{background:NAVY,color:"#fff",padding:"16px 20px",marginBottom:12,display:"flex",alignItems:"center",gap:14}}>
                   <span style={{fontSize:28}}>🏆</span>
                   <div>
-                    <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.55)",marginBottom:4}}>Best for "{useCase}"</div>
+                    <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.5)",marginBottom:4}}>Best for "{useCase}"</div>
                     <div style={{fontWeight:800,fontSize:18}}>{aiResult.winner}</div>
                   </div>
                 </div>
-                {/* Reason */}
-                <div style={{background:"#f0fdf4",border:"1px solid #86efac",padding:"14px 18px",marginBottom:16,fontSize:14,color:"#15803d",lineHeight:1.7,fontWeight:500}}>
-                  {aiResult.reason}
-                </div>
-                {/* Per-product verdicts */}
-                <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(list.length,3)},1fr)`,gap:10,marginBottom:16}}>
+                <div style={{background:"#f0fdf4",border:"1px solid #86efac",padding:"14px 18px",marginBottom:12,fontSize:14,color:"#15803d",lineHeight:1.7,fontWeight:500}}>{aiResult.reason}</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat("+Math.min(list.length,3)+",1fr)",gap:10,marginBottom:12}}>
                   {(aiResult.verdicts||[]).map((v,i)=>(
                     <div key={i} style={{background:"#fff",border:"1px solid #e8e8e8",padding:"14px 16px"}}>
-                      <div style={{fontWeight:700,fontSize:13,color:NAVY,marginBottom:6}}>{v.name}</div>
+                      <div style={{fontWeight:700,fontSize:13,color:NAVY,marginBottom:5}}>{v.name}</div>
                       <div style={{fontSize:12,color:"#555",lineHeight:1.6,marginBottom:8}}>{v.verdict}</div>
-                      <span style={{background:ratingColor[v.rating]||"#888",color:"#fff",fontSize:10,fontWeight:700,padding:"2px 10px",letterSpacing:".04em",textTransform:"uppercase"}}>
-                        {v.rating}
-                      </span>
+                      <span style={{background:ratingColor[v.rating]||"#888",color:"#fff",fontSize:10,fontWeight:700,padding:"2px 10px",letterSpacing:".04em",textTransform:"uppercase"}}>{v.rating}</span>
                     </div>
                   ))}
                 </div>
-                {/* Tip */}
-                {aiResult.tip&&(
-                  <div style={{background:"#fffbeb",border:"1px solid #fde68a",padding:"12px 16px",fontSize:13,color:"#92400e",display:"flex",gap:10,alignItems:"flex-start"}}>
-                    <span style={{fontSize:16,flexShrink:0}}>💡</span>
-                    <span style={{fontWeight:500}}><strong>Buying Tip:</strong> {aiResult.tip}</span>
-                  </div>
-                )}
+                {aiResult.tip&&<div style={{background:"#fffbeb",border:"1px solid #fde68a",padding:"12px 16px",fontSize:13,color:"#92400e",display:"flex",gap:10,alignItems:"flex-start"}}><span>💡</span><span><strong>Buying Tip:</strong> {aiResult.tip}</span></div>}
               </div>
             )}
           </div>
 
-          {/* ── VERDICT CARDS ── */}
-          <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(list.length,4)},1fr)`,gap:12,marginBottom:24}}>
+          {/* Verdict Cards */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat("+Math.min(list.length,4)+",1fr)",gap:12,marginBottom:24}}>
             {list.map(p=>{
               const badges=getBadges(p);
-              const isPriceBest=priceWinner===p.id;
-              const aiVerdict=aiResult?.verdicts?.find(v=>v.name===p.name);
+              const isAiWin=aiResult&&aiResult.winner===p.name;
+              const aiV=aiResult&&(aiResult.verdicts||[]).find(v=>v.name===p.name);
               return(
-                <div key={p.id} style={{background:"#fff",border:`2px solid ${aiResult?.winner===p.name?RED:badges.length>0?NAVY:"#e8e8e8"}`,padding:"20px 18px",textAlign:"center",position:"relative"}}>
-                  {aiResult?.winner===p.name&&(
-                    <div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>
-                      🏆 AI PICK
-                    </div>
-                  )}
-                  {!aiResult&&badges.length>0&&(
-                    <div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>
-                      ★ {badges[0].label}
-                    </div>
-                  )}
-                  <div style={{marginTop:badges.length>0||aiResult?.winner===p.name?16:0}}>
+                <div key={p.id} style={{background:"#fff",border:"2px solid "+(isAiWin?RED:badges.length>0?NAVY:"#e8e8e8"),padding:"20px 18px",textAlign:"center",position:"relative"}}>
+                  {isAiWin&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>🏆 AI PICK</div>}
+                  {!isAiWin&&badges.length>0&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>★ {badges[0].label}</div>}
+                  <div style={{marginTop:isAiWin||badges.length>0?16:0}}>
                     <div style={{height:80,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10,overflow:"hidden"}}>
                       {p.image?<img src={p.image} alt={p.name} style={{maxHeight:"100%",maxWidth:"100%",objectFit:"contain"}}/>:<span style={{fontSize:44}}>{p.icon}</span>}
                     </div>
                     <div style={{fontSize:10,fontWeight:700,color:RED,letterSpacing:".06em",textTransform:"uppercase",marginBottom:3}}>{p.cat}</div>
                     <div style={{fontWeight:800,fontSize:14,color:NAVY,marginBottom:4,lineHeight:1.3}}>{p.name}</div>
-                    <div style={{fontWeight:800,fontSize:18,color:isPriceBest?"#16a34a":NAVY,marginBottom:4}}>{p.price}</div>
-                    {aiVerdict&&<div style={{fontSize:11,background:ratingColor[aiVerdict.rating]||"#888",color:"#fff",padding:"2px 8px",marginBottom:8,display:"inline-block",fontWeight:700,letterSpacing:".04em",textTransform:"uppercase"}}>{aiVerdict.rating}</div>}
+                    <div style={{fontWeight:800,fontSize:18,color:priceWinner===p.id?"#16a34a":NAVY,marginBottom:6}}>{p.price}</div>
+                    {aiV&&<div style={{fontSize:11,background:ratingColor[aiV.rating]||"#888",color:"#fff",padding:"2px 8px",marginBottom:8,display:"inline-block",fontWeight:700,letterSpacing:".04em",textTransform:"uppercase"}}>{aiV.rating}</div>}
                     <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center",marginBottom:10}}>
-                      {badges.map((b,i)=><span key={i} style={{background:b.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",letterSpacing:".04em"}}>{b.label}</span>)}
+                      {badges.map((b,i)=><span key={i} style={{background:b.color,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px"}}>{b.label}</span>)}
                     </div>
                     <button onClick={()=>{onClose();onQuote(p);}}
-                      style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"8px 0",fontSize:11,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",transition:"background .15s"}}
+                      style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"8px 0",fontSize:11,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"background .15s"}}
                       onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
                       Enquire
                     </button>
@@ -725,17 +448,13 @@ Respond in JSON only (no markdown):
             })}
           </div>
 
-          {/* ── SPEC TABLE ── */}
+          {/* Spec Table */}
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse",background:"#fff",border:"1px solid #e8e8e8",minWidth:600}}>
               <thead>
                 <tr style={{background:NAVY}}>
                   <td style={{padding:"12px 20px",fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.5)",width:"20%",minWidth:130}}>Specification</td>
-                  {list.map(p=>(
-                    <td key={p.id} style={{padding:"12px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)",fontWeight:700,fontSize:12,color:"#fff"}}>
-                      {p.name}
-                    </td>
-                  ))}
+                  {list.map(p=><td key={p.id} style={{padding:"12px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)",fontWeight:700,fontSize:12,color:"#fff"}}>{p.name}</td>)}
                 </tr>
               </thead>
               <tbody>
@@ -757,11 +476,11 @@ Respond in JSON only (no markdown):
                       <td style={{padding:"12px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777",verticalAlign:"top"}}>{key}</td>
                       {list.map(p=>{
                         const val=(p.specs||{})[key]||"—";
-                        const isWinner=winnerId===p.id;
+                        const isWin=winnerId===p.id;
                         return(
-                          <td key={p.id} style={{padding:"12px 18px",textAlign:"center",borderLeft:"1px solid #e8e8e8",fontSize:12,lineHeight:1.55,verticalAlign:"top",fontWeight:isWinner?700:400,color:isWinner?"#15803d":NAVY,background:isWinner?"#f0fdf4":(!allSame&&val!=="—"?"#fffbeb":"transparent")}}>
+                          <td key={p.id} style={{padding:"12px 18px",textAlign:"center",borderLeft:"1px solid #e8e8e8",fontSize:12,lineHeight:1.55,verticalAlign:"top",fontWeight:isWin?700:400,color:isWin?"#15803d":NAVY,background:isWin?"#f0fdf4":(!allSame&&val!=="—"?"#fffbeb":"transparent")}}>
                             {val}
-                            {isWinner&&val!=="—"&&<div style={{fontSize:9,color:"#16a34a",fontWeight:700,marginTop:2}}>✓ BEST</div>}
+                            {isWin&&val!=="—"&&<div style={{fontSize:9,color:"#16a34a",fontWeight:700,marginTop:2}}>✓ BEST</div>}
                           </td>
                         );
                       })}
@@ -784,14 +503,14 @@ Respond in JSON only (no markdown):
                   <td style={{padding:"14px 20px",fontSize:11,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>Overall Pick</td>
                   {list.map(p=>{
                     const badges=getBadges(p);
-                    const isAiWinner=aiResult?.winner===p.name;
+                    const isAiWin=aiResult&&aiResult.winner===p.name;
                     return(
                       <td key={p.id} style={{padding:"14px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)"}}>
-                        {isAiWinner
-                          ? <span style={{background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>🏆 AI Pick</span>
-                          : badges.length>0
-                            ? <span style={{background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>★ {badges[0].label}</span>
-                            : <span style={{fontSize:12,color:"rgba(255,255,255,.3)"}}>—</span>
+                        {isAiWin
+                          ?<span style={{background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>🏆 AI Pick</span>
+                          :badges.length>0
+                            ?<span style={{background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>★ {badges[0].label}</span>
+                            :<span style={{fontSize:12,color:"rgba(255,255,255,.3)"}}>—</span>
                         }
                       </td>
                     );
@@ -809,15 +528,12 @@ Respond in JSON only (no markdown):
   );
 }
 
-/* ══════ PRODUCT PAGE ══════ */
+// ─── PRODUCT PAGE ──────────────────────────────────────────────────
 function ProductPage({p,onBack,onQuote,onViewRelated}){
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[p.id]);
   const related=PRODUCTS.filter(r=>r.cat===p.cat&&r.id!==p.id).slice(0,4);
-
   return(
     <div style={{minHeight:"100vh",background:"#fff",fontFamily:"'DM Sans',sans-serif"}}>
-
-      {/* Breadcrumb */}
       <div style={{background:"#f0f2f8",borderBottom:"1px solid #dde2f0",padding:"12px 32px"}}>
         <div style={{maxWidth:1340,margin:"0 auto",display:"flex",alignItems:"center",gap:8,fontSize:12,color:"#888",flexWrap:"wrap"}}>
           <span style={{cursor:"pointer",color:NAVY,fontWeight:600}} onClick={onBack}>Home</span>
@@ -827,130 +543,88 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
           <span style={{color:"#444"}}>{p.name}</span>
         </div>
       </div>
-
-      {/* Main 2-col layout */}
       <div style={{maxWidth:1340,margin:"0 auto",padding:"48px 32px"}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:64,alignItems:"start"}}>
-
-          {/* ── LEFT: Image ── */}
           <div>
             <div style={{background:"#f5f5f5",border:"1px solid #e8e8e8",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",minHeight:320,overflow:"hidden"}}>
               {p.isNew&&<div style={{position:"absolute",top:16,left:16,background:RED,color:"#fff",fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",padding:"5px 14px",zIndex:1}}>NEW</div>}
-              {p.image
-                ? <img src={p.image} alt={p.name} style={{width:"100%",height:"100%",objectFit:"contain",padding:"32px",maxHeight:380}}/>
-                : <span style={{fontSize:160,padding:"40px 32px",display:"block"}}>{p.icon}</span>
-              }
+              {p.image?<img src={p.image} alt={p.name} style={{width:"100%",height:"100%",objectFit:"contain",padding:32,maxHeight:380}}/>:<span style={{fontSize:160,padding:"40px 32px",display:"block"}}>{p.icon}</span>}
             </div>
-            {/* Thumbnail row */}
             <div style={{display:"flex",gap:8,marginTop:10}}>
               {[0,1,2].map(i=>(
-                <div key={i} style={{flex:1,background:"#f5f5f5",border:`1.5px solid ${i===0?NAVY:"#e8e8e8"}`,height:72,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",opacity:i===0?1:.5,transition:"all .15s"}}
+                <div key={i} style={{flex:1,background:"#f5f5f5",border:"1.5px solid "+(i===0?NAVY:"#e8e8e8"),height:72,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",opacity:i===0?1:.5,transition:"all .15s"}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor=NAVY;e.currentTarget.style.opacity="1";}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor=i===0?NAVY:"#e8e8e8";e.currentTarget.style.opacity=i===0?"1":".5";}}>
-                  {p.image
-                    ? <img src={p.image} alt="" style={{width:"100%",height:"100%",objectFit:"contain",padding:"6px"}}/>
-                    : <span style={{fontSize:28}}>{p.icon}</span>
-                  }
+                  {p.image?<img src={p.image} alt="" style={{width:"100%",height:"100%",objectFit:"contain",padding:4}}/>:<span style={{fontSize:28}}>{p.icon}</span>}
                 </div>
               ))}
             </div>
-            {/* Store info */}
-            <div style={{marginTop:20,background:"#f0f2f8",border:"1px solid #dde2f0",padding:"16px 18px"}}>
+            <div style={{marginTop:16,background:"#f0f2f8",border:"1px solid #dde2f0",padding:"16px 18px"}}>
               <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#aaa",marginBottom:12}}>Store Info</div>
-              {[
-                {icon:"📍",text:"Anand Arcade, Opposite Civil Hospital, Silchar – 788001"},
-                {icon:"📞",text:"03842-230952 · 9435070738"},
-                {icon:"🕙",text:"Mon – Sat · 10:00 AM – 8:00 PM"},
-                {icon:"✅",text:"In-store demo available on request"},
-              ].map((item,i)=>(
-                <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:12,color:"#444",marginBottom:8,fontWeight:500}}>
-                  <span style={{flexShrink:0}}>{item.icon}</span><span>{item.text}</span>
-                </div>
+              {[{icon:"📍",text:"Anand Arcade, Opposite Civil Hospital, Silchar – 788001"},{icon:"📞",text:"03842-230952 · 9435070738"},{icon:"🕙",text:"Mon – Sat · 10:00 AM – 8:00 PM"},{icon:"✅",text:"In-store demo available on request"}].map((item,i)=>(
+                <div key={i} style={{display:"flex",gap:10,fontSize:12,color:"#444",marginBottom:7,fontWeight:500,alignItems:"flex-start"}}><span style={{flexShrink:0}}>{item.icon}</span><span>{item.text}</span></div>
               ))}
             </div>
           </div>
-
-          {/* ── RIGHT: Details ── */}
           <div>
-            {/* Category + name */}
             <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:RED,marginBottom:8}}>{p.cat}</div>
             <h1 style={{fontSize:"clamp(22px,3vw,34px)",fontWeight:800,color:NAVY,lineHeight:1.1,marginBottom:16,letterSpacing:"-.01em"}}>{p.name}</h1>
-
-            {/* Spec chips */}
             <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:24}}>
-              {p.spec.split("·").map((s,i)=>(
-                <span key={i} style={{background:"#f0f2f8",border:"1px solid #dde2f0",padding:"5px 12px",fontSize:12,fontWeight:500,color:"#444"}}>{s.trim()}</span>
-              ))}
+              {p.spec.split("·").map((s,i)=><span key={i} style={{background:"#f0f2f8",border:"1px solid #dde2f0",padding:"5px 12px",fontSize:12,fontWeight:500,color:"#444"}}>{s.trim()}</span>)}
             </div>
-
-            {/* Price */}
             <div style={{fontSize:42,fontWeight:800,color:NAVY,letterSpacing:"-.02em",lineHeight:1,marginBottom:6}}>{p.price}</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:28}}>Contact us for best buying options.</div>
-
-            {/* CTA buttons */}
+            <div style={{fontSize:13,color:"#888",marginBottom:28}}>💬 Walk in or call us to check current availability and get the best price.</div>
             <div style={{display:"flex",gap:12,marginBottom:32,flexWrap:"wrap"}}>
               <button onClick={()=>onQuote(p)}
                 style={{flex:1,minWidth:150,background:NAVY,color:"#fff",border:"none",padding:"14px 0",fontSize:14,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"background .15s"}}
                 onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
                 Enquire Now
               </button>
-              <button onClick={()=>window.open(`https://wa.me/919435070738?text=Hi%2C+I'm+interested+in+${encodeURIComponent(p.name)}+(${encodeURIComponent(p.price)}). Please confirm availability.`,"_blank")}
+              <button onClick={()=>window.open("https://wa.me/919435070738?text=Hi%2C+I'm+interested+in+"+encodeURIComponent(p.name)+"_"+encodeURIComponent(p.price)+". Please confirm availability.","_blank")}
                 style={{flex:1,minWidth:150,background:"#25D366",color:"#fff",border:"none",padding:"14px 0",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                <span style={{fontSize:18}}>💬</span>WhatsApp
+                <span>💬</span>WhatsApp
               </button>
             </div>
-
-            {/* Highlights */}
-            {p.highlights&&(
+            {p.highlights&&p.highlights.length>0&&(
               <div style={{borderTop:"1px solid #e8e8e8",paddingTop:20,marginBottom:24}}>
                 <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#aaa",marginBottom:12}}>Key Highlights</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                   {p.highlights.map((h,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,fontSize:13,color:"#333"}}>
-                      <span style={{color:RED,fontWeight:800,flexShrink:0,marginTop:1}}>✓</span>
-                      <span style={{fontWeight:500}}>{h}</span>
+                      <span style={{color:RED,fontWeight:800,flexShrink:0,marginTop:1}}>✓</span><span style={{fontWeight:500}}>{h}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-
-            {/* Quick spec preview */}
             <div style={{borderTop:"1px solid #e8e8e8",paddingTop:20}}>
               <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#aaa",marginBottom:12}}>Quick Specs</div>
-              {Object.entries(p.specs).slice(0,5).map(([k,v],i)=>(
+              {Object.entries(p.specs||{}).slice(0,5).map(([k,v],i)=>(
                 <div key={i} style={{display:"flex",gap:12,padding:"8px 0",borderBottom:"1px solid #f5f5f5",fontSize:13}}>
                   <span style={{fontWeight:600,color:"#555",minWidth:110,flexShrink:0}}>{k}</span>
                   <span style={{color:NAVY,fontWeight:500}}>{v}</span>
                 </div>
               ))}
-              {Object.keys(p.specs).length>5&&(
-                <div style={{fontSize:12,color:RED,fontWeight:600,marginTop:10,cursor:"pointer"}}
-                  onClick={()=>document.getElementById("full-specs")?.scrollIntoView({behavior:"smooth"})}>
-                  View all {Object.keys(p.specs).length} specifications ↓
-                </div>
-              )}
             </div>
           </div>
         </div>
 
-        {/* ── FULL SPECS TABLE ── */}
-        <div id="full-specs" style={{marginTop:56,borderTop:"2px solid #dde2f0",paddingTop:40}}>
+        <div style={{marginTop:56,borderTop:"2px solid #dde2f0",paddingTop:40}}>
           <h2 style={{fontSize:22,fontWeight:800,color:NAVY,marginBottom:6,letterSpacing:"-.01em"}}>Full Specifications</h2>
           <p style={{fontSize:13,color:"#888",marginBottom:24}}>Complete technical details for {p.name}</p>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <tbody>
-              {Object.entries(p.specs).map(([k,v],i)=>(
+              {Object.entries(p.specs||{}).map(([k,v],i)=>(
                 <tr key={i} style={{borderBottom:"1px solid #f0f0f0",background:i%2===0?"#f9f9fb":"#fff"}}>
                   <td style={{padding:"14px 24px",width:"28%",fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777",verticalAlign:"top"}}>{k}</td>
                   <td style={{padding:"14px 24px",fontSize:14,color:NAVY,fontWeight:500,lineHeight:1.5}}>{v}</td>
                 </tr>
               ))}
-              <tr style={{background:Object.keys(p.specs).length%2===0?"#f9f9fb":"#fff",borderBottom:"1px solid #f0f0f0"}}>
+              <tr style={{background:Object.keys(p.specs||{}).length%2===0?"#f9f9fb":"#fff",borderBottom:"1px solid #f0f0f0"}}>
                 <td style={{padding:"14px 24px",fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777"}}>Availability</td>
                 <td style={{padding:"14px 24px",fontSize:14,fontWeight:700,color:"#16a34a"}}>✓ Available — Anand Arcade, Silchar</td>
               </tr>
-              <tr style={{background:Object.keys(p.specs).length%2!==0?"#f9f9fb":"#fff"}}>
+              <tr>
                 <td style={{padding:"14px 24px",fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777"}}>Price</td>
                 <td style={{padding:"14px 24px",fontSize:16,fontWeight:800,color:RED}}>{p.price} <span style={{fontSize:12,fontWeight:400,color:"#888"}}>— Contact for best deal</span></td>
               </tr>
@@ -958,7 +632,6 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
           </table>
         </div>
 
-        {/* ── RELATED PRODUCTS ── */}
         {related.length>0&&(
           <div style={{marginTop:56,borderTop:"2px solid #dde2f0",paddingTop:40}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:28}}>
@@ -966,17 +639,13 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
               <span style={{fontSize:13,fontWeight:600,color:RED,cursor:"pointer"}} onClick={onBack}>View All →</span>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"1px",background:"#dde2f0",border:"1px solid #dde2f0"}}>
-              {related.map((r,i)=>(
-                <ProductCard key={r.id} p={r} onQuote={onQuote} onView={onViewRelated} delay={i*.05}/>
-              ))}
+              {related.map((r,i)=><ProductCard key={r.id} p={r} onQuote={onQuote} onView={onViewRelated} onCompare={()=>{}} compareList={[]} delay={i*.05}/>)}
             </div>
           </div>
         )}
-
-        {/* Back */}
         <div style={{marginTop:48,paddingTop:32,borderTop:"1px solid #e8e8e8"}}>
           <button onClick={onBack}
-            style={{background:"none",border:`1.5px solid ${NAVY}`,color:NAVY,padding:"11px 28px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}
+            style={{background:"none",border:"1.5px solid "+NAVY,color:NAVY,padding:"11px 28px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}
             onMouseEnter={e=>{e.currentTarget.style.background=NAVY;e.currentTarget.style.color="#fff";}}
             onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=NAVY;}}>
             ← Back to Products
@@ -987,8 +656,9 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
   );
 }
 
-/* ══════ MAIN ══════ */
+// ─── MAIN APP ──────────────────────────────────────────────────────
 export default function App(){
+  const scrollY=useScrollY();
   const[adminOpen,setAdminOpen]=useState(false);
   const[mobileMenuOpen,setMobileMenuOpen]=useState(false);
   const[compareList,setCompareList]=useState([]);
@@ -1004,66 +674,49 @@ export default function App(){
   const searchRef=useRef(null);
   const liveProducts=useProducts(PRODUCTS);
 
-  const scrollY=useScrollY();
-
-  /* open admin via URL hash: go to /#admin in browser */
+  useEffect(()=>{const t=setInterval(()=>setSlide(s=>(s+1)%HERO_SLIDES.length),5000);return()=>clearInterval(t);},[]);
+  useEffect(()=>{const fn=e=>{if(menuRef.current&&!menuRef.current.contains(e.target))setActiveMenu(null);};document.addEventListener("mousedown",fn);return()=>document.removeEventListener("mousedown",fn);},[]);
+  useEffect(()=>{if(searchOpen)setTimeout(()=>searchRef.current?.focus(),50);},[searchOpen]);
   useEffect(()=>{
-    if(window.location.hash==="#admin") setAdminOpen(true);
-    const fn=()=>{ if(window.location.hash==="#admin") setAdminOpen(true); };
+    if(window.location.hash==="#admin")setAdminOpen(true);
+    const fn=()=>{if(window.location.hash==="#admin")setAdminOpen(true);};
     window.addEventListener("hashchange",fn);
     return()=>window.removeEventListener("hashchange",fn);
   },[]);
 
-  useEffect(()=>{const t=setInterval(()=>setSlide(s=>(s+1)%HERO_SLIDES.length),5000);return()=>clearInterval(t);},[]);
-  useEffect(()=>{const fn=e=>{if(menuRef.current&&!menuRef.current.contains(e.target))setActiveMenu(null);};document.addEventListener("mousedown",fn);return()=>document.removeEventListener("mousedown",fn);},[]);
-  useEffect(()=>{if(searchOpen)setTimeout(()=>searchRef.current?.focus(),50);},[searchOpen]);
-
   const q=searchQuery.trim().toLowerCase();
   const displayed=(()=>{
     let base=activeCat==="All"?liveProducts:liveProducts.filter(p=>p.cat===activeCat);
-    if(q) base=liveProducts.filter(p=>p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q));
+    if(q)base=liveProducts.filter(p=>p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q));
     return base;
   })();
   const cur=HERO_SLIDES[slide];
   function scroll(id){document.getElementById(id)?.scrollIntoView({behavior:"smooth"});}
+  function handleCompare(p){setCompareList(l=>l.some(c=>c.id===p.id)?l.filter(c=>c.id!==p.id):[...l,p]);}
 
-  function handleCompare(p){
-    setCompareList(list=>{
-      if(list.some(c=>c.id===p.id)) return list.filter(c=>c.id!==p.id);
-      return [...list,p]; // no limit
-    });
-  }
-
-  /* ── Admin view ── */
-  if(adminOpen) return(
-    <Admin
-      defaultProducts={PRODUCTS}
-      onExit={()=>{setAdminOpen(false);history.pushState("","",window.location.pathname);}}
-    />
+  // ── Admin view ──
+  if(adminOpen)return(
+    <Admin defaultProducts={PRODUCTS} onExit={()=>{setAdminOpen(false);history.pushState("","",window.location.pathname);}}/>
   );
 
-  /* ── Product page view ── */
-  if(selectedProduct) return(
+  // ── Product page view ──
+  if(selectedProduct)return(
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap');*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'DM Sans',sans-serif;background:#fff;-webkit-font-smoothing:antialiased;}button,input{font-family:inherit;}a{text-decoration:none;color:inherit;}@media(max-width:768px){.pp-main-grid{grid-template-columns:1fr!important;gap:32px!important;}.pp-related{grid-template-columns:repeat(2,1fr)!important;}}@media(max-width:480px){.pp-related{grid-template-columns:1fr!important;}}`}</style>
-      {/* Mini nav */}
-      <div style={{position:"sticky",top:0,zIndex:1000,background:"#fff",borderBottom:`3px solid ${NAVY}`,boxShadow:"0 2px 12px rgba(11,31,94,.1)"}}>
+      <style>{"@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap');*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}html{scroll-behavior:smooth;}body{font-family:'DM Sans',sans-serif;background:#fff;-webkit-font-smoothing:antialiased;}button,input{font-family:inherit;}a{text-decoration:none;color:inherit;}@media(max-width:768px){.pp-grid{grid-template-columns:1fr!important;gap:32px!important;}}"}</style>
+      <div style={{position:"sticky",top:0,zIndex:1000,background:"#fff",borderBottom:"3px solid "+NAVY,boxShadow:"0 2px 12px rgba(11,31,94,.1)"}}>
         <div style={{maxWidth:1340,margin:"0 auto",padding:"0 32px",height:58,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <a href="#" onClick={e=>{e.preventDefault();setSelectedProduct(null);window.scrollTo({top:0});}} style={{display:"flex",alignItems:"center",textDecoration:"none"}}>
             <div style={{background:NAVY,padding:"6px 14px",display:"flex",alignItems:"center"}}>
-              <span style={{fontSize:22,fontWeight:800,color:"#fff",letterSpacing:"-.01em"}}>AD</span>
-              <span style={{fontSize:22,fontWeight:800,color:RED,letterSpacing:"-.01em"}}>V</span>
-              <span style={{fontSize:22,fontWeight:800,color:"#fff",letterSpacing:"-.01em"}}>ANTAGE</span>
+              <span style={{fontSize:20,fontWeight:800,color:"#fff"}}>AD</span><span style={{fontSize:20,fontWeight:800,color:RED}}>V</span><span style={{fontSize:20,fontWeight:800,color:"#fff"}}>ANTAGE</span>
             </div>
-            <div style={{background:"#fff",border:`1px solid ${NAVY}`,padding:"3px 8px",alignSelf:"stretch",display:"flex",alignItems:"center"}}>
+            <div style={{background:"#fff",border:"1px solid "+NAVY,padding:"2px 8px",alignSelf:"stretch",display:"flex",alignItems:"center"}}>
               <span style={{fontSize:9,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:NAVY}}>SILCHAR</span>
             </div>
           </a>
           <div style={{display:"flex",gap:10}}>
             <button onClick={()=>{setSelectedProduct(null);window.scrollTo({top:0});}}
-              style={{background:"none",border:`1.5px solid ${NAVY}`,color:NAVY,padding:"8px 18px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
-              onMouseEnter={e=>{e.currentTarget.style.background=NAVY;e.currentTarget.style.color="#fff";}}
-              onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=NAVY;}}>
+              style={{background:"none",border:"1.5px solid "+NAVY,color:NAVY,padding:"8px 18px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
+              onMouseEnter={e=>{e.currentTarget.style.background=NAVY;e.currentTarget.style.color="#fff";}} onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=NAVY;}}>
               ← All Products
             </button>
             <button onClick={()=>setModal(selectedProduct)}
@@ -1074,21 +727,16 @@ export default function App(){
           </div>
         </div>
       </div>
-      <ProductPage
-        p={selectedProduct}
-        onBack={()=>{setSelectedProduct(null);window.scrollTo({top:0});}}
-        onQuote={setModal}
-        onViewRelated={p=>{setSelectedProduct(p);window.scrollTo({top:0});}}
-      />
+      <ProductPage p={selectedProduct} onBack={()=>{setSelectedProduct(null);window.scrollTo({top:0});}} onQuote={setModal} onViewRelated={p=>{setSelectedProduct(p);window.scrollTo({top:0});}}/>
       <button style={{position:"fixed",bottom:24,right:24,zIndex:1500,background:"#25D366",color:"#fff",border:"none",borderRadius:3,padding:"11px 20px",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 16px rgba(37,211,102,.4)",fontFamily:"inherit"}}
-        onClick={()=>window.open(`https://wa.me/919435070738?text=Hi%2C+I'm+interested+in+${encodeURIComponent(selectedProduct.name)}+at+${encodeURIComponent(selectedProduct.price)}`,"_blank")}>
+        onClick={()=>window.open("https://wa.me/919435070738?text=Hi%2C+I'm+interested+in+"+encodeURIComponent(selectedProduct.name),"_blank")}>
         💬 WhatsApp
       </button>
       {modal&&<QuoteModal product={modal} onClose={()=>setModal(null)}/>}
     </>
   );
 
-  /* ── Homepage ── */
+  // ── Homepage ──
   return(
     <>
       <style>{`
@@ -1098,14 +746,13 @@ export default function App(){
         body{font-family:'DM Sans',sans-serif;background:#fff;color:#111;-webkit-font-smoothing:antialiased;}
         button,input,textarea{font-family:inherit;}
         a{text-decoration:none;color:inherit;}
-        .util-bar{background:#f0f2f8;border-bottom:1px solid #dde2f0;height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;font-size:11px;color:#555;font-weight:500;letter-spacing:.02em;}
-        .util-bar a{color:#555;transition:color .15s;}
-        .util-bar a:hover{color:${NAVY};}
+        .util-bar{background:#f0f2f8;border-bottom:1px solid #dde2f0;height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;font-size:11px;color:#555;font-weight:500;}
+        .util-bar a{color:#555;transition:color .15s;}.util-bar a:hover{color:${NAVY};}
         .util-divider{color:#ccc;margin:0 8px;}
         .nav-wrap{position:sticky;top:0;z-index:1000;background:#fff;border-bottom:3px solid ${NAVY};transition:box-shadow .2s;}
         .nav-wrap.elevated{box-shadow:0 2px 16px rgba(11,31,94,.12);}
         .nav-inner{max-width:1340px;margin:0 auto;padding:0 32px;display:flex;align-items:center;height:58px;}
-        .nav-logo{display:flex;align-items:center;gap:0;text-decoration:none;flex-shrink:0;}
+        .nav-logo{display:flex;align-items:center;text-decoration:none;flex-shrink:0;}
         .logo-box{background:${NAVY};padding:6px 14px;display:flex;align-items:center;}
         .logo-ad{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.01em;line-height:1;}
         .logo-v{font-size:22px;font-weight:800;color:${RED};letter-spacing:-.01em;line-height:1;}
@@ -1148,7 +795,6 @@ export default function App(){
         .quick-link{padding:0 18px;height:44px;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#444;letter-spacing:.03em;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
         .quick-link:hover{color:${NAVY};}
         .quick-link.ql-active{border-bottom-color:${RED};color:${RED};}
-        .quick-link .ql-icon{font-size:14px;}
         .section{max-width:1340px;margin:0 auto;padding:64px 32px;}
         .section-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;}
         .section-title{font-size:clamp(22px,3vw,30px);font-weight:800;letter-spacing:-.01em;color:${NAVY};}
@@ -1157,15 +803,13 @@ export default function App(){
         .cat-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;background:#dde2f0;border:1px solid #dde2f0;}
         .cat-tile{background:#fff;padding:24px 12px 20px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:background .15s;text-align:center;}
         .cat-tile:hover{background:#f0f2f8;}
-        .cat-tile .ct-icon{font-size:32px;}
-        .cat-tile .ct-label{font-size:12px;font-weight:700;color:${NAVY};letter-spacing:.02em;}
+        .cat-tile .ct-icon{font-size:32px;}.cat-tile .ct-label{font-size:12px;font-weight:700;color:${NAVY};letter-spacing:.02em;}
         .cat-tile .ct-sub{font-size:10px;color:#999;line-height:1.4;}
         .product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#dde2f0;border:1px solid #dde2f0;}
         .srv-section{background:${NAVY};}
         .srv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.1);}
         .srv-tile{background:${NAVY};padding:36px 28px;}
-        .srv-tile .st-icon{font-size:32px;margin-bottom:16px;}
-        .srv-tile .st-title{font-size:17px;font-weight:700;color:#fff;margin-bottom:12px;}
+        .srv-tile .st-icon{font-size:32px;margin-bottom:16px;}.srv-tile .st-title{font-size:17px;font-weight:700;color:#fff;margin-bottom:12px;}
         .srv-tile .st-list{list-style:none;}
         .srv-tile .st-list li{font-size:13px;color:rgba(255,255,255,.5);padding:4px 0;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:6px;}
         .srv-tile .st-list li::before{content:"—";color:${RED};font-size:10px;flex-shrink:0;}
@@ -1192,7 +836,7 @@ export default function App(){
         .footer{background:${NAVY};color:rgba(255,255,255,.5);}
         .footer-top-strip{background:${RED};height:3px;}
         .footer-main{max-width:1340px;margin:0 auto;padding:52px 32px 36px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;}
-        .footer-brand .fb-name{font-size:20px;font-weight:800;color:#fff;letter-spacing:.02em;}
+        .footer-brand .fb-name{font-size:20px;font-weight:800;color:#fff;}
         .footer-brand .fb-v{color:${RED};}
         .footer-brand .fb-tagline{font-size:12px;color:rgba(255,255,255,.35);margin-top:10px;line-height:1.7;max-width:260px;}
         .footer-col h4{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${RED};margin-bottom:16px;}
@@ -1201,7 +845,7 @@ export default function App(){
         .footer-bottom{border-top:1px solid rgba(255,255,255,.1);}
         .footer-bottom-inner{max-width:1340px;margin:0 auto;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
         .footer-bottom span{font-size:11px;}
-        .wa-float{position:fixed;bottom:24px;right:24px;z-index:1500;background:#25D366;color:#fff;border:none;border-radius:3px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(37,211,102,.4);display:flex;align-items:center;gap:8px;letter-spacing:.02em;transition:transform .2s;}
+        .wa-float{position:fixed;right:24px;z-index:1500;background:#25D366;color:#fff;border:none;border-radius:3px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(37,211,102,.4);display:flex;align-items:center;gap:8px;letter-spacing:.02em;transition:transform .2s,bottom .2s;}
         .wa-float:hover{transform:translateY(-2px);}
         .search-bar-wrap{display:flex;align-items:center;}
         .search-expand{display:flex;align-items:center;overflow:hidden;transition:width .25s ease;background:#f0f2f8;border:1.5px solid transparent;height:34px;}
@@ -1214,26 +858,23 @@ export default function App(){
         .search-banner{background:#fff3cd;border-bottom:1px solid #ffe69c;padding:10px 32px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:500;color:#664d03;}
         .search-banner strong{color:${NAVY};}
         .search-banner button{background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:${RED};padding:0;}
-        @media(max-width:1100px){.cat-grid{grid-template-columns:repeat(4,1fr);}.product-grid{grid-template-columns:repeat(3,1fr);}.brands-row{grid-template-columns:repeat(6,1fr);}}
-        @media(max-width:768px){.util-bar{display:none;}.nav-cats{display:none;}.nav-right .nav-icon-btn:not(.keep){display:none;}.nav-cta{display:none;}.hamburger{display:flex!important;}.hero-icon{display:none;}.hero-title{font-size:40px;}.product-grid{grid-template-columns:repeat(2,1fr);}.srv-grid{grid-template-columns:repeat(2,1fr);}.about-grid{grid-template-columns:1fr;}.about-left{border-right:none;border-bottom:1px solid #dde2f0;}.cat-grid{grid-template-columns:repeat(4,1fr);}.footer-main{grid-template-columns:1fr 1fr;gap:32px;}.info-bar-inner{grid-template-columns:1fr 1fr;}.brands-row{grid-template-columns:repeat(4,1fr);}}
-        @media(max-width:480px){.product-grid{grid-template-columns:1fr;}.cat-grid{grid-template-columns:repeat(2,1fr);}.srv-grid{grid-template-columns:1fr;}.footer-main{grid-template-columns:1fr;}.info-bar-inner{grid-template-columns:1fr;}.brands-row{grid-template-columns:repeat(3,1fr);}.hero-title{font-size:32px;}.section{padding:48px 20px;}}
-
-        /* HAMBURGER */
-        .hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:8px;margin-left:auto;}
-        .hamburger span{display:block;width:22px;height:2px;background:#0B1F5E;transition:all .25s;border-radius:2px;}
+        .hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:8px;margin-left:8px;}
+        .hamburger span{display:block;width:22px;height:2px;background:${NAVY};transition:all .25s;border-radius:2px;}
         .hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
         .hamburger.open span:nth-child(2){opacity:0;}
         .hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
-
-        /* MOBILE MENU DRAWER */
         .mobile-drawer{position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:1100;overflow-y:auto;transform:translateX(100%);transition:transform .3s ease;}
         .mobile-drawer.open{transform:translateX(0);}
         .mob-cat{display:block;padding:16px 24px;font-size:15px;font-weight:600;color:#111;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .15s;}
         .mob-cat:hover{background:#f5f7fa;}
         .mob-sub{padding:10px 24px 10px 36px;font-size:13px;color:#666;border-bottom:1px solid #f8f8f8;cursor:pointer;display:block;transition:background .15s;}
-        .mob-sub:hover{background:#f5f7fa;color:#0B1F5E;}
+        .mob-sub:hover{background:#f5f7fa;color:${NAVY};}
+        @media(max-width:1100px){.cat-grid{grid-template-columns:repeat(4,1fr);}.product-grid{grid-template-columns:repeat(3,1fr);}.brands-row{grid-template-columns:repeat(6,1fr);}}
+        @media(max-width:768px){.util-bar{display:none;}.nav-cats{display:none;}.nav-cta{display:none;}.hamburger{display:flex!important;}.hero-icon{display:none;}.hero-title{font-size:40px;}.product-grid{grid-template-columns:repeat(2,1fr);}.srv-grid{grid-template-columns:repeat(2,1fr);}.about-grid{grid-template-columns:1fr;}.about-left{border-right:none;border-bottom:1px solid #dde2f0;}.cat-grid{grid-template-columns:repeat(4,1fr);}.footer-main{grid-template-columns:1fr 1fr;gap:32px;}.info-bar-inner{grid-template-columns:1fr 1fr;}.brands-row{grid-template-columns:repeat(4,1fr);}}
+        @media(max-width:480px){.product-grid{grid-template-columns:1fr;}.cat-grid{grid-template-columns:repeat(2,1fr);}.srv-grid{grid-template-columns:1fr;}.footer-main{grid-template-columns:1fr;}.info-bar-inner{grid-template-columns:1fr;}.brands-row{grid-template-columns:repeat(3,1fr);}.hero-title{font-size:32px;}.section{padding:48px 20px;}}
       `}</style>
 
+      {/* UTIL BAR */}
       <div className="util-bar">
         <span>📍 Anand Arcade, Opposite Civil Hospital, Silchar – 788001</span>
         <div style={{display:"flex",alignItems:"center"}}>
@@ -1244,17 +885,16 @@ export default function App(){
         </div>
       </div>
 
-      <div className={`nav-wrap ${scrollY>34?"elevated":""}`} ref={menuRef}>
+      {/* NAV */}
+      <div className={"nav-wrap"+(scrollY>34?" elevated":"")} ref={menuRef}>
         <div className="nav-inner">
           <a className="nav-logo" href="#">
-            <div className="logo-box">
-              <span className="logo-ad">AD</span><span className="logo-v">V</span><span className="logo-antage">ANTAGE</span>
-            </div>
+            <div className="logo-box"><span className="logo-ad">AD</span><span className="logo-v">V</span><span className="logo-antage">ANTAGE</span></div>
             <div className="logo-sub"><span>SILCHAR</span></div>
           </a>
           <div className="nav-cats">
             {Object.keys(MEGA_MENU).map(cat=>(
-              <button key={cat} className={`nav-cat-btn ${activeMenu===cat?"open":""}`}
+              <button key={cat} className={"nav-cat-btn"+(activeMenu===cat?" open":"")}
                 onMouseEnter={()=>setActiveMenu(cat)} onClick={()=>setActiveMenu(activeMenu===cat?null:cat)}>
                 {cat} <span className="arr">▾</span>
               </button>
@@ -1262,25 +902,24 @@ export default function App(){
           </div>
           <div className="nav-right">
             <div className="search-bar-wrap">
-              <div className={`search-expand ${searchOpen?"open":"closed"}`}>
+              <div className={"search-expand"+(searchOpen?" open":" closed")}>
                 <input ref={searchRef} className="search-inp" placeholder="Search laptops, printers..." value={searchQuery}
                   onChange={e=>setSearchQuery(e.target.value)}
                   onKeyDown={e=>{if(e.key==="Escape"){setSearchOpen(false);setSearchQuery("");}if(e.key==="Enter"&&searchQuery.trim())scroll("products-section");}}/>
                 {searchQuery&&<button className="search-clear" onClick={()=>setSearchQuery("")}>×</button>}
               </div>
-              <button className="nav-icon-btn keep" onClick={()=>{if(searchOpen&&!searchQuery)setSearchOpen(false);else{setSearchOpen(true);setActiveMenu(null);}}} style={{color:searchOpen?NAVY:"#333"}}>🔍</button>
+              <button className="nav-icon-btn" onClick={()=>{if(searchOpen&&!searchQuery)setSearchOpen(false);else{setSearchOpen(true);setActiveMenu(null);}}} style={{color:searchOpen?NAVY:"#333"}}>🔍</button>
             </div>
             <button className="nav-icon-btn" onClick={()=>window.open("https://wa.me/919435070738","_blank")}>💬</button>
             <button className="nav-cta" onClick={()=>{setModal("contact");setActiveMenu(null);}}>Get Quote</button>
-            {/* Hamburger — mobile only */}
-            <button className={`hamburger ${mobileMenuOpen?"open":""}`} onClick={()=>setMobileMenuOpen(o=>!o)} aria-label="Menu">
+            <button className={"hamburger"+(mobileMenuOpen?" open":"")} onClick={()=>setMobileMenuOpen(o=>!o)} aria-label="Menu">
               <span/><span/><span/>
             </button>
           </div>
         </div>
         <div className="mega-wrap" onMouseLeave={()=>setActiveMenu(null)}>
           {Object.entries(MEGA_MENU).map(([cat,data])=>(
-            <div key={cat} className={`mega-menu ${activeMenu===cat?"visible":""}`}>
+            <div key={cat} className={"mega-menu"+(activeMenu===cat?" visible":"")}>
               {data.sections.map((sec,i)=>(
                 <div key={i} className="mega-section">
                   <h4>{sec.head}</h4>
@@ -1295,74 +934,47 @@ export default function App(){
         </div>
       </div>
 
-      {/* ── MOBILE DRAWER ── */}
-      <div className={`mobile-drawer ${mobileMenuOpen?"open":""}`}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",height:58,borderBottom:`3px solid ${NAVY}`,position:"sticky",top:0,background:"#fff",zIndex:10}}>
+      {/* MOBILE DRAWER */}
+      <div className={"mobile-drawer"+(mobileMenuOpen?" open":"")}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",height:58,borderBottom:"3px solid "+NAVY,position:"sticky",top:0,background:"#fff",zIndex:10}}>
           <div style={{display:"flex",alignItems:"center"}}>
             <div style={{background:NAVY,padding:"5px 12px",display:"flex",alignItems:"center"}}>
-              <span style={{fontSize:18,fontWeight:800,color:"#fff"}}>AD</span>
-              <span style={{fontSize:18,fontWeight:800,color:RED}}>V</span>
-              <span style={{fontSize:18,fontWeight:800,color:"#fff"}}>ANTAGE</span>
+              <span style={{fontSize:18,fontWeight:800,color:"#fff"}}>AD</span><span style={{fontSize:18,fontWeight:800,color:RED}}>V</span><span style={{fontSize:18,fontWeight:800,color:"#fff"}}>ANTAGE</span>
             </div>
-            <div style={{background:"#fff",border:`1px solid ${NAVY}`,padding:"2px 8px",alignSelf:"stretch",display:"flex",alignItems:"center"}}>
+            <div style={{background:"#fff",border:"1px solid "+NAVY,padding:"2px 8px",alignSelf:"stretch",display:"flex",alignItems:"center"}}>
               <span style={{fontSize:8,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:NAVY}}>SILCHAR</span>
             </div>
           </div>
           <button onClick={()=>setMobileMenuOpen(false)} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#333",lineHeight:1,padding:4}}>×</button>
         </div>
-
-        {/* Quick action buttons */}
         <div style={{display:"flex",borderBottom:"1px solid #e8e8e8"}}>
-          <button onClick={()=>{setModal("contact");setMobileMenuOpen(false);}}
-            style={{flex:1,background:RED,color:"#fff",border:"none",padding:"14px",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",fontFamily:"inherit"}}>
-            Get Quote
-          </button>
-          <button onClick={()=>window.open("https://wa.me/919435070738","_blank")}
-            style={{flex:1,background:"#25D366",color:"#fff",border:"none",padding:"14px",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,fontFamily:"inherit"}}>
-            💬 WhatsApp
-          </button>
+          <button onClick={()=>{setModal("contact");setMobileMenuOpen(false);}} style={{flex:1,background:RED,color:"#fff",border:"none",padding:"14px",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",fontFamily:"inherit"}}>Get Quote</button>
+          <button onClick={()=>window.open("https://wa.me/919435070738","_blank")} style={{flex:1,background:"#25D366",color:"#fff",border:"none",padding:"14px",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,fontFamily:"inherit"}}>💬 WhatsApp</button>
         </div>
-
-        {/* Browse categories */}
         <div style={{paddingTop:12}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"#aaa",padding:"8px 24px 4px"}}>Shop</div>
           {[{icon:"🏪",label:"All Products"},...CATEGORIES].map((c,i)=>(
-            <div key={c.label} className="mob-cat" onClick={()=>{
-              setActiveCat(i===0?"All":c.label);
-              setMobileMenuOpen(false);
-              setTimeout(()=>scroll("products-section"),120);
-            }}>
+            <div key={c.label} className="mob-cat" onClick={()=>{setActiveCat(i===0?"All":c.label);setMobileMenuOpen(false);setTimeout(()=>scroll("products-section"),120);}}>
               {c.icon} &nbsp;{c.label}
             </div>
           ))}
         </div>
-
-        {/* Services */}
         <div style={{borderTop:"1px solid #f0f0f0",paddingTop:12}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"#aaa",padding:"8px 24px 4px"}}>Services</div>
           {["Laptop Repair","Desktop Repair","Printer Service","Onsite Support"].map(s=>(
-            <div key={s} className="mob-sub" onClick={()=>{setModal("contact");setMobileMenuOpen(false);}}>
-              {s}
-            </div>
+            <div key={s} className="mob-sub" onClick={()=>{setModal("contact");setMobileMenuOpen(false);}}>{s}</div>
           ))}
         </div>
-
-        {/* Contact strip */}
         <div style={{background:"#f5f7fa",margin:"16px",padding:"16px 18px"}}>
           <div style={{fontSize:12,fontWeight:700,color:NAVY,marginBottom:10,textTransform:"uppercase",letterSpacing:".06em"}}>Visit Us</div>
-          {[
-            {icon:"📍",text:"Anand Arcade, Opp. Civil Hospital, Silchar – 788001"},
-            {icon:"📞",text:"03842-230952 · 9435070738"},
-            {icon:"🕙",text:"Mon – Sat · 10:00 AM – 8:00 PM"},
-          ].map((c,i)=>(
-            <div key={i} style={{display:"flex",gap:8,fontSize:12,color:"#555",marginBottom:7,alignItems:"flex-start",fontWeight:500}}>
-              <span style={{flexShrink:0}}>{c.icon}</span><span>{c.text}</span>
-            </div>
+          {[{icon:"📍",text:"Anand Arcade, Opp. Civil Hospital, Silchar – 788001"},{icon:"📞",text:"03842-230952 · 9435070738"},{icon:"🕙",text:"Mon – Sat · 10:00 AM – 8:00 PM"}].map((c,i)=>(
+            <div key={i} style={{display:"flex",gap:8,fontSize:12,color:"#555",marginBottom:7,fontWeight:500,alignItems:"flex-start"}}><span style={{flexShrink:0}}>{c.icon}</span><span>{c.text}</span></div>
           ))}
         </div>
       </div>
       {mobileMenuOpen&&<div onClick={()=>setMobileMenuOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1099}}/>}
 
+      {/* HERO */}
       <section className="hero" style={{background:cur.bg}}>
         <div className="hero-inner">
           <div>
@@ -1376,19 +988,21 @@ export default function App(){
           </div>
           <div className="hero-icon">{cur.icon}</div>
         </div>
-        <div className="hero-dots">{HERO_SLIDES.map((_,i)=><button key={i} className={`hero-dot ${i===slide?"active":""}`} onClick={()=>setSlide(i)}/>)}</div>
+        <div className="hero-dots">{HERO_SLIDES.map((_,i)=><button key={i} className={"hero-dot"+(i===slide?" active":"")} onClick={()=>setSlide(i)}/>)}</div>
       </section>
 
+      {/* QUICK LINKS */}
       <div className="quick-links">
         <div className="quick-links-inner">
           {[{icon:"🏪",label:"All Products",cat:"All"},...CATEGORIES.map(c=>({icon:c.icon,label:c.label,cat:c.label}))].map(l=>(
-            <div key={l.label} className={`quick-link ${activeCat===l.cat?"ql-active":""}`} onClick={()=>{setActiveCat(l.cat);scroll("products-section");}}>
-              <span className="ql-icon">{l.icon}</span>{l.label}
+            <div key={l.label} className={"quick-link"+(activeCat===l.cat?" ql-active":"")} onClick={()=>{setActiveCat(l.cat);scroll("products-section");}}>
+              <span style={{fontSize:14}}>{l.icon}</span>{l.label}
             </div>
           ))}
         </div>
       </div>
 
+      {/* SEARCH BANNER */}
       {q&&(
         <div className="search-banner">
           <span>Showing <strong>{displayed.length} result{displayed.length!==1?"s":""}</strong> for "<strong>{searchQuery}</strong>"</span>
@@ -1396,6 +1010,7 @@ export default function App(){
         </div>
       )}
 
+      {/* SHOP BY CATEGORY */}
       <div style={{borderBottom:"1px solid #dde2f0"}}>
         <div className="section" style={{paddingBottom:48}}>
           <Fade>
@@ -1413,12 +1028,13 @@ export default function App(){
         </div>
       </div>
 
+      {/* PRODUCTS */}
       <div id="products-section" style={{borderBottom:"1px solid #dde2f0"}}>
         <div className="section">
           <Fade>
             <div className="section-top">
               <h2 className="section-title">
-                {q?`Results for "${searchQuery}"`:activeCat==="All"?"All Products":activeCat}
+                {q?"Results for \""+searchQuery+"\"":activeCat==="All"?"All Products":activeCat}
                 <span style={{fontSize:14,color:"#aaa",fontWeight:400,marginLeft:12}}>{displayed.length} item{displayed.length!==1?"s":""}</span>
               </h2>
               {(activeCat!=="All"&&!q)&&<span className="section-view-all" onClick={()=>setActiveCat("All")}>View All →</span>}
@@ -1440,6 +1056,7 @@ export default function App(){
         </div>
       </div>
 
+      {/* SERVICES */}
       <div className="srv-section">
         <div className="section">
           <Fade>
@@ -1461,7 +1078,7 @@ export default function App(){
           </div>
           <div className="srv-cta">
             <div>
-              <div style={{font:`700 16px/1 'DM Sans',sans-serif`,color:"#fff",marginBottom:6}}>Need a service? We'll help you fast.</div>
+              <div style={{font:"700 16px/1 'DM Sans',sans-serif",color:"#fff",marginBottom:6}}>Need a service? We'll help you fast.</div>
               <div style={{fontSize:13,color:"rgba(255,255,255,.4)"}}>Carry-in at Anand Arcade or book an onsite visit</div>
             </div>
             <div style={{display:"flex",gap:10}}>
@@ -1472,6 +1089,7 @@ export default function App(){
         </div>
       </div>
 
+      {/* ABOUT */}
       <div style={{borderBottom:"1px solid #dde2f0"}}>
         <div className="section">
           <Fade>
@@ -1490,10 +1108,7 @@ export default function App(){
               </div>
               <div className="about-right">
                 {[{val:"Mon–Sat",lbl:"Open 6 Days"},{val:"10–8 PM",lbl:"Store Hours"}].map((s,i)=>(
-                  <div key={i} className="stat-tile">
-                    <div className="stat-val">{s.val}</div>
-                    <div className="stat-lbl">{s.lbl}</div>
-                  </div>
+                  <div key={i} className="stat-tile"><div className="stat-val">{s.val}</div><div className="stat-lbl">{s.lbl}</div></div>
                 ))}
               </div>
             </div>
@@ -1501,6 +1116,7 @@ export default function App(){
         </div>
       </div>
 
+      {/* BRANDS */}
       <div className="brands-section">
         <div className="brands-inner">
           <Fade>
@@ -1510,13 +1126,14 @@ export default function App(){
         </div>
       </div>
 
+      {/* CONTACT INFO BAR */}
       <div className="info-bar" id="contact-section">
         <div className="info-bar-inner">
           {[
-            {icon:"📍",label:"Address",val:"Anand Arcade\nOpposite Civil Hospital\nSilchar – 788001, Assam"},
-            {icon:"📞",label:"Phone",  val:"03842-230952\n9435070738"},
-            {icon:"✉️",label:"Email",  val:"advantage.it@gmail.com"},
-            {icon:"🕙",label:"Hours",  val:"Monday – Saturday\n10:00 AM – 8:00 PM"},
+            {icon:"📍",label:"Address", val:"Anand Arcade\nOpposite Civil Hospital\nSilchar – 788001, Assam"},
+            {icon:"📞",label:"Phone",   val:"03842-230952\n9435070738"},
+            {icon:"✉️",label:"Email",   val:"advantage.it@gmail.com"},
+            {icon:"🕙",label:"Hours",   val:"Monday – Saturday\n10:00 AM – 8:00 PM"},
           ].map((c,i)=>(
             <div key={i} className="info-item">
               <span className="ii-icon">{c.icon}</span>
@@ -1526,6 +1143,7 @@ export default function App(){
         </div>
       </div>
 
+      {/* FOOTER */}
       <footer className="footer">
         <div className="footer-top-strip"/>
         <div className="footer-main">
@@ -1534,8 +1152,8 @@ export default function App(){
             <div className="fb-tagline">Silchar's trusted computer store. Laptops, desktops, printers, accessories and expert repair services for all major brands.</div>
           </div>
           {[
-            {head:"Products",links:["Laptops","Desktop PCs","Printers","Keyboards & Mouse","Monitors","Accessories"]},
-            {head:"Services",links:["Laptop Repair","Desktop Repair","Printer Service","Onsite Support","OS Installation"]},
+            {head:"Products", links:["Laptops","Desktop PCs","Printers","Keyboards & Mouse","Monitors","Accessories"]},
+            {head:"Services", links:["Laptop Repair","Desktop Repair","Printer Service","Onsite Support","OS Installation"]},
             {head:"Visit Us", links:["Anand Arcade","Opposite Civil Hospital","Silchar – 788001","Assam, India","03842-230952","9435070738"]},
           ].map((col,i)=>(
             <div key={i} className="footer-col">
@@ -1552,21 +1170,17 @@ export default function App(){
         </div>
       </footer>
 
-      {/* ── COMPARE BAR ── */}
-      <CompareBar
-        list={compareList}
-        onRemove={id=>setCompareList(l=>l.filter(p=>p.id!==id))}
-        onClear={()=>setCompareList([])}
-        onCompare={()=>setCompareOpen(true)}
-      />
-
-      {/* ── COMPARE MODAL ── */}
-      {compareOpen&&<CompareModal list={compareList} onClose={()=>setCompareOpen(false)} onQuote={setModal}/>}
-
-      <button className="wa-float" style={{bottom:compareList.length>0?90:24}} onClick={()=>window.open("https://wa.me/919435070738?text=Hi%2C+I+want+to+enquire+about+your+products+and+services.","_blank")}>
+      {/* WA FLOAT */}
+      <button className="wa-float" style={{bottom:compareList.length>0?90:24}}
+        onClick={()=>window.open("https://wa.me/919435070738?text=Hi%2C+I+want+to+enquire+about+your+products+and+services.","_blank")}>
         💬 WhatsApp
       </button>
 
+      {/* COMPARE BAR */}
+      <CompareBar list={compareList} onRemove={id=>setCompareList(l=>l.filter(p=>p.id!==id))} onClear={()=>setCompareList([])} onCompare={()=>setCompareOpen(true)}/>
+
+      {/* MODALS */}
+      {compareOpen&&<CompareModal list={compareList} onClose={()=>setCompareOpen(false)} onQuote={setModal}/>}
       {modal&&<QuoteModal product={modal} onClose={()=>setModal(null)}/>}
     </>
   );
