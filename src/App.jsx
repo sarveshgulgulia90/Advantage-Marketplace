@@ -280,7 +280,7 @@ function CompareModal({list,onClose,onQuote}){
       const data=await res.json();
       if(!res.ok)throw new Error(data.error||"AI error");
       setAiResult(data);
-    }catch(e){ setAiError("AI unavailable right now. Try again or use the spec table below."); }
+    }catch(e){ setAiError(e.message); }
     setAiLoading(false);
   }
 
