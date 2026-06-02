@@ -1,4 +1,3 @@
-/* eslint-env node */
 const express = require("express");
 const router  = express.Router();
 
@@ -32,7 +31,7 @@ router.post("/compare", async (req, res) => {
     console.log("Calling Gemini for use case:", useCase);
 
     const geminiRes = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + key,
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + key,
       {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
