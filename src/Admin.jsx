@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 const NAVY = "#0B1F5E";
 const RED  = "#CC1A1A";
-const ADMIN_PASSWORD = "advantage1995";
+const ADMIN_PASSWORD = "advantage";
 const STORAGE_KEY    = "advantage_products";
 
 const CATS  = ["Laptops","Desktops","Printers","Accessories"];
