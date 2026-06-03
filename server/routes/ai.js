@@ -31,7 +31,7 @@ router.post("/compare", async (req, res) => {
     console.log("Calling Gemini for use case:", useCase);
 
     const geminiRes = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + key,
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + key,
       {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,9 +46,11 @@ router.post("/compare", async (req, res) => {
 
     if (!geminiRes.ok) {
       console.error("Gemini error:", JSON.stringify(raw));
-      return res.status(geminiRes.status).json({
-        error: raw.error?.message || "Gemini API returned error " + geminiRes.status
-      });
+      if (raw.error?.code === 429)
+        return res.status(429).json({ error: "AI quota exceeded — please wait a minute and try again, or get a new API key from aistudio.google.com/app/apikey" });
+      if (raw.error?.code === 400 || raw.error?.code === 403)
+        return res.status(raw.error.code).json({ error: "Invalid Gemini API key. Get a free key from aistudio.google.com/app/apikey (must start with AIzaSy...)" });
+      return res.status(geminiRes.status).json({ error: raw.error?.message || "Gemini API error" });
     }
 
     const text   = raw.candidates?.[0]?.content?.parts?.[0]?.text || "";
