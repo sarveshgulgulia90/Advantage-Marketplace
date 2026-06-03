@@ -268,20 +268,114 @@ function CompareModal({list,onClose,onQuote}){
   const SUGGESTIONS=["Gaming","Office & Work","College/Student","Video Editing","Budget Buy","Best Battery Life","Programming","Everyday Home Use"];
 
   async function askAI(q){
-    const query=q||useCase;
-    if(!query.trim())return;
+    const query=(q||useCase).toLowerCase().trim();
+    if(!query)return;
     setAiLoading(true); setAiResult(null); setAiError("");
-    try{
-      const res=await fetch(API+"/ai/compare",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({products:list,useCase:query})
+
+    // ── Local smart recommendation — no API key needed ──
+    setTimeout(()=>{
+      // Score each product based on use case keywords
+      const scores=list.map(p=>{
+        let score=0; const sp=p.specs||{};
+        const ram=parseRAM(sp["RAM"]||"")||0;
+        const storage=parseStorage(sp["Storage"]||"")||0;
+        const battery=parseGeneric(sp["Battery"]||"")||0;
+        const weight=parseGeneric(sp["Weight"]||"")||9999;
+        const price=parseGeneric(p.price||"")||9999999;
+        const hasOLED=(sp["Display"]||"").toLowerCase().includes("oled");
+        const hasDedicatedGPU=(sp["Graphics"]||"").toLowerCase().includes("rtx")||(sp["Graphics"]||"").toLowerCase().includes("gtx")||(sp["Graphics"]||"").toLowerCase().includes("rx ");
+        const isLaptop=p.cat==="Laptops";
+        const isDesktop=p.cat==="Desktops";
+        const isPrinter=p.cat==="Printers";
+
+        if(query.includes("gaming")){
+          if(hasDedicatedGPU)score+=50;
+          if(ram>=16)score+=20; if(ram>=32)score+=15;
+          if(storage>=512)score+=10;
+          if(isDesktop)score+=15;
+        }
+        if(query.includes("office")||query.includes("work")||query.includes("business")){
+          if(battery>=7)score+=20; if(battery>=9)score+=10;
+          if(weight<1.8)score+=15;
+          if(ram>=8)score+=10; if(ram>=16)score+=10;
+          if(price<50000)score+=15;
+        }
+        if(query.includes("student")||query.includes("college")||query.includes("school")){
+          if(price<45000)score+=25; if(price<35000)score+=15;
+          if(battery>=8)score+=20;
+          if(weight<1.7)score+=15;
+          if(ram>=8)score+=10;
+        }
+        if(query.includes("video")||query.includes("editing")||query.includes("creative")||query.includes("design")){
+          if(ram>=16)score+=25; if(ram>=32)score+=20;
+          if(storage>=1024)score+=20;
+          if(hasOLED)score+=20;
+          if(hasDedicatedGPU)score+=15;
+        }
+        if(query.includes("budget")||query.includes("cheap")||query.includes("affordable")||query.includes("low cost")){
+          if(price<35000)score+=40; else if(price<50000)score+=20; else if(price<70000)score+=5;
+        }
+        if(query.includes("battery")||query.includes("travel")||query.includes("portable")){
+          score+=battery*3;
+          if(weight<1.7)score+=20; if(weight<1.6)score+=15;
+        }
+        if(query.includes("programming")||query.includes("coding")||query.includes("developer")){
+          if(ram>=16)score+=25; if(ram>=32)score+=10;
+          if(storage>=512)score+=10;
+          if(p.name.toLowerCase().includes("thinkpad")||p.name.toLowerCase().includes("macbook"))score+=10;
+        }
+        if(query.includes("home")||query.includes("everyday")||query.includes("family")){
+          if(price<50000)score+=15;
+          if(ram>=8)score+=10;
+          if(storage>=512)score+=10;
+        }
+        if(query.includes("print")||query.includes("printer")){
+          if(isPrinter)score+=60;
+        }
+        if(query.includes("desktop")||query.includes("workstation")){
+          if(isDesktop)score+=40;
+        }
+        // General bonus for specs
+        score+=ram*0.5;
+        score+=Math.min(storage/100,10);
+        score-=price/10000;
+        return{p,score};
       });
-      const data=await res.json();
-      if(!res.ok)throw new Error(data.error||"AI error");
-      setAiResult(data);
-    }catch(e){ setAiError(e.message); }
-    setAiLoading(false);
+
+      scores.sort((a,b)=>b.score-a.score);
+      const winner=scores[0].p;
+
+      // Generate verdict for each product
+      const verdicts=scores.map(({p,score})=>{
+        const rank=scores.indexOf(scores.find(s=>s.p.id===p.id));
+        const rating=rank===0?"Excellent":rank===1?"Good":rank===2?"Average":"Not Recommended";
+        // Build one-line verdict
+        const sp=p.specs||{};
+        let verdict="";
+        if(rating==="Excellent") verdict="Best choice for "+query+" — strong specs at this price point.";
+        else if(rating==="Good") verdict="Solid option, slightly behind in key areas for "+query+".";
+        else if(rating==="Average") verdict="Usable for "+query+" but not optimised for it.";
+        else verdict="Not the right fit for "+query+".";
+        return{name:p.name,verdict,rating};
+      });
+
+      // Generate reason for winner
+      const wsp=winner.specs||{};
+      const reasonParts=[];
+      if(parseRAM(wsp["RAM"]||"")>=16)reasonParts.push("16GB+ RAM handles multitasking well");
+      if(parseStorage(wsp["Storage"]||"")>=512)reasonParts.push("fast SSD storage");
+      if(parseGeneric(wsp["Battery"]||"")>=8)reasonParts.push("long battery life");
+      if(parseGeneric(winner.price||"")===Math.min(...list.map(x=>parseGeneric(x.price||"")||999999)))reasonParts.push("best price in this group");
+      const reason=winner.name+" is the top pick for "+query+". "+(reasonParts.length>0?"It offers "+reasonParts.join(", ")+". ":"")+"Based on your need, this product gives the best overall value.";
+
+      const tip=query.includes("budget")?"Always ask for an in-store demo before buying.":
+                query.includes("gaming")?"Check if the game you play supports the GPU in this model.":
+                query.includes("student")?"Student discounts may be available — ask at the store.":
+                "Visit Advantage Silchar to see this in person before buying.";
+
+      setAiResult({winner:winner.name,reason,verdicts,tip});
+      setAiLoading(false);
+    },800); // small delay so it feels like it's thinking
   }
 
   // ── Smart comparison helpers ──
