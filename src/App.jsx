@@ -91,6 +91,12 @@ const MEGA_MENU = {
     { head:"Display & Storage", items:["Monitors","External HDDs","Pen Drives","SSDs"] },
     { head:"Connectivity",      items:["USB Hubs","HDMI Cables","Networking","Adapters"] },
   ]},
+  "Security & CCTV": { sections:[
+    { head:"Cameras",      items:["IP Cameras","CCTV Cameras","PTZ Cameras","Dome Cameras","Bullet Cameras"] },
+    { head:"Systems",      items:["DVR Systems","NVR Systems","Complete CCTV Kits","Video Door Phones"] },
+    { head:"Access Control",items:["Biometric Attendance","Door Access Systems","Electric Locks","Video Intercoms"] },
+    { head:"Brands",       items:["CP Plus","Hikvision","Dahua","Godrej"] },
+  ]},
   "Repair & Service": { sections:[
     { head:"Device",       items:["Laptop Repair","Desktop Repair","Printer Service","Screen Replacement"] },
     { head:"Service Type", items:["Carry-in Service","Onsite Visit","OS Installation"] },
