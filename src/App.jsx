@@ -94,7 +94,6 @@ const MEGA_MENU = {
   "Security & CCTV": { sections:[
     { head:"Cameras",      items:["IP Cameras","CCTV Cameras","PTZ Cameras","Dome Cameras","Bullet Cameras"] },
     { head:"Systems",      items:["DVR Systems","NVR Systems","Complete CCTV Kits","Video Door Phones"] },
-    { head:"Access Control",items:["Biometric Attendance","Door Access Systems","Electric Locks","Video Intercoms"] },
     { head:"Brands",       items:["CP Plus","Hikvision","Dahua","Godrej"] },
   ]},
   "Repair & Service": { sections:[
@@ -371,6 +370,10 @@ function CompareModal({list,onClose,onQuote}){
       // Generate reason for winner
       const wsp=winner.specs||{};
       const reasonParts=[];
+      if(wsp["Display"]&&wsp["Display"].toLowerCase().includes("oled"))reasonParts.push("vibrant OLED display");
+      if(wsp["Graphics"]&&((wsp["Graphics"]||"").toLowerCase().includes("rtx")||(wsp["Graphics"]||"").toLowerCase().includes("gtx")||(wsp["Graphics"]||"").toLowerCase().includes("rx ")))reasonParts.push("dedicated graphics for gaming and creative work");
+      if(parseGeneric(wsp["Weight"]||"")&&parseGeneric(wsp["Weight"]||"")<1.7)reasonParts.push("lightweight design for portability");
+      if(parseGeneric(wsp["Price"]||"")&&parseGeneric(wsp["Price"]||"")<50000)reasonParts.push("great value under ₹50,000");
       if(parseRAM(wsp["RAM"]||"")>=16)reasonParts.push("16GB+ RAM for smooth multitasking");
       if(parseStorage(wsp["Storage"]||"")>=512)reasonParts.push("fast SSD storage");
       if(parseGeneric(wsp["Battery"]||"")>=8)reasonParts.push("long "+parseGeneric(wsp["Battery"]||"")+" hour battery");
@@ -389,7 +392,7 @@ function CompareModal({list,onClose,onQuote}){
       }
 
       const tipMap={
-        gaming:"None of these laptops have a dedicated GPU. Visit the store and ask specifically for gaming laptops with NVIDIA RTX graphics.",
+        gaming:"For gaming always go for a laptop with a dedicated GPU. "+winner.name+" is the best among these.",
         office:"Ask about Microsoft Office bundling — sometimes included free with new laptops.",
         work:"Ask about Microsoft Office bundling — sometimes included free with new laptops.",
         student:"Ask if there is a student discount. Also check if the college requires any specific specs.",
@@ -492,11 +495,10 @@ function CompareModal({list,onClose,onQuote}){
           {/* AI Section */}
           <div style={{background:"#fff",border:"2px solid "+NAVY,padding:"24px 28px",marginBottom:24}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-              <span style={{fontSize:20}}>🤖</span>
-              <span style={{fontWeight:800,fontSize:17,color:NAVY}}>AI-Powered Recommendation</span>
-              <span style={{fontSize:11,background:"#eef2ff",color:NAVY,padding:"2px 8px",fontWeight:600}}>Powered by Gemini</span>
+              <span style={{fontSize:20}}></span>
+              <span style={{fontWeight:800,fontSize:17,color:NAVY}}>Recommendations based on your needs</span>
             </div>
-            <p style={{fontSize:13,color:"#666",marginBottom:16}}>Tell us what you need — AI will recommend the best product for you.</p>
+            <p style={{fontSize:13,color:"#666",marginBottom:16}}>Tell us what you need — we'll try to recommend the best product for you.</p>
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
               {SUGGESTIONS.map(s=>(
                 <button key={s} onClick={()=>{setUseCase(s);askAI(s);}}
@@ -513,7 +515,7 @@ function CompareModal({list,onClose,onQuote}){
                 onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#dde2f0"}/>
               <button onClick={()=>askAI()} disabled={!useCase.trim()||aiLoading}
                 style={{background:useCase.trim()&&!aiLoading?RED:"#ccc",color:"#fff",border:"none",padding:"11px 24px",fontSize:13,fontWeight:700,cursor:useCase.trim()&&!aiLoading?"pointer":"not-allowed",letterSpacing:".04em",textTransform:"uppercase",fontFamily:"inherit",whiteSpace:"nowrap"}}>
-                {aiLoading?"Analysing...":"Ask AI →"}
+                {aiLoading?"Analysing...":"→"}
               </button>
             </div>
             {aiLoading&&<div style={{marginTop:16,padding:"14px",background:"#f0f2f8",textAlign:"center",fontSize:13,color:NAVY,fontWeight:600}}>🔍 Analysing products for "{useCase}"...</div>}
@@ -550,7 +552,7 @@ function CompareModal({list,onClose,onQuote}){
               const aiV=aiResult&&(aiResult.verdicts||[]).find(v=>v.name===p.name);
               return(
                 <div key={p.id} style={{background:"#fff",border:"2px solid "+(isAiWin?RED:badges.length>0?NAVY:"#e8e8e8"),padding:"20px 18px",textAlign:"center",position:"relative"}}>
-                  {isAiWin&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>🏆 AI PICK</div>}
+                  {isAiWin&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>BEST OPTION</div>}
                   {!isAiWin&&badges.length>0&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>★ {badges[0].label}</div>}
                   <div style={{marginTop:isAiWin||badges.length>0?16:0}}>
                     <div style={{height:80,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10,overflow:"hidden"}}>
