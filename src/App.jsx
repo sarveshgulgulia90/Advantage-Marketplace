@@ -289,10 +289,11 @@ function CompareModal({list,onClose,onQuote}){
         const isPrinter=p.cat==="Printers";
 
         if(query.includes("gaming")){
-          if(hasDedicatedGPU)score+=50;
-          if(ram>=16)score+=20; if(ram>=32)score+=15;
+          if(hasDedicatedGPU)score+=80;
+          else score-=50; // penalise heavily — can't game without GPU
+          if(ram>=16)score+=20; if(ram>=32)score+=10;
           if(storage>=512)score+=10;
-          if(isDesktop)score+=15;
+          if(isDesktop)score+=20; // desktops better for gaming
         }
         if(query.includes("office")||query.includes("work")||query.includes("business")){
           if(battery>=7)score+=20; if(battery>=9)score+=10;
@@ -359,19 +360,44 @@ function CompareModal({list,onClose,onQuote}){
         return{name:p.name,verdict,rating};
       });
 
+      const hasGoodFit=scores[0].score>0;
+
       // Generate reason for winner
       const wsp=winner.specs||{};
       const reasonParts=[];
-      if(parseRAM(wsp["RAM"]||"")>=16)reasonParts.push("16GB+ RAM handles multitasking well");
+      if(parseRAM(wsp["RAM"]||"")>=16)reasonParts.push("16GB+ RAM for smooth multitasking");
       if(parseStorage(wsp["Storage"]||"")>=512)reasonParts.push("fast SSD storage");
-      if(parseGeneric(wsp["Battery"]||"")>=8)reasonParts.push("long battery life");
-      if(parseGeneric(winner.price||"")===Math.min(...list.map(x=>parseGeneric(x.price||"")||999999)))reasonParts.push("best price in this group");
-      const reason=winner.name+" is the top pick for "+query+". "+(reasonParts.length>0?"It offers "+reasonParts.join(", ")+". ":"")+"Based on your need, this product gives the best overall value.";
+      if(parseGeneric(wsp["Battery"]||"")>=8)reasonParts.push("long "+parseGeneric(wsp["Battery"]||"")+" hour battery");
+      if(parseGeneric(winner.price||"")===Math.min(...list.map(x=>parseGeneric(x.price||"")||999999)))reasonParts.push("lowest price in this group");
 
-      const tip=query.includes("budget")?"Always ask for an in-store demo before buying.":
-                query.includes("gaming")?"Check if the game you play supports the GPU in this model.":
-                query.includes("student")?"Student discounts may be available — ask at the store.":
-                "Visit Advantage Silchar to see this in person before buying.";
+      const gamingProducts=list.filter(p=>{
+        const g=(p.specs||{})["Graphics"]||"";
+        return g.toLowerCase().includes("rtx")||g.toLowerCase().includes("gtx")||g.toLowerCase().includes("rx ");
+      });
+
+      let reason="";
+      if(query.includes("gaming")&&gamingProducts.length===0){
+        reason="⚠️ None of the selected products have a dedicated GPU. Gaming requires a dedicated graphics card (like NVIDIA RTX or AMD RX series). "+winner.name+" has the best overall specs among these, but for actual gaming you should look at dedicated gaming laptops. Ask at the store for gaming options.";
+      } else {
+        reason=winner.name+" is the top pick for "+query+". "+(reasonParts.length>0?"It offers "+reasonParts.join(", ")+". ":"")+"Based on your need, this gives the best overall value.";
+      }
+
+      const tipMap={
+        gaming:"None of these laptops have a dedicated GPU. Visit the store and ask specifically for gaming laptops with NVIDIA RTX graphics.",
+        office:"Ask about Microsoft Office bundling — sometimes included free with new laptops.",
+        work:"Ask about Microsoft Office bundling — sometimes included free with new laptops.",
+        student:"Ask if there is a student discount. Also check if the college requires any specific specs.",
+        college:"Check your college's recommended spec list before buying.",
+        budget:"Prices shown are MRP. Visit the store — you can often negotiate a better deal.",
+        video:"For video editing, 16GB RAM minimum is important. Ask if RAM upgrade is possible later.",
+        editing:"Ask about RAM upgrade options — video editing benefits greatly from 32GB.",
+        battery:"Ask the store to show real battery backup with screen-on time.",
+        programming:"Ask about SSD upgrade options. An NVMe SSD makes a huge difference for coding.",
+        home:"Ask for a demo at the store before buying — see how it feels in hand.",
+      };
+      const tip=Object.keys(tipMap).find(k=>query.includes(k))
+        ? tipMap[Object.keys(tipMap).find(k=>query.includes(k))]
+        : "Visit Advantage Silchar — Anand Arcade, Opp. Civil Hospital. Try before you buy.";
 
       setAiResult({winner:winner.name,reason,verdicts,tip});
       setAiLoading(false);
