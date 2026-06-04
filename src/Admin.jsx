@@ -5,7 +5,7 @@ const RED  = "#CC1A1A";
 const ADMIN_PASSWORD = "advantage";
 const STORAGE_KEY    = "advantage_products";
 
-const CATS  = ["Laptops","Desktops","Printers","Accessories"];
+const CATS  = ["Laptops","Desktops","Printers","Accessories","CCTV & Security"];
 const ICONS = ["💻","🖥️","🖨️","⌨️","🖱️","💾","🔌","📱"];
 
 /* Default spec keys per category — admin sees these as input fields */
@@ -14,6 +14,7 @@ const SPEC_KEYS = {
   Desktops:    ["Processor","RAM","Storage","Form Factor","Graphics","Operating System","Ports","Optical Drive","Connectivity","Warranty"],
   Printers:    ["Type","Print Technology","Print Speed","Print Resolution","Connectivity","Scanner","Paper Size","Ink / Toner","Page Yield","Warranty"],
   Accessories: ["Type","Connectivity","Compatibility","Interface","Dimensions","Weight","Warranty"],
+  "CCTV & Security": ["Type","Brand","Resolution","Storage","Connectivity","Warranty"],
 };
 
 const EMPTY_FORM = {

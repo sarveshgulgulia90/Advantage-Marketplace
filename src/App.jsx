@@ -117,6 +117,7 @@ const CATEGORIES = [
   { icon:"🖥️", label:"Monitors",  sub:"FHD, QHD, Gaming Displays" },
   { icon:"💾", label:"Storage",   sub:"HDD, SSD, Pen Drives" },
   { icon:"🔧", label:"Services",  sub:"Carry-in & Onsite Service" },
+  {icon:"🔒", label:"Security & CCTV", sub:"Cameras, DVRs, Complete Kits" },
 ];
 
 const SERVICES_LIST = [
