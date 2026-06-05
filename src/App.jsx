@@ -375,7 +375,15 @@ function CompareModal({list,onClose,onQuote}){
       if(parseStorage(wsp["Storage"]||"")>=512)reasonParts.push("fast SSD storage");
       if(parseGeneric(wsp["Battery"]||"")>=8)reasonParts.push("long "+parseGeneric(wsp["Battery"]||"")+" hour battery");
       if(parseGeneric(winner.price||"")===Math.min(...list.map(x=>parseGeneric(x.price||"")||999999)))reasonParts.push("lowest price in this group");
-
+      if((wsp["Display"]||"").toLowerCase().includes("oled"))reasonParts.push("vibrant OLED display");
+      if((wsp["Graphics"]||"").toLowerCase().includes("rtx")||(wsp["Graphics"]||"").toLowerCase().includes("gtx")||(wsp["Graphics"]||"").toLowerCase().includes("rx "))reasonParts.push("dedicated graphics for gaming and creative work");
+      if(hasGoodFit&&reasonParts.length===0)reasonParts.push("best overall specs for your needs");
+      if(!hasGoodFit)reasonParts.push("doesn't have strong specs for this use case, but is the best among these options");
+      if(!hasGoodFit&&query.includes("gaming"))reasonParts.push("lacks a dedicated GPU which is important for gaming");
+      if(!hasGoodFit&&(query.includes("office")||query.includes("work")||query.includes("business")))reasonParts.push("lower battery life and performance may affect work productivity");
+      if(!hasGoodFit&&(query.includes("student")||query.includes("college")||query.includes("school")))reasonParts.push("lower performance and battery may affect study and portability needs");
+      if(!hasGoodFit&&(query.includes("video")||query.includes("editing")||query.includes("creative")||query.includes("design")))reasonParts.push("lower RAM and lack of dedicated GPU may struggle with creative tasks");
+      if(!hasGoodFit&&query.includes("budget"))reasonParts.push("higher price may not offer good value for budget-conscious buyers");
       const gamingProducts=list.filter(p=>{
         const g=(p.specs||{})["Graphics"]||"";
         return g.toLowerCase().includes("rtx")||g.toLowerCase().includes("gtx")||g.toLowerCase().includes("rx ");
@@ -389,7 +397,7 @@ function CompareModal({list,onClose,onQuote}){
       }
 
       const tipMap={
-        gaming:"None of these laptops have a dedicated GPU. Visit the store and ask specifically for gaming laptops with NVIDIA RTX graphics.",
+        gaming:"For gaming, look for laptops with dedicated graphics cards (NVIDIA RTX or AMD RX series).",
         office:"Ask about Microsoft Office bundling — sometimes included free with new laptops.",
         work:"Ask about Microsoft Office bundling — sometimes included free with new laptops.",
         student:"Ask if there is a student discount. Also check if the college requires any specific specs.",
@@ -493,10 +501,10 @@ function CompareModal({list,onClose,onQuote}){
           <div style={{background:"#fff",border:"2px solid "+NAVY,padding:"24px 28px",marginBottom:24}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
               <span style={{fontSize:20}}>🤖</span>
-              <span style={{fontWeight:800,fontSize:17,color:NAVY}}>AI-Powered Recommendation</span>
-              <span style={{fontSize:11,background:"#eef2ff",color:NAVY,padding:"2px 8px",fontWeight:600}}>Powered by Gemini</span>
+              <span style={{fontWeight:800,fontSize:17,color:NAVY}}>Recommendation</span>
+              <span style={{fontSize:11,background:"#eef2ff",color:NAVY,padding:"2px 8px",fontWeight:600}}></span>
             </div>
-            <p style={{fontSize:13,color:"#666",marginBottom:16}}>Tell us what you need — AI will recommend the best product for you.</p>
+            <p style={{fontSize:13,color:"#666",marginBottom:16}}>Tell us what you need- we will try to recommend the best product for you.</p>
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
               {SUGGESTIONS.map(s=>(
                 <button key={s} onClick={()=>{setUseCase(s);askAI(s);}}
@@ -513,7 +521,7 @@ function CompareModal({list,onClose,onQuote}){
                 onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#dde2f0"}/>
               <button onClick={()=>askAI()} disabled={!useCase.trim()||aiLoading}
                 style={{background:useCase.trim()&&!aiLoading?RED:"#ccc",color:"#fff",border:"none",padding:"11px 24px",fontSize:13,fontWeight:700,cursor:useCase.trim()&&!aiLoading?"pointer":"not-allowed",letterSpacing:".04em",textTransform:"uppercase",fontFamily:"inherit",whiteSpace:"nowrap"}}>
-                {aiLoading?"Analysing...":"Ask AI →"}
+                {aiLoading?"Analysing...":"Ask→"}
               </button>
             </div>
             {aiLoading&&<div style={{marginTop:16,padding:"14px",background:"#f0f2f8",textAlign:"center",fontSize:13,color:NAVY,fontWeight:600}}>🔍 Analysing products for "{useCase}"...</div>}
@@ -521,7 +529,7 @@ function CompareModal({list,onClose,onQuote}){
             {aiResult&&!aiLoading&&(
               <div style={{marginTop:20}}>
                 <div style={{background:NAVY,color:"#fff",padding:"16px 20px",marginBottom:12,display:"flex",alignItems:"center",gap:14}}>
-                  <span style={{fontSize:28}}>🏆</span>
+                  <span style={{fontSize:28}}></span>
                   <div>
                     <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.5)",marginBottom:4}}>Best for "{useCase}"</div>
                     <div style={{fontWeight:800,fontSize:18}}>{aiResult.winner}</div>
@@ -550,7 +558,7 @@ function CompareModal({list,onClose,onQuote}){
               const aiV=aiResult&&(aiResult.verdicts||[]).find(v=>v.name===p.name);
               return(
                 <div key={p.id} style={{background:"#fff",border:"2px solid "+(isAiWin?RED:badges.length>0?NAVY:"#e8e8e8"),padding:"20px 18px",textAlign:"center",position:"relative"}}>
-                  {isAiWin&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>🏆 AI PICK</div>}
+                  {isAiWin&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>Recommended</div>}
                   {!isAiWin&&badges.length>0&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>★ {badges[0].label}</div>}
                   <div style={{marginTop:isAiWin||badges.length>0?16:0}}>
                     <div style={{height:80,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10,overflow:"hidden"}}>
@@ -633,7 +641,7 @@ function CompareModal({list,onClose,onQuote}){
                     return(
                       <td key={p.id} style={{padding:"14px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)"}}>
                         {isAiWin
-                          ?<span style={{background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>🏆 AI Pick</span>
+                          ?<span style={{background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>Recommended</span>
                           :badges.length>0
                             ?<span style={{background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>★ {badges[0].label}</span>
                             :<span style={{fontSize:12,color:"rgba(255,255,255,.3)"}}>—</span>
@@ -646,7 +654,7 @@ function CompareModal({list,onClose,onQuote}){
             </table>
           </div>
           <div style={{marginTop:12,fontSize:11,color:"#aaa",textAlign:"center"}}>
-            🟢 Green = best in category &nbsp;·&nbsp; 🟡 Yellow = values differ &nbsp;·&nbsp; 🏆 AI Pick = recommended for your use case
+            🟢 Green = best in category &nbsp;·&nbsp; 🟡 Yellow = values differ &nbsp;·&nbsp;  🔴=recommended for your use case
           </div>
         </div>
       </div>
@@ -814,7 +822,21 @@ export default function App(){
   const q=searchQuery.trim().toLowerCase();
   const displayed=(()=>{
     let base=activeCat==="All"?liveProducts:liveProducts.filter(p=>p.cat===activeCat);
-    if(q)base=liveProducts.filter(p=>p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q));
+    if(q) base=liveProducts.filter(p=>p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q));
+    if(filterTag&&!q){
+      if(filterTag.startsWith("brand:")){
+        const brand=filterTag.replace("brand:","").toLowerCase();
+        base=base.filter(p=>p.name.toLowerCase().includes(brand));
+      } else if(filterTag.startsWith("price:")){
+        const[mn,mx]=filterTag.replace("price:","").split("-").map(Number);
+        base=base.filter(p=>{ const pr=parseFloat((p.price||"").replace(/[₹,]/g,"")); return pr>=mn&&(mx===0||pr<=mx); });
+      } else if(filterTag.startsWith("use:")){
+        const use=filterTag.replace("use:","").toLowerCase();
+        if(use==="gaming") base=base.filter(p=>{ const g=(p.specs?.Graphics||"").toLowerCase(); return g.includes("rtx")||g.includes("gtx")||g.includes("rx ")||p.spec.toLowerCase().includes("gaming"); });
+        else if(use==="student"||use==="home") base=base.filter(p=>{ const pr=parseFloat((p.price||"").replace(/[₹,]/g,"")); return pr<50000; });
+        else if(use==="work") base=base.filter(p=>p.cat==="Laptops"||p.cat==="Desktops");
+      }
+    }
     return base;
   })();
   const cur=HERO_SLIDES[slide];
@@ -1050,7 +1072,43 @@ export default function App(){
               {data.sections.map((sec,i)=>(
                 <div key={i} className="mega-section">
                   <h4>{sec.head}</h4>
-                  {sec.items.map(item=><a key={item} onClick={()=>{setActiveMenu(null);scroll("products-section");}}>{item}</a>)}
+                  {sec.items.map(item=>{
+                    function handleClick(){
+                      setActiveMenu(null);
+                      // Work out which category and filter to apply
+                      const lower=item.toLowerCase();
+                      // Brand filter
+                      const brands=["hp","dell","lenovo","asus","acer","msi","canon","epson","cp plus","hikvision","dahua","logitech"];
+                      const matchedBrand=brands.find(b=>lower.includes(b));
+                      if(matchedBrand){
+                        setActiveCat(cat==="Security & CCTV"?"Security & CCTV":lower.includes("printer")?"Printers":lower.includes("desktop")?"Desktops":"Laptops");
+                        setFilterTag("brand:"+matchedBrand);
+                        scroll("products-section"); return;
+                      }
+                      // Price filter
+                      if(lower.includes("under ₹30")){setActiveCat("Laptops");setFilterTag("price:0-30000");scroll("products-section");return;}
+                      if(lower.includes("30,000") && lower.includes("50,000")){setActiveCat("Laptops");setFilterTag("price:30000-50000");scroll("products-section");return;}
+                      if(lower.includes("50,000") && lower.includes("80,000")){setActiveCat("Laptops");setFilterTag("price:50000-80000");scroll("products-section");return;}
+                      if(lower.includes("above ₹80")||lower.includes("above ₹1")){setActiveCat("Laptops");setFilterTag("price:80000-0");scroll("products-section");return;}
+                      // Use case filter
+                      if(lower.includes("gaming")){setActiveCat("Laptops");setFilterTag("use:gaming");scroll("products-section");return;}
+                      if(lower.includes("student")){setActiveCat("Laptops");setFilterTag("use:student");scroll("products-section");return;}
+                      if(lower.includes("home")){setActiveCat("Laptops");setFilterTag("use:home");scroll("products-section");return;}
+                      if(lower.includes("work")||lower.includes("office")){setActiveCat("All");setFilterTag("use:work");scroll("products-section");return;}
+                      // Category filters
+                      if(lower.includes("tower")||lower.includes("all-in-one")||lower.includes("mini")||lower.includes("workstation")){setActiveCat("Desktops");setFilterTag("");scroll("products-section");return;}
+                      if(lower.includes("inkjet")||lower.includes("laser")||lower.includes("ink tank")){setActiveCat("Printers");setFilterTag("");scroll("products-section");return;}
+                      if(lower.includes("laptop repair")){setModal("contact");return;}
+                      if(lower.includes("repair")||lower.includes("service")||lower.includes("onsite")||lower.includes("carry-in")||lower.includes("os installation")){setModal("contact");return;}
+                      // Security
+                      if(lower.includes("camera")||lower.includes("dvr")||lower.includes("nvr")||lower.includes("cctv")||lower.includes("biometric")||lower.includes("access")){
+                        setActiveCat("Security & CCTV");setFilterTag("");scroll("products-section");return;
+                      }
+                      // Default — just go to that category
+                      setActiveCat(cat); setFilterTag(""); scroll("products-section");
+                    }
+                    return <a key={item} onClick={handleClick}>{item}</a>;
+                  })}
                 </div>
               ))}
               <div style={{marginLeft:"auto",alignSelf:"flex-start"}}>
