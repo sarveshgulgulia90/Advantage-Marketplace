@@ -676,15 +676,13 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
               {p.isNew&&<div style={{position:"absolute",top:16,left:16,background:RED,color:"#fff",fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",padding:"5px 14px",zIndex:1}}>NEW</div>}
               {p.image?<img src={p.image} alt={p.name} style={{width:"100%",height:"100%",objectFit:"contain",padding:32,maxHeight:380}}/>:<span style={{fontSize:160,padding:"40px 32px",display:"block"}}>{p.icon}</span>}
             </div>
-            <div style={{display:"flex",gap:8,marginTop:10}}>
-              {[0,1,2].map(i=>(
-                <div key={i} style={{flex:1,background:"#f5f5f5",border:"1.5px solid "+(i===0?NAVY:"#e8e8e8"),height:72,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",opacity:i===0?1:.5,transition:"all .15s"}}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor=NAVY;e.currentTarget.style.opacity="1";}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor=i===0?NAVY:"#e8e8e8";e.currentTarget.style.opacity=i===0?"1":".5";}}>
-                  {p.image?<img src={p.image} alt="" style={{width:"100%",height:"100%",objectFit:"contain",padding:4}}/>:<span style={{fontSize:28}}>{p.icon}</span>}
+            {p.image&&(
+              <div style={{display:"flex",gap:8,marginTop:10}}>
+                <div style={{flex:1,background:"#f5f5f5",border:"1.5px solid "+NAVY,height:72,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                  <img src={p.image} alt="" style={{width:"100%",height:"100%",objectFit:"contain",padding:4}}/>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
             <div style={{marginTop:16,background:"#f0f2f8",border:"1px solid #dde2f0",padding:"16px 18px"}}>
               <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#aaa",marginBottom:12}}>Store Info</div>
               {[{icon:"📍",text:"Anand Arcade, Opposite Civil Hospital, Silchar – 788001"},{icon:"📞",text:"03842-230952 · 9435070738"},{icon:"🕙",text:"Mon – Sat · 10:00 AM – 8:00 PM"},{icon:"✅",text:"In-store demo available on request"}].map((item,i)=>(
