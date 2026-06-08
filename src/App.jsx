@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import Admin from "./Admin";
-
+import PCBuilder from "./PCBuilder";
 const NAVY = "#0B1F5E";
 const RED  = "#CC1A1A";
 const API  = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
