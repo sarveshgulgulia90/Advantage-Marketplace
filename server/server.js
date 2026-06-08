@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/products",  require("./routes/products"));
 app.use("/api/inquiries", require("./routes/inquiries"));
 app.use("/api/ai",        require("./routes/ai"));
-
+app.use('/api/components', require('./routes/components'));
 // Auth and orders need extra packages — load only if available
 try { app.use("/api/auth",   require("./routes/auth"));   console.log("✓ Auth routes loaded"); }
 catch(e){ console.warn("⚠ Auth routes skipped:", e.message); }
