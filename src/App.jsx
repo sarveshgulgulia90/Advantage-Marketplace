@@ -22,11 +22,11 @@ function useProducts(defaults) {
 }
 
 const PRODUCTS = [
-  { id:1,  name:"HP Pavilion 15",           cat:"Laptops",    icon:"💻", isNew:false, price:"₹52,990",
+  { id:1,  name:"HP Pavilion 15",           cat:"Laptops",    icon:"💻", isNew:false, price:"₹52,990", inStock:true,
     spec:"Intel i5-1235U · 8GB RAM · 512GB SSD · Win 11", image:"",
     specs:{"Processor":"Intel Core i5-1235U (12th Gen, 10 Cores)","RAM":"8GB DDR4 (Expandable to 16GB)","Storage":"512GB NVMe SSD","Display":"15.6\" FHD IPS Anti-Glare (1920×1080)","Graphics":"Intel Iris Xe Graphics","Operating System":"Windows 11 Home","Battery":"41Wh, Up to 7 Hours","Ports":"2× USB-A, 1× USB-C, HDMI, SD Card, 3.5mm","Connectivity":"Wi-Fi 6, Bluetooth 5.0","Weight":"1.75 kg","Warranty":"1 Year On-site"},
     highlights:["12th Gen Intel Processor","Fast NVMe SSD","FHD IPS Display","Windows 11 Pre-installed"] },
-  { id:2,  name:"Lenovo IdeaPad Slim 3",    cat:"Laptops",    icon:"💻", isNew:true,  price:"₹46,500",
+  { id:2,  name:"Lenovo IdeaPad Slim 3",    cat:"Laptops",    icon:"💻", isNew:true,  price:"₹46,500", inStock:true,
     spec:"AMD Ryzen 5 · 16GB RAM · 512GB SSD · Win 11", image:"",
     specs:{"Processor":"AMD Ryzen 5 7520U (4 Cores, up to 4.3GHz)","RAM":"16GB LPDDR5 (Soldered)","Storage":"512GB NVMe SSD","Display":"15.6\" FHD IPS (1920×1080, 300 Nits)","Graphics":"AMD Radeon 610M Integrated","Operating System":"Windows 11 Home","Battery":"47Wh, Up to 9 Hours","Ports":"2× USB-A 3.2, 1× USB-C, HDMI 1.4, 3.5mm","Connectivity":"Wi-Fi 6, Bluetooth 5.1","Weight":"1.62 kg","Warranty":"1 Year On-site"},
     highlights:["AMD Ryzen 5 Processor","16GB RAM — Best Value","9 Hr Battery Life","Slim & Lightweight"] },
@@ -191,7 +191,7 @@ function QuoteModal({product,onClose}){
 }
 
 // ─── PRODUCT CARD ──────────────────────────────────────────────────
-function ProductCard({p,onQuote,onView,onCompare,compareList=[],delay}){
+function ProductCard({p,onQuote,onView,onCompare,onAddToCart,compareList=[],delay}){
   const[hov,setHov]=useState(false);
   const inCmp=compareList.some(c=>c.id===p.id);
   return(
@@ -214,6 +214,11 @@ function ProductCard({p,onQuote,onView,onCompare,compareList=[],delay}){
           <div style={{fontSize:12,color:"#888",lineHeight:1.55,marginBottom:12,minHeight:36}}>{p.spec}</div>
           <div style={{fontWeight:800,fontSize:20,color:NAVY,marginBottom:14}}>{p.price}</div>
           <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>onAddToCart(p)}
+              style={{flex:1,background:"#16a34a",color:"#fff",border:"none",padding:"9px 0",fontSize:12,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"background .15s"}}
+              onMouseEnter={e=>e.target.style.background="#0d9438"} onMouseLeave={e=>e.target.style.background="#16a34a"}>
+              Add to Cart
+            </button>
             <button onClick={()=>onView(p)}
               style={{flex:1,background:"#fff",color:NAVY,border:"1.5px solid "+NAVY,padding:"9px 0",fontSize:12,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
               onMouseEnter={e=>{e.target.style.background=NAVY;e.target.style.color="#fff";}} onMouseLeave={e=>{e.target.style.background="#fff";e.target.style.color=NAVY;}}>
@@ -796,9 +801,27 @@ export default function App(){
   const[selectedProduct,setSelectedProduct]=useState(null);
   const[searchOpen,setSearchOpen]=useState(false);
   const[searchQuery,setSearchQuery]=useState("");
+  const[cart, setCart] = useState(() => {
+    try {
+      const saved = localStorage.getItem('advantage_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const[cartOpen,setCartOpen]=useState(false);
   const menuRef=useRef(null);
   const searchRef=useRef(null);
   const liveProducts=useProducts(PRODUCTS);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('advantage_cart', JSON.stringify(cart));
+    } catch {
+      // Ignore save errors
+    }
+  }, [cart]);
 
   useEffect(()=>{const t=setInterval(()=>setSlide(s=>(s+1)%HERO_SLIDES.length),5000);return()=>clearInterval(t);},[]);
   useEffect(()=>{const fn=e=>{if(menuRef.current&&!menuRef.current.contains(e.target))setActiveMenu(null);};document.addEventListener("mousedown",fn);return()=>document.removeEventListener("mousedown",fn);},[]);
@@ -833,16 +856,29 @@ export default function App(){
   const cur=HERO_SLIDES[slide];
   function scroll(id){document.getElementById(id)?.scrollIntoView({behavior:"smooth"});}
   function handleCompare(p){setCompareList(l=>l.some(c=>c.id===p.id)?l.filter(c=>c.id!==p.id):[...l,p]);}
+function handleAddToCart(product){
+  setCart(prevCart=>{
+    // Check if product already in cart
+    const existingItem = prevCart.find(item=>item.id===product.id);
+    if(existingItem){
+      // Increase quantity
+      return prevCart.map(item=>item.id===product.id
+        ?{...item,quantity:item.quantity+1}
+        :item);
+    }else{
+      // Add new item with quantity 1
+      return [...prevCart,{...product,quantity:1}];
+    }
+  });
+}
 
   // ── Admin view ──
   if(adminOpen)return(
     <Admin defaultProducts={PRODUCTS} onExit={()=>{setAdminOpen(false);history.pushState("","",window.location.pathname);}}/>
   );
 
-  // ── PC Builder view ──
-  if(pcBuilderOpen)return(
-    <PCBuilder onClose={()=>setPcBuilderOpen(false)} />
-  );
+  // ── PC Builder view (render as overlay like QuoteModal) ──
+  {pcBuilderOpen&&<PCBuilder onClose={()=>setPcBuilderOpen(false)} />}
 
   // ── Product page view ──
   if(selectedProduct)return(
@@ -1017,6 +1053,26 @@ export default function App(){
         @media(max-width:1100px){.cat-grid{grid-template-columns:repeat(4,1fr);}.product-grid{grid-template-columns:repeat(3,1fr);}.brands-row{grid-template-columns:repeat(6,1fr);}}
         @media(max-width:768px){.util-bar{display:none;}.nav-cats{display:none;}.nav-cta{display:none;}.hamburger{display:flex!important;}.hero-icon{display:none;}.hero-title{font-size:40px;}.product-grid{grid-template-columns:repeat(2,1fr);}.srv-grid{grid-template-columns:repeat(2,1fr);}.about-grid{grid-template-columns:1fr;}.about-left{border-right:none;border-bottom:1px solid #dde2f0;}.cat-grid{grid-template-columns:repeat(4,1fr);}.footer-main{grid-template-columns:1fr 1fr;gap:32px;}.info-bar-inner{grid-template-columns:1fr 1fr;}.brands-row{grid-template-columns:repeat(4,1fr);}}
         @media(max-width:480px){.product-grid{grid-template-columns:1fr;}.cat-grid{grid-template-columns:repeat(2,1fr);}.srv-grid{grid-template-columns:1fr;}.footer-main{grid-template-columns:1fr;}.info-bar-inner{grid-template-columns:1fr;}.brands-row{grid-template-columns:repeat(3,1fr);}.hero-title{font-size:32px;}.section{padding:48px 20px;}}
+        /* Cart Drawer Styles */
+        .cart-drawer{
+          position:fixed;
+          top:0;
+          right:0;
+          height:100vh;
+          width:320px;
+          max-width:80%;
+          background:#fff;
+          z-index:1100;
+          transform:translateX(100%);
+          transition:transform .3s ease;
+          box-shadow:-2px 0 12px rgba(0,0,0,.1);
+        }
+        .cart-drawer.open{
+          transform:translateX(0);
+        }
+        .cart-icon-btn{
+          position:relative;
+        }
       `}</style>
 
       {/* UTIL BAR */}
@@ -1056,6 +1112,9 @@ export default function App(){
               <button className="nav-icon-btn" onClick={()=>{if(searchOpen&&!searchQuery)setSearchOpen(false);else{setSearchOpen(true);setActiveMenu(null);}}} style={{color:searchOpen?NAVY:"#333"}}>🔍</button>
             </div>
             <button className="nav-icon-btn" onClick={()=>window.open("https://wa.me/919435070738","_blank")}>💬</button>
+            <button className="nav-icon-btn cart-icon-btn" onClick={()=>setCartOpen(true)}>
+              🛒{cart.reduce((total,item)=>total+item.quantity,0)>0&&<span style={{position:"absolute",top:-8,right:-8,background:RED,color:"#fff",borderRadius:"50%",padding:"2px 6px",fontSize:10}}>{cart.reduce((total,item)=>total+item.quantity,0)}</span>}
+            </button>
             <button className="nav-cta" onClick={()=>setPcBuilderOpen(true)}>🔧 Build PC</button>
             <button className="nav-cta" onClick={()=>{setModal("contact");setActiveMenu(null);}}>Get Quote</button>
             <button className={"hamburger"+(mobileMenuOpen?" open":"")} onClick={()=>setMobileMenuOpen(o=>!o)} aria-label="Menu">
@@ -1159,6 +1218,102 @@ export default function App(){
       </div>
       {mobileMenuOpen&&<div onClick={()=>setMobileMenuOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1099}}/>}
 
+      {/* CART DRAWER */}
+      <div className={"cart-drawer"+(cartOpen?" open":"")}>
+        <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#fff",borderLeft:`1.5px solid ${NAVY}`}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 24px",borderBottom:"1px solid #e8e8e8"}}>
+            <div style={{fontSize:18,fontWeight:700,color:NAVY}}>Shopping Cart</div>
+            <button onClick={()=>setCartOpen(false)} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#333",lineHeight:1,padding:4}}>×</button>
+          </div>
+          {cart.length===0?(
+            <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"#888"}}>
+              Your cart is empty
+            </div>
+          ):(
+            <>
+              <div style={{flex:1,overflowY:"auto",padding:"16px 24px"}}>
+                {cart.map((item,index)=>(
+                  <div key={item.id} style={{display:"flex",alignItems:"center",padding:"12px 0",borderBottom:"1px solid #f0f0f0"}}>
+                    <div style={{width:"80px",flexShrink:0}}>
+                      {item.image?<img src={item.image} alt={item.name} style={{width:"60px",height:"60px",objectFit:"contain"}}/>:<span style={{fontSize:30}}>{item.icon}</span>}
+                    </div>
+                    <div style={{flex:1,margin:"0 12px"}}>
+                      <div style={{fontWeight:600,color:NAVY,marginBottom:"4px"}}>{item.name}</div>
+                      <div style={{color:"#888",fontSize:13}}>{item.spec}</div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                      <button onClick={() => {
+                        if (item.quantity > 1) {
+                          setCart(cart.map(c => c.id === item.id ? {...c, quantity: c.quantity - 1} : c));
+                        } else {
+                          setCart(cart.filter(c => c.id !== item.id));
+                        }
+                      }}
+                        style={{background:"#f0f2f8",border:"none",width:"28px",height:"28px",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}
+                      >
+                        −
+                      </button>
+                      <div style={{width:"24px",textAlign:"center",fontWeight:600}}>{item.quantity}</div>
+                      <button onClick={()=>setCart(cart.map(c=>c.id===item.id?{...c,quantity:c.quantity+1}:c))}
+                        style={{background:"#f0f2f8",border:"none",width:"28px",height:"28px",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}
+                      >
+                        +
+                      </button>
+                      <button onClick={()=>setCart(cart.filter(c=>c.id!==item.id))}
+                        style={{background:"none",border:"none",padding:"4px 8px",fontSize:12,color:RED,cursor:"pointer"}}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <div style={{width:"80px",flexShrink:0,textAlign:"right",fontWeight:600,color:NAVY}}>
+                      {parseFloat((item.price||"").replace(/[₹,]/g,""))*item.quantity}₹
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{borderTop:"1px solid #e8e8e8",padding:"16px 24px",display:"flex",flexDirection:"column",gap:"12px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontWeight:600,color:NAVY}}>
+                  <span>Subtotal:</span>
+                  <span id="cart-subtotal">
+                    {cart.reduce((total,item)=>total+(parseFloat((item.price||"").replace(/[₹,]/g,""))*item.quantity),0)}₹
+                  </span>
+                </div>
+                <button onClick={()=>{
+                  // Create enquiry message for all cart items
+                  let message = "Hi, I'm interested in purchasing the following items:\n\n";
+                  cart.forEach((item,index)=>{
+                    message += `${index+1}. ${item.name} - ${item.quantity} x ${item.price}\n`;
+                  });
+                  message += `\nTotal: ${cart.reduce((total,item)=>total+(parseFloat((item.price||"").replace(/[₹,]/g,""))*item.quantity),0)}₹\n\nPlease share availability and best price.`;
+                  setModal({name:"Enquiry for All Items",price:"",msg:message});
+                  setCartOpen(false);
+                }}
+                style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"12px 0",fontSize:13,fontWeight:600,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",transition:"background .15s"}}
+                onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}
+                >
+                  Enquire for All
+                </button>
+                <button onClick={()=>{
+                  // Create WhatsApp message for all cart items
+                  let message = "Hi, I want to order the following items:\n\n";
+                  cart.forEach((item,index)=>{
+                    message += `${index+1}. ${item.name} - ${item.quantity} x ${item.price}\n`;
+                  });
+                  message += `\nTotal: ${cart.reduce((total,item)=>total+(parseFloat((item.price||"").replace(/[₹,]/g,""))*item.quantity),0)}₹\n\nPlease confirm availability.`;
+                  window.open(`https://wa.me/919435070738?text=${encodeURIComponent(message)}`,"_blank");
+                  setCartOpen(false);
+                }}
+                style={{width:"100%",background:"#25D366",color:"#fff",border:"none",padding:"12px 0",fontSize:13,fontWeight:600,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",transition:"background .15s"}}
+                >
+                  WhatsApp Order
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      {cartOpen&&<div onClick={()=>setCartOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1099}}/>}
+
       {/* HERO */}
       <section className="hero" style={{background:cur.bg}}>
         <div className="hero-inner">
@@ -1235,7 +1390,7 @@ export default function App(){
             </div>
           ):(
             <div className="product-grid">
-              {displayed.map((p,i)=><ProductCard key={p.id} p={p} onQuote={setModal} onView={setSelectedProduct} onCompare={handleCompare} compareList={compareList} delay={i*.04}/>)}
+              {displayed.map((p,i)=><ProductCard key={p.id} p={p} onQuote={setModal} onView={setSelectedProduct} onCompare={handleCompare} onAddToCart={handleAddToCart} compareList={compareList} delay={i*.04}/>)}
             </div>
           )}
         </div>
