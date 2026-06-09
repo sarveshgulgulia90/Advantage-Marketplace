@@ -125,9 +125,17 @@ export default function Admin({ defaultProducts, onExit }){
       const res = await fetch(API+"/inquiries",{
         headers:{"x-admin-token": BACKEND_TOKEN}
       });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to load enquiries');
+      }
       const data = await res.json();
       setInquiries(Array.isArray(data)?data:[]);
-    } catch(e){ setInquiries([]); }
+    } catch(e){
+      setInquiries([]);
+      showToast(e.message || "Failed to load enquiries. Please check your connection and try again.", "error");
+      console.error("Load enquiries error:", e);
+    }
     setInqLoading(false);
   }
 

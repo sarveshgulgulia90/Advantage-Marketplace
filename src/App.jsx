@@ -144,9 +144,30 @@ function QuoteModal({product,onClose}){
   async function submit(){
     if(!form.name||!form.phone)return;
     setLoading(true);
-    try{ await fetch(API+"/inquiries",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:form.name,phone:form.phone,email:form.email,product:!isContact&&product?product.name:"General",message:form.msg})}); }
-    catch(e){}
-    setLoading(false); setSent(true);
+    try{
+      const res = await fetch(API+"/inquiries",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          name:form.name,
+          phone:form.phone,
+          email:form.email,
+          product:!isContact&&product?product.name:"General",
+          message:form.msg
+        })
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to submit enquiry');
+      }
+      setLoading(false);
+      setSent(true);
+    }
+    catch(e){
+      setLoading(false);
+      showToast(e.message || "Failed to submit enquiry. Please check your connection and try again.", "error");
+      console.error("Enquiry submission error:", e);
+    }
   }
   const inp={border:"1px solid #ddd",padding:"11px 13px",fontSize:14,fontFamily:"inherit",outline:"none",width:"100%",transition:"border-color .15s",color:"#111"};
   return(
@@ -702,6 +723,19 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
               {p.spec.split("·").map((s,i)=><span key={i} style={{background:"#f0f2f8",border:"1px solid #dde2f0",padding:"5px 12px",fontSize:12,fontWeight:500,color:"#444"}}>{s.trim()}</span>)}
             </div>
             <div style={{fontSize:42,fontWeight:800,color:NAVY,letterSpacing:"-.02em",lineHeight:1,marginBottom:6}}>{p.price}</div>
+            <div style={{background:"#e0f2fe",borderRadius:8,padding:"16px",marginBottom:24}}>
+              <div style={{fontSize:14,fontWeight:600,color:NAVY,marginBottom:12}}>EMI Options</div>
+              <div style={{fontSize:13,color:"#334155"}}>
+                {[6,12,24].map((tenure) => (
+                  <div key={tenure} style={{marginBottom:4}}>
+                    {tenure} months: ₹{Math.round(parseFloat((p.price||"").replace(/[₹,]/g,"")) / tenure)}/month
+                  </div>
+                ))}
+              </div>
+              <div style={{fontSize:12,color:"#64748b",fontStyle:italic,marginTop:8}}>
+                0% EMI available on select cards — ask in store
+              </div>
+            </div>
             <div style={{fontSize:13,color:"#888",marginBottom:28}}>💬 Walk in or call us to check current availability and get the best price.</div>
             <div style={{display:"flex",gap:12,marginBottom:32,flexWrap:"wrap"}}>
               <button onClick={()=>onQuote(p)}
@@ -799,6 +833,7 @@ export default function App(){
   const[activeCat,setActiveCat]=useState("All");
   const[modal,setModal]=useState(null);
   const[selectedProduct,setSelectedProduct]=useState(null);
+  const[repairFormOpen,setRepairFormOpen]=useState(false);
   const[searchOpen,setSearchOpen]=useState(false);
   const[searchQuery,setSearchQuery]=useState("");
   const[cart, setCart] = useState(() => {
@@ -810,6 +845,11 @@ export default function App(){
     }
   });
   const[cartOpen,setCartOpen]=useState(false);
+  const [toast, setToast] = useState(null);
+  function showToast(msg, type="success"){
+    setToast({msg,type});
+    setTimeout(()=>setToast(null), 2800);
+  }
   const menuRef=useRef(null);
   const searchRef=useRef(null);
   const liveProducts=useProducts(PRODUCTS);
@@ -1522,6 +1562,11 @@ function handleAddToCart(product){
       {/* MODALS */}
       {compareOpen&&<CompareModal list={compareList} onClose={()=>setCompareOpen(false)} onQuote={setModal}/>}
       {modal&&<QuoteModal product={modal} onClose={()=>setModal(null)}/>}
+      {toast&&(
+        <div style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:toast.type==="error"?RED:NAVY,color:"#fff",padding:"12px 24px",fontSize:14,fontWeight:600,zIndex:3000,boxShadow:"0 4px 20px rgba(0,0,0,.2)",whiteSpace: "nowrap"}}>
+          {toast.type==="error"?"⚠️":"✓"} {toast.msg}
+        </div>
+      )}
     </>
   );
 }
