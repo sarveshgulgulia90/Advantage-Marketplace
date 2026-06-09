@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const NAVY = "#0B1F5E";
 const RED  = "#CC1A1A";
@@ -109,8 +109,8 @@ function checkCompatibility(selected){
 
   if(cpu&&mb){
     if(cpu.socket!==mb.socket) issues.push("❌ CPU socket ("+cpu.socket+") doesn't match Motherboard socket ("+mb.socket+")");
-    if(cpu.ram&&mb.ram&&!cpu.ram.includes(mb.ram.replace("DDR","DDR"))) {
-      // check DDR type compatibility
+    if(cpu.ram&&mb.ram&&!cpu.ram.includes(mb.ram)) {
+      issues.push("❌ CPU does not support "+mb.ram+" RAM");
     }
   }
   if(mb&&ram){
@@ -144,6 +144,37 @@ export default function PCBuilder({ onClose, onEnquire }){
   const[priceMessage,setPriceMessage]=useState("");
   const[enquireSent,setEnquireSent]=useState(false);
   const[form,setForm]=useState({name:"",phone:""});
+  const[componentPrices, setComponentPrices] = useState({}); // Fetched prices from API
+  const[apiLoading, setApiLoading] = useState(false); // Loading state for API fetch
+  const[lastUpdated, setLastUpdated] = useState(null); // Timestamp of last update
+
+  // Fetch component prices on mount
+  useEffect(() => {
+    fetchComponentPrices();
+  }, []);
+
+  // Merge fetched prices with hardcoded defaults (fetched price overrides default)
+  const mergedComponents = {};
+  Object.keys(COMPONENTS).forEach(category => {
+    mergedComponents[category] = {
+      ...COMPONENTS[category],
+      options: COMPONENTS[category].options.map(option => {
+        const priceKey = `${category}:${option.id}`;
+        const fetchedPrice = componentPrices[priceKey];
+
+        if (fetchedPrice) {
+          // Use fetched price data, but keep other hardcoded properties
+          return {
+            ...option,
+            price: fetchedPrice.price,
+            inStock: fetchedPrice.inStock,
+            note: fetchedPrice.note || ""
+          };
+        }
+        return option; // Use hardcoded default if no fetched data
+      })
+    };
+  });
 
   const total=Object.values(selected).reduce((s,c)=>s+(c?.price||0),0);
   const issues=checkCompatibility(selected);
@@ -152,7 +183,7 @@ export default function PCBuilder({ onClose, onEnquire }){
   function selectComponent(cat,opt){
     setSelected(s=>({...s,[cat]:opt}));
     // Auto-advance to next section
-    const keys=Object.keys(COMPONENTS);
+    const keys=Object.keys(mergedComponents);
     const idx=keys.indexOf(cat);
     if(idx<keys.length-1)setActiveSection(keys[idx+1]);
   }
@@ -160,11 +191,44 @@ export default function PCBuilder({ onClose, onEnquire }){
   function applyPreset(preset){
     const newSel={};
     Object.entries(preset.picks).forEach(([cat,id])=>{
-      const opt=COMPONENTS[cat]?.options.find(o=>o.id===id);
+      const opt=mergedComponents[cat]?.options.find(o=>o.id===id);
       if(opt)newSel[cat]=opt;
     });
     setSelected(newSel);
     setActiveSection("CPU");
+  }
+
+  // Fetch component prices from API
+  async function fetchComponentPrices(){
+    setApiLoading(true);
+    try{
+      const res = await fetch(API+"/components");
+      if(res.ok){
+        const data = await res.json();
+        // Convert grouped data to flat map for easy lookup
+        const pricesMap = {};
+        for (const [category, components] of Object.entries(data)) {
+          for (const component of components) {
+            // Create a key like "category:componentId" for lookup
+            const key = `${category}:${component.componentId}`;
+            pricesMap[key] = {
+              price: component.price,
+              inStock: component.inStock,
+              note: component.note || "",
+              updatedAt: component.updatedAt // This will be used for "last updated" display
+            };
+          }
+        }
+        setComponentPrices(pricesMap);
+        setLastUpdated(new Date()); // Set last updated to now
+      } else {
+        console.error("Failed to fetch component prices");
+      }
+    } catch(e){
+      console.error("Error fetching component prices:", e);
+    } finally {
+      setApiLoading(false);
+    }
   }
 
   async function fetchLivePrices(){
@@ -211,6 +275,12 @@ export default function PCBuilder({ onClose, onEnquire }){
             <div style={{textAlign:"right"}}>
               <div style={{fontSize:12,color:"rgba(255,255,255,.5)"}}>Estimated Total</div>
               <div style={{fontWeight:800,fontSize:24,color:"#fff"}}>₹{total.toLocaleString()}</div>
+              {/* Show loading indicator when fetching component prices */}
+              {apiLoading && (
+                <div style={{fontSize:11,color:"#666",fontStyle:"italic",marginTop:4}}>
+                  Loading component prices...
+                </div>
+              )}
             </div>
             <button onClick={onClose} style={{background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",color:"#fff",padding:"8px 16px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✕ Close</button>
           </div>
@@ -238,7 +308,7 @@ export default function PCBuilder({ onClose, onEnquire }){
 
             {/* Selected components list */}
             <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.4)",marginBottom:12}}>Selected</div>
-            {Object.entries(COMPONENTS).map(([cat,def])=>(
+            {Object.entries(mergedComponents).map(([cat,def])=>(
               <div key={cat} onClick={()=>setActiveSection(cat)}
                 style={{padding:"8px 10px",marginBottom:4,background:activeSection===cat?"rgba(204,26,26,.25)":"rgba(255,255,255,.04)",border:"1px solid "+(activeSection===cat?RED:"rgba(255,255,255,.08)"),cursor:"pointer",transition:"all .15s"}}>
                 <div style={{fontSize:10,color:"rgba(255,255,255,.4)",fontWeight:600,letterSpacing:".06em",textTransform:"uppercase"}}>{def.icon} {def.label}{!def.required&&" (Optional)"}</div>
@@ -271,7 +341,7 @@ export default function PCBuilder({ onClose, onEnquire }){
 
             {/* Tab navigation */}
             <div style={{display:"flex",gap:0,marginBottom:28,overflowX:"auto",borderBottom:"2px solid #dde2f0"}}>
-              {Object.entries(COMPONENTS).map(([cat,def])=>(
+              {Object.entries(mergedComponents).map(([cat,def])=>(
                 <button key={cat} onClick={()=>setActiveSection(cat)}
                   style={{padding:"10px 16px",fontSize:12,fontWeight:600,border:"none",background:"none",cursor:"pointer",borderBottom:"2px solid "+(activeSection===cat?RED:"transparent"),marginBottom:-2,color:activeSection===cat?RED:selected[cat]?"#16a34a":"#888",whiteSpace:"nowrap",fontFamily:"inherit",transition:"all .15s"}}>
                   {def.icon} {cat.replace("Motherboard","MoBo").replace("Cabinet","Case")}
@@ -281,7 +351,7 @@ export default function PCBuilder({ onClose, onEnquire }){
             </div>
 
             {/* Component options */}
-            {Object.entries(COMPONENTS).map(([cat,def])=>(
+            {Object.entries(mergedComponents).map(([cat,def])=>(
               activeSection===cat&&(
                 <div key={cat}>
                   <div style={{marginBottom:20}}>
@@ -299,6 +369,25 @@ export default function PCBuilder({ onClose, onEnquire }){
                       if(cat==="Motherboard"&&cpu&&opt.socket!==cpu.socket) warning="Socket mismatch with "+cpu.name;
                       if(cat==="RAM"&&mb&&opt.type!==mb.ram) warning="Not compatible with selected motherboard";
                       if(cat==="Motherboard"&&cpu&&opt.ram&&!opt.ram.includes(cpu.ram?.split("/")[0])) warning="Check RAM compatibility";
+
+                      // Get fetched price data if available
+                      const priceKey = `${category}:${opt.id}`;
+                      const fetchedPriceData = componentPrices[priceKey];
+                      const displayPrice = fetchedPriceData ? fetchedPriceData.price : opt.price;
+                      const displayInStock = fetchedPriceData !== undefined ? fetchedPriceData.inStock : opt.inStock || true;
+                      const updatedAt = fetchedPriceData ? fetchedPriceData.updatedAt : null;
+
+                      // Calculate days ago for display
+                      let daysAgoText = "";
+                      if (updatedAt && lastUpdated) {
+                        const diffTime = Math.abs(new Date() - new Date(updatedAt));
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        daysAgoText = diffDays === 0 ? "Today" : `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+                      } else if (lastUpdated) {
+                        const diffTime = Math.abs(new Date() - lastUpdated);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        daysAgoText = diffDays === 0 ? "Today" : `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+                      }
 
                       return(
                         <div key={opt.id} onClick={()=>!warning&&selectComponent(cat,opt)}
@@ -323,8 +412,14 @@ export default function PCBuilder({ onClose, onEnquire }){
 
                           {warning&&<div style={{fontSize:10,color:"#d97706",fontWeight:600,marginBottom:6}}>⚠️ {warning}</div>}
 
-                          <div style={{fontWeight:800,fontSize:18,color:opt.price===0?"#16a34a":NAVY}}>
-                            {opt.price===0?"Included / Free":"₹"+opt.price.toLocaleString()}
+                          <div style={{fontWeight:800,fontSize:18,color:displayPrice===0?"#16a34a":NAVY}}>
+                            {displayPrice===0?"Included / Free":"₹"+displayPrice.toLocaleString()}
+                            {/* Show last updated timestamp if available */}
+                            {daysAgoText && (
+                              <div style={{fontSize:10,color:"#666",marginTop:2}}>
+                                Last updated: {daysAgoText}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -332,8 +427,8 @@ export default function PCBuilder({ onClose, onEnquire }){
                   </div>
 
                   {/* Next button */}
-                  {Object.keys(COMPONENTS).indexOf(cat)<Object.keys(COMPONENTS).length-1&&(
-                    <button onClick={()=>{const keys=Object.keys(COMPONENTS);setActiveSection(keys[keys.indexOf(cat)+1]);}}
+                  {Object.keys(mergedComponents).indexOf(cat)<Object.keys(mergedComponents).length-1&&(
+                    <button onClick={()=>{const keys=Object.keys(mergedComponents);setActiveSection(keys[keys.indexOf(cat)+1]);}}
                       style={{marginTop:20,background:NAVY,color:"#fff",border:"none",padding:"12px 28px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"background .15s"}}
                       onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
                       Next →

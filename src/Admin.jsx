@@ -111,6 +111,10 @@ export default function Admin({ defaultProducts, onExit }){
   const[filterCat,setFilterCat] = useState("All");
   const[inquiries,setInquiries] = useState([]);
   const[inqLoading,setInqLoading] = useState(false);
+  /* PC Prices tab state */
+  const[componentPrices, setComponentPrices] = useState({}); // category -> array of components
+  const[componentCategories, setComponentCategories] = useState([]); // array of category names
+  const[pcPricesLoading, setPcPricesLoading] = useState(false); // loading state for fetching prices
 
   const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
   const BACKEND_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || "advantage_admin_secret_2025";
@@ -147,6 +151,123 @@ export default function Admin({ defaultProducts, onExit }){
   }
 
   function persist(updated){ setProducts(updated); saveProducts(updated); }
+
+  /* ── PC Prices tab functions ── */
+  useEffect(() => {
+    // Fetch component prices when the PC Prices tab is opened
+    if (tab === "pcPrices") {
+      fetchComponentPrices();
+    }
+  }, [tab]);
+
+  // Fetch all component prices from the API
+  async function fetchComponentPrices(){
+    setPcPricesLoading(true);
+    try{
+      const res = await fetch(API+"/components",{
+        headers:{"x-admin-token": BACKEND_TOKEN}
+      });
+      if(res.ok){
+        const data = await res.json();
+        // data is already grouped by category from our API
+        setComponentPrices(data);
+        setComponentCategories(Object.keys(data));
+      } else {
+        console.error("Failed to fetch component prices");
+        setComponentPrices({});
+        setComponentCategories([]);
+      }
+    } catch(e){
+      console.error("Error fetching component prices:", e);
+      setComponentPrices({});
+      setComponentCategories([]);
+    } finally {
+      setPcPricesLoading(false);
+    }
+  }
+
+  // Handle price input change
+  function handlePriceChange(category, componentId, value){
+    setComponentPrices(prev => ({
+      ...prev,
+      [category]: prev[category]?.map(comp =>
+        comp.componentId === componentId
+          ? {...comp, price: value === "" ? 0 : parseFloat(value) || 0}
+          : comp
+      ) || []
+    }));
+  }
+
+  // Handle stock checkbox change
+  function handleStockChange(category, componentId, checked){
+    setComponentPrices(prev => ({
+      ...prev,
+      [category]: prev[category]?.map(comp =>
+        comp.componentId === componentId
+          ? {...comp, inStock: checked}
+          : comp
+      ) || []
+    }));
+  }
+
+  // Save a single component price
+  async function saveComponentPrice(category, componentId){
+    // Find the component in our state
+    const componentList = componentPrices[category];
+    if (!componentList) return;
+
+    const component = componentList.find(comp => comp.componentId === componentId);
+    if (!component) return;
+
+    try{
+      const res = await fetch(`${API}/components/${category}/${componentId}`,{
+        method:"PUT",
+        headers:{
+          "Content-Type":"application/json",
+          "x-admin-token": BACKEND_TOKEN
+        },
+        body: JSON.stringify({
+          price: component.price,
+          inStock: component.inStock,
+          note: component.note || ""
+        })
+      });
+
+      if(res.ok){
+        showToast("Component price updated successfully");
+        // Refresh the data to get the updated timestamp
+        fetchComponentPrices();
+      } else {
+        const errorData = await res.json();
+        showToast(`Error: ${errorData.message || "Failed to update component price"}`, "error");
+      }
+    } catch(e){
+      console.error("Error saving component price:", e);
+      showToast("Failed to update component price", "error");
+    }
+  }
+
+  // Seed default prices from PCBuilder data
+  async function seedDefaultPrices(){
+    try{
+      const res = await fetch(`${API}/components/seed`,{
+        method:"POST",
+        headers:{"x-admin-token": BACKEND_TOKEN}
+      });
+      if(res.ok){
+        const data = await res.json();
+        showToast(data.message || "Default prices seeded successfully");
+        // Refresh the data
+        fetchComponentPrices();
+      } else {
+        const errorData = await res.json();
+        showToast(`Error: ${errorData.message || "Failed to seed default prices"}`, "error");
+      }
+    } catch(e){
+      console.error("Error seeding default prices:", e);
+      showToast("Failed to seed default prices", "error");
+    }
+  }
 
   /* ── login ── */
   function login(){
@@ -354,6 +475,9 @@ export default function Admin({ defaultProducts, onExit }){
           </button>
           <button className={`tab-btn ${tab==="add"?"active":""}`} onClick={()=>{setTab("add");if(!editId){setForm(EMPTY_FORM);}}}>
             {editId!==null?"✏️ Edit Product":"➕ Add Product"}
+          </button>
+          <button className={`tab-btn ${tab==="pcPrices"?"active":""}`} onClick={()=>{setTab("pcPrices");}}>
+            🔧 PC Prices
           </button>
           <button className={`tab-btn ${tab==="inquiries"?"active":""}`} onClick={()=>{setTab("inquiries");loadInquiries();}}>
             📩 Enquiries {inquiries.filter(i=>!i.read).length>0?"("+inquiries.filter(i=>!i.read).length+" new)":""}
@@ -646,6 +770,93 @@ export default function Admin({ defaultProducts, onExit }){
                     </a>
                     {!inq.read&&<button onClick={()=>markRead(inq.id)} style={{background:"#eef2ff",color:NAVY,border:"none",padding:"7px 12px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Mark Read</button>}
                     <button onClick={()=>deleteInquiry(inq.id)} style={{background:"#fff0f0",color:RED,border:"none",padding:"7px 12px",fontSize:12,fontWeight:600,cursor:"pointer"}}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ════ PC PRICES TAB ════ */}
+        {tab==="pcPrices"&&(
+          <div>
+            {/* Loading state for fetching component prices */}
+            {pcPricesLoading && (
+              <div style={{textAlign:"center",padding:40,color:"#888",fontSize:14}}>
+                Loading PC component prices...
+              </div>
+            )}
+
+            {/* Button to seed default prices */}
+            <div style={{marginBottom:20}}>
+              <button onClick={seedDefaultPrices}
+                style={{background:NAVY,color:"#fff",border:"none",padding:"10px 20px",fontSize:13,fontWeight:600,cursor:"pointer",transition:"background .15s"}}
+                onMouseEnter={e=>e.target.style.background=RED}
+                onMouseLeave={e=>e.target.style.background=NAVY}>
+                Seed Defaults
+              </button>
+            </div>
+
+            {/* Component prices list */}
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              {Object.keys(componentCategories).map((category, index) => (
+                <div key={index} style={{border:"1.5px solid #e8e8e8",borderRadius:4,overflow:"hidden"}}>
+                  <div style={{background:"#f0f2f8",padding:"12px 16px",fontWeight:600,color:NAVY}}>
+                    {category}
+                  </div>
+                  <div style={{padding:"16px"}}>
+                    {componentPrices[category] && componentPrices[category].length > 0 ? (
+                      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                        {componentPrices[category].map((component, compIndex) => (
+                          <div key={compIndex} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px",borderBottom:compIndex < componentPrices[category].length - 1 ? "1px solid #f0f2f8" : "none"}}>
+                            <div>
+                              <div style={{fontWeight:600,color:NAVY}}>{component.name}</div>
+                              <div style={{fontSize:12,color:"#666"}}>{component.componentId}</div>
+                            </div>
+                            <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <input
+                                  type="number"
+                                  value={component.price || ""}
+                                  onChange={(e) => handlePriceChange(category, component.componentId, e.target.value)}
+                                  style={{width:100,padding:"8px",border:"1.5px solid #e0e0e0"}}
+                                />
+                                <span style={{color:"#666"}}>₹</span>
+                              </div>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <label style={{cursor:"pointer"}}>
+                                  <input
+                                    type="checkbox"
+                                    checked={component.inStock !== false}
+                                    onChange={(e) => handleStockChange(category, component.componentId, e.target.checked)}
+                                  />
+                                  <span>In Stock</span>
+                                </label>
+                              </div>
+                              <button
+                                onClick={() => saveComponentPrice(category, component.componentId)}
+                                style={{background:NAVY,color:"#fff",border:"none",padding:"6px 12px",fontSize:12,fontWeight:600,cursor:"pointer",transition:"background .15s"}}
+                                onMouseEnter={e=>e.target.style.background=RED}
+                                onMouseLeave={e=>e.target.style.background=NAVY}>
+                                Save
+                              </button>
+                            </div>
+                            <div style={{fontSize:11,color:"#999"}}>
+                              Last updated: {component.updatedAt ?
+                                (() => {
+                                  const diffTime = Math.abs(new Date() - new Date(component.updatedAt));
+                                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                  return diffDays === 0 ? "Today" : `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+                                })() : "Never"}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{textAlign:"center",padding:"20px",color:"#888"}}>
+                        No components found for {category}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

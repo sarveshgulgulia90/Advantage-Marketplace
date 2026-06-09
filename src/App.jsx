@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import Admin from "./Admin";
+import PCBuilder from "./PCBuilder";
 const NAVY = "#0B1F5E";
 const RED  = "#CC1A1A";
 const API  = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -787,6 +788,7 @@ export default function App(){
   const[compareList,setCompareList]=useState([]);
   const[compareOpen,setCompareOpen]=useState(false);
   const[filterTag,setFilterTag]=useState(""); // e.g. "brand:HP" or "price:30000-50000"
+  const[pcBuilderOpen,setPcBuilderOpen]=useState(false);
   const[activeMenu,setActiveMenu]=useState(null);
   const[slide,setSlide]=useState(0);
   const[activeCat,setActiveCat]=useState("All");
@@ -835,6 +837,11 @@ export default function App(){
   // ── Admin view ──
   if(adminOpen)return(
     <Admin defaultProducts={PRODUCTS} onExit={()=>{setAdminOpen(false);history.pushState("","",window.location.pathname);}}/>
+  );
+
+  // ── PC Builder view ──
+  if(pcBuilderOpen)return(
+    <PCBuilder onClose={()=>setPcBuilderOpen(false)} />
   );
 
   // ── Product page view ──
@@ -1049,6 +1056,7 @@ export default function App(){
               <button className="nav-icon-btn" onClick={()=>{if(searchOpen&&!searchQuery)setSearchOpen(false);else{setSearchOpen(true);setActiveMenu(null);}}} style={{color:searchOpen?NAVY:"#333"}}>🔍</button>
             </div>
             <button className="nav-icon-btn" onClick={()=>window.open("https://wa.me/919435070738","_blank")}>💬</button>
+            <button className="nav-cta" onClick={()=>setPcBuilderOpen(true)}>🔧 Build PC</button>
             <button className="nav-cta" onClick={()=>{setModal("contact");setActiveMenu(null);}}>Get Quote</button>
             <button className={"hamburger"+(mobileMenuOpen?" open":"")} onClick={()=>setMobileMenuOpen(o=>!o)} aria-label="Menu">
               <span/><span/><span/>
@@ -1127,6 +1135,9 @@ export default function App(){
         </div>
         <div style={{paddingTop:12}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"#aaa",padding:"8px 24px 4px"}}>Shop</div>
+          <div key="Build Your PC" className="mob-cat" onClick={()=>{setPcBuilderOpen(true);setMobileMenuOpen(false);}}>
+            🔧 &nbsp;Build Your PC
+          </div>
           {[{icon:"🏪",label:"All Products"},...CATEGORIES].map((c,i)=>(
             <div key={c.label} className="mob-cat" onClick={()=>{setActiveCat(i===0?"All":c.label);setMobileMenuOpen(false);setTimeout(()=>scroll("products-section"),120);}}>
               {c.icon} &nbsp;{c.label}
