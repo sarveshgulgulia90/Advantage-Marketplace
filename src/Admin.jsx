@@ -799,7 +799,7 @@ export default function Admin({ defaultProducts, onExit }){
 
             {/* Component prices list */}
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              {Object.keys(componentCategories).map((category, index) => (
+              {componentCategories.map((category, index) => (
                 <div key={index} style={{border:"1.5px solid #e8e8e8",borderRadius:4,overflow:"hidden"}}>
                   <div style={{background:"#f0f2f8",padding:"12px 16px",fontWeight:600,color:NAVY}}>
                     {category}

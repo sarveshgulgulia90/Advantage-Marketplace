@@ -191,7 +191,7 @@ export default function PCBuilder({ onClose, onEnquire }){
   function applyPreset(preset){
     const newSel={};
     Object.entries(preset.picks).forEach(([cat,id])=>{
-      const opt=mergedComponents[cat]?.options.find(o=>o.id===id);
+      const opt=mergedComponents[cat]?.options?.find(o=>o.id===id);
       if(opt)newSel[cat]=opt;
     });
     setSelected(newSel);
@@ -371,7 +371,7 @@ export default function PCBuilder({ onClose, onEnquire }){
                       if(cat==="Motherboard"&&cpu&&opt.ram&&!opt.ram.includes(cpu.ram?.split("/")[0])) warning="Check RAM compatibility";
 
                       // Get fetched price data if available
-                      const priceKey = `${category}:${opt.id}`;
+                      const priceKey = cat + ":" + opt.id;
                       const fetchedPriceData = componentPrices[priceKey];
                       const displayPrice = fetchedPriceData ? fetchedPriceData.price : opt.price;
                       const displayInStock = fetchedPriceData !== undefined ? fetchedPriceData.inStock : opt.inStock || true;
