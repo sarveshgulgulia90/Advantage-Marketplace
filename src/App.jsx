@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Admin from "./Admin";
 import PCBuilder from "./PCBuilder";
+
 const NAVY = "#0B1F5E";
 const RED  = "#CC1A1A";
 const API  = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -22,11 +23,11 @@ function useProducts(defaults) {
 }
 
 const PRODUCTS = [
-  { id:1,  name:"HP Pavilion 15",           cat:"Laptops",    icon:"💻", isNew:false, price:"₹52,990", inStock:true,
+  { id:1,  name:"HP Pavilion 15",           cat:"Laptops",    icon:"💻", isNew:false, price:"₹52,990",
     spec:"Intel i5-1235U · 8GB RAM · 512GB SSD · Win 11", image:"",
     specs:{"Processor":"Intel Core i5-1235U (12th Gen, 10 Cores)","RAM":"8GB DDR4 (Expandable to 16GB)","Storage":"512GB NVMe SSD","Display":"15.6\" FHD IPS Anti-Glare (1920×1080)","Graphics":"Intel Iris Xe Graphics","Operating System":"Windows 11 Home","Battery":"41Wh, Up to 7 Hours","Ports":"2× USB-A, 1× USB-C, HDMI, SD Card, 3.5mm","Connectivity":"Wi-Fi 6, Bluetooth 5.0","Weight":"1.75 kg","Warranty":"1 Year On-site"},
     highlights:["12th Gen Intel Processor","Fast NVMe SSD","FHD IPS Display","Windows 11 Pre-installed"] },
-  { id:2,  name:"Lenovo IdeaPad Slim 3",    cat:"Laptops",    icon:"💻", isNew:true,  price:"₹46,500", inStock:true,
+  { id:2,  name:"Lenovo IdeaPad Slim 3",    cat:"Laptops",    icon:"💻", isNew:true,  price:"₹46,500",
     spec:"AMD Ryzen 5 · 16GB RAM · 512GB SSD · Win 11", image:"",
     specs:{"Processor":"AMD Ryzen 5 7520U (4 Cores, up to 4.3GHz)","RAM":"16GB LPDDR5 (Soldered)","Storage":"512GB NVMe SSD","Display":"15.6\" FHD IPS (1920×1080, 300 Nits)","Graphics":"AMD Radeon 610M Integrated","Operating System":"Windows 11 Home","Battery":"47Wh, Up to 9 Hours","Ports":"2× USB-A 3.2, 1× USB-C, HDMI 1.4, 3.5mm","Connectivity":"Wi-Fi 6, Bluetooth 5.1","Weight":"1.62 kg","Warranty":"1 Year On-site"},
     highlights:["AMD Ryzen 5 Processor","16GB RAM — Best Value","9 Hr Battery Life","Slim & Lightweight"] },
@@ -140,34 +141,14 @@ function QuoteModal({product,onClose}){
   const[form,setForm]=useState({name:"",phone:"",email:"",msg:!isContact&&product?"Hi, I'm interested in "+product.name+" ("+product.price+"). Please share availability and best price.":""});
   const[sent,setSent]=useState(false);
   const[loading,setLoading]=useState(false);
+  const[error,setError]=useState("");
   useEffect(()=>{ const fn=e=>{if(e.key==="Escape")onClose();}; window.addEventListener("keydown",fn); document.body.style.overflow="hidden"; return()=>{window.removeEventListener("keydown",fn);document.body.style.overflow="";}; },[onClose]);
   async function submit(){
     if(!form.name||!form.phone)return;
     setLoading(true);
-    try{
-      const res = await fetch(API+"/inquiries",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          name:form.name,
-          phone:form.phone,
-          email:form.email,
-          product:!isContact&&product?product.name:"General",
-          message:form.msg
-        })
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to submit enquiry');
-      }
-      setLoading(false);
-      setSent(true);
-    }
-    catch(e){
-      setLoading(false);
-      showToast(e.message || "Failed to submit enquiry. Please check your connection and try again.", "error");
-      console.error("Enquiry submission error:", e);
-    }
+    try{ await fetch(API+"/inquiries",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:form.name,phone:form.phone,email:form.email,product:!isContact&&product?product.name:"General",message:form.msg})}); }
+    catch(e){}
+    setLoading(false); setSent(true);
   }
   const inp={border:"1px solid #ddd",padding:"11px 13px",fontSize:14,fontFamily:"inherit",outline:"none",width:"100%",transition:"border-color .15s",color:"#111"};
   return(
@@ -188,6 +169,7 @@ function QuoteModal({product,onClose}){
               <input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="Phone Number *" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
               <input value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="Email (optional)" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
               <textarea value={form.msg} onChange={e=>setForm({...form,msg:e.target.value})} rows={3} style={{...inp,resize:"vertical"}} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+              {error&&<div style={{background:"#fff0f0",border:"1px solid #fecaca",padding:"10px 14px",fontSize:13,color:"#dc2626",fontWeight:500}}>⚠️ {error}</div>}
               <button disabled={!form.name||!form.phone||loading} onClick={submit}
                 style={{background:form.name&&form.phone?NAVY:"#ccc",color:"#fff",border:"none",padding:"13px",fontSize:14,fontWeight:700,fontFamily:"inherit",cursor:form.name&&form.phone?"pointer":"not-allowed",letterSpacing:".04em",textTransform:"uppercase"}}>
                 {loading?"Sending...":"Submit Enquiry"}
@@ -212,7 +194,7 @@ function QuoteModal({product,onClose}){
 }
 
 // ─── PRODUCT CARD ──────────────────────────────────────────────────
-function ProductCard({p,onQuote,onView,onCompare,onAddToCart,compareList=[],delay}){
+function ProductCard({p,onQuote,onView,onCompare,compareList=[],delay}){
   const[hov,setHov]=useState(false);
   const inCmp=compareList.some(c=>c.id===p.id);
   return(
@@ -235,11 +217,6 @@ function ProductCard({p,onQuote,onView,onCompare,onAddToCart,compareList=[],dela
           <div style={{fontSize:12,color:"#888",lineHeight:1.55,marginBottom:12,minHeight:36}}>{p.spec}</div>
           <div style={{fontWeight:800,fontSize:20,color:NAVY,marginBottom:14}}>{p.price}</div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>onAddToCart(p)}
-              style={{flex:1,background:"#16a34a",color:"#fff",border:"none",padding:"9px 0",fontSize:12,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"background .15s"}}
-              onMouseEnter={e=>e.target.style.background="#0d9438"} onMouseLeave={e=>e.target.style.background="#16a34a"}>
-              Add to Cart
-            </button>
             <button onClick={()=>onView(p)}
               style={{flex:1,background:"#fff",color:NAVY,border:"1.5px solid "+NAVY,padding:"9px 0",fontSize:12,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
               onMouseEnter={e=>{e.target.style.background=NAVY;e.target.style.color="#fff";}} onMouseLeave={e=>{e.target.style.background="#fff";e.target.style.color=NAVY;}}>
@@ -259,6 +236,142 @@ function ProductCard({p,onQuote,onView,onCompare,onAddToCart,compareList=[],dela
         </div>
       </div>
     </Fade>
+  );
+}
+
+// ─── REPAIR BOOKING MODAL ──────────────────────────────────────────
+function RepairModal({onClose}){
+  const[form,setForm]=useState({deviceType:"Laptop",brand:"",model:"",issue:"",serviceType:"Carry-in",date:"",name:"",phone:""});
+  const[sent,setSent]=useState(false);
+  const[loading,setLoading]=useState(false);
+  const[error,setError]=useState("");
+  useEffect(()=>{ document.body.style.overflow="hidden"; return()=>{document.body.style.overflow="";}; },[]);
+
+  async function submit(){
+    if(!form.name||!form.phone||!form.issue) return;
+    setLoading(true); setError("");
+    const product="Repair: "+form.deviceType+" "+form.brand;
+    const message=
+      "Device: "+form.deviceType+" | Brand: "+form.brand+" | Model: "+form.model+
+      "\nIssue: "+form.issue+
+      "\nService Type: "+form.serviceType+
+      (form.date?"\nPreferred Date: "+form.date:"");
+    try{
+      const res=await fetch(API+"/inquiries",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:form.name,phone:form.phone,product,message})});
+      if(!res.ok) throw new Error("Failed");
+      setSent(true);
+    }catch(e){ setError("Failed to send. Please use WhatsApp below."); }
+    setLoading(false);
+  }
+
+  const waMsg=encodeURIComponent(
+    "Hi, I need "+form.serviceType+" repair service.\n"+
+    "Device: "+form.deviceType+" "+form.brand+" "+form.model+"\n"+
+    "Issue: "+form.issue+
+    (form.date?"\nPreferred Date: "+form.date:"")+
+    "\nName: "+form.name+" | Phone: "+form.phone
+  );
+
+  const inp={border:"1px solid #ddd",padding:"10px 13px",fontSize:14,fontFamily:"inherit",outline:"none",width:"100%",transition:"border-color .15s",color:"#111"};
+  const radioStyle={display:"flex",gap:12,flexWrap:"wrap"};
+  const RadioBtn=({val,group})=>(
+    <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:14,fontWeight:500,color:form[group]===val?NAVY:"#555"}}>
+      <input type="radio" name={group} checked={form[group]===val} onChange={()=>setForm({...form,[group]:val})} style={{accentColor:NAVY}}/>{val}
+    </label>
+  );
+
+  return(
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,overflowY:"auto"}}>
+      <div style={{background:"#fff",width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto"}}>
+        {!sent?(
+          <>
+            <div style={{padding:"20px 28px 16px",borderBottom:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"sticky",top:0,background:"#fff",zIndex:1}}>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#999",marginBottom:4}}>Book a Service</div>
+                <div style={{fontWeight:700,fontSize:20,color:NAVY}}>Repair Request</div>
+              </div>
+              <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#aaa",lineHeight:1}}>×</button>
+            </div>
+            <div style={{padding:"20px 28px 28px",display:"flex",flexDirection:"column",gap:14}}>
+
+              {/* Device Type */}
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:8,textTransform:"uppercase",letterSpacing:".06em"}}>Device Type *</div>
+                <div style={radioStyle}>
+                  {["Laptop","Desktop","Printer","Other"].map(v=><RadioBtn key={v} val={v} group="deviceType"/>)}
+                </div>
+              </div>
+
+              {/* Brand & Model */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Brand</div>
+                  <input value={form.brand} onChange={e=>setForm({...form,brand:e.target.value})} placeholder="e.g. HP, Dell, Canon" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+                </div>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Model</div>
+                  <input value={form.model} onChange={e=>setForm({...form,model:e.target.value})} placeholder="e.g. Pavilion 15" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+                </div>
+              </div>
+
+              {/* Issue */}
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Issue Description *</div>
+                <textarea value={form.issue} onChange={e=>setForm({...form,issue:e.target.value})} rows={3} placeholder="Describe the problem — e.g. Screen cracked, not turning on, slow performance..." style={{...inp,resize:"vertical"}} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+              </div>
+
+              {/* Service Type */}
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:8,textTransform:"uppercase",letterSpacing:".06em"}}>Service Type *</div>
+                <div style={radioStyle}>
+                  <RadioBtn val="Carry-in" group="serviceType"/>
+                  <RadioBtn val="Onsite Visit" group="serviceType"/>
+                </div>
+                <div style={{fontSize:11,color:"#888",marginTop:6}}>
+                  {form.serviceType==="Carry-in"?"Bring your device to Anand Arcade, Opp. Civil Hospital, Silchar":"Our technician will visit your home/office"}
+                </div>
+              </div>
+
+              {/* Preferred Date */}
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Preferred Date</div>
+                <input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} min={new Date().toISOString().split("T")[0]} style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+              </div>
+
+              {/* Name & Phone */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Your Name *</div>
+                  <input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Full Name" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+                </div>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Phone *</div>
+                  <input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="Phone Number" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+                </div>
+              </div>
+
+              {error&&<div style={{background:"#fff0f0",border:"1px solid #fecaca",padding:"10px 14px",fontSize:13,color:"#dc2626",fontWeight:500}}>⚠️ {error}</div>}
+
+              <button disabled={!form.name||!form.phone||!form.issue||loading} onClick={submit}
+                style={{background:form.name&&form.phone&&form.issue?NAVY:"#ccc",color:"#fff",border:"none",padding:"13px",fontSize:14,fontWeight:700,cursor:form.name&&form.phone&&form.issue?"pointer":"not-allowed",letterSpacing:".04em",textTransform:"uppercase",fontFamily:"inherit"}}>
+                {loading?"Sending...":"Book Repair Service"}
+              </button>
+              <button onClick={()=>window.open("https://wa.me/919435070738?text="+waMsg,"_blank")}
+                style={{background:"#25D366",color:"#fff",border:"none",padding:"12px",fontSize:14,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontFamily:"inherit"}}>
+                💬 Book via WhatsApp
+              </button>
+            </div>
+          </>
+        ):(
+          <div style={{padding:"48px 28px",textAlign:"center"}}>
+            <div style={{fontSize:44,marginBottom:16,color:"#16a34a"}}>✓</div>
+            <div style={{fontWeight:700,fontSize:20,color:NAVY,marginBottom:8}}>Service Booked!</div>
+            <p style={{fontSize:14,color:"#666",lineHeight:1.7,marginBottom:28}}>We'll call <strong>{form.phone}</strong> to confirm the appointment.<br/>Or call us at <strong style={{color:RED}}>9435070738</strong>.</p>
+            <button onClick={onClose} style={{background:NAVY,color:"#fff",border:"none",padding:"12px 32px",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",fontFamily:"inherit"}}>Close</button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -723,19 +836,6 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
               {p.spec.split("·").map((s,i)=><span key={i} style={{background:"#f0f2f8",border:"1px solid #dde2f0",padding:"5px 12px",fontSize:12,fontWeight:500,color:"#444"}}>{s.trim()}</span>)}
             </div>
             <div style={{fontSize:42,fontWeight:800,color:NAVY,letterSpacing:"-.02em",lineHeight:1,marginBottom:6}}>{p.price}</div>
-            <div style={{background:"#e0f2fe",borderRadius:8,padding:"16px",marginBottom:24}}>
-              <div style={{fontSize:14,fontWeight:600,color:NAVY,marginBottom:12}}>EMI Options</div>
-              <div style={{fontSize:13,color:"#334155"}}>
-                {[6,12,24].map((tenure) => (
-                  <div key={tenure} style={{marginBottom:4}}>
-                    {tenure} months: ₹{Math.round(parseFloat((p.price||"").replace(/[₹,]/g,"")) / tenure)}/month
-                  </div>
-                ))}
-              </div>
-              <div style={{fontSize:12,color:"#64748b",fontStyle:italic,marginTop:8}}>
-                0% EMI available on select cards — ask in store
-              </div>
-            </div>
             <div style={{fontSize:13,color:"#888",marginBottom:28}}>💬 Walk in or call us to check current availability and get the best price.</div>
             <div style={{display:"flex",gap:12,marginBottom:32,flexWrap:"wrap"}}>
               <button onClick={()=>onQuote(p)}
@@ -823,45 +923,22 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
 export default function App(){
   const scrollY=useScrollY();
   const[adminOpen,setAdminOpen]=useState(false);
+  const[pcBuilderOpen,setPcBuilderOpen]=useState(false);
+  const[repairOpen,setRepairOpen]=useState(false);
   const[mobileMenuOpen,setMobileMenuOpen]=useState(false);
   const[compareList,setCompareList]=useState([]);
   const[compareOpen,setCompareOpen]=useState(false);
   const[filterTag,setFilterTag]=useState(""); // e.g. "brand:HP" or "price:30000-50000"
-  const[pcBuilderOpen,setPcBuilderOpen]=useState(false);
   const[activeMenu,setActiveMenu]=useState(null);
   const[slide,setSlide]=useState(0);
   const[activeCat,setActiveCat]=useState("All");
   const[modal,setModal]=useState(null);
   const[selectedProduct,setSelectedProduct]=useState(null);
-  const[repairFormOpen,setRepairFormOpen]=useState(false);
   const[searchOpen,setSearchOpen]=useState(false);
   const[searchQuery,setSearchQuery]=useState("");
-  const[cart, setCart] = useState(() => {
-    try {
-      const saved = localStorage.getItem('advantage_cart');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-  const[cartOpen,setCartOpen]=useState(false);
-  const [toast, setToast] = useState(null);
-  function showToast(msg, type="success"){
-    setToast({msg,type});
-    setTimeout(()=>setToast(null), 2800);
-  }
   const menuRef=useRef(null);
   const searchRef=useRef(null);
   const liveProducts=useProducts(PRODUCTS);
-
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('advantage_cart', JSON.stringify(cart));
-    } catch {
-      // Ignore save errors
-    }
-  }, [cart]);
 
   useEffect(()=>{const t=setInterval(()=>setSlide(s=>(s+1)%HERO_SLIDES.length),5000);return()=>clearInterval(t);},[]);
   useEffect(()=>{const fn=e=>{if(menuRef.current&&!menuRef.current.contains(e.target))setActiveMenu(null);};document.addEventListener("mousedown",fn);return()=>document.removeEventListener("mousedown",fn);},[]);
@@ -896,29 +973,11 @@ export default function App(){
   const cur=HERO_SLIDES[slide];
   function scroll(id){document.getElementById(id)?.scrollIntoView({behavior:"smooth"});}
   function handleCompare(p){setCompareList(l=>l.some(c=>c.id===p.id)?l.filter(c=>c.id!==p.id):[...l,p]);}
-function handleAddToCart(product){
-  setCart(prevCart=>{
-    // Check if product already in cart
-    const existingItem = prevCart.find(item=>item.id===product.id);
-    if(existingItem){
-      // Increase quantity
-      return prevCart.map(item=>item.id===product.id
-        ?{...item,quantity:item.quantity+1}
-        :item);
-    }else{
-      // Add new item with quantity 1
-      return [...prevCart,{...product,quantity:1}];
-    }
-  });
-}
 
   // ── Admin view ──
   if(adminOpen)return(
     <Admin defaultProducts={PRODUCTS} onExit={()=>{setAdminOpen(false);history.pushState("","",window.location.pathname);}}/>
   );
-
-  // ── PC Builder view (render as overlay like QuoteModal) ──
-  {pcBuilderOpen&&<PCBuilder onClose={()=>setPcBuilderOpen(false)} />}
 
   // ── Product page view ──
   if(selectedProduct)return(
@@ -1093,26 +1152,6 @@ function handleAddToCart(product){
         @media(max-width:1100px){.cat-grid{grid-template-columns:repeat(4,1fr);}.product-grid{grid-template-columns:repeat(3,1fr);}.brands-row{grid-template-columns:repeat(6,1fr);}}
         @media(max-width:768px){.util-bar{display:none;}.nav-cats{display:none;}.nav-cta{display:none;}.hamburger{display:flex!important;}.hero-icon{display:none;}.hero-title{font-size:40px;}.product-grid{grid-template-columns:repeat(2,1fr);}.srv-grid{grid-template-columns:repeat(2,1fr);}.about-grid{grid-template-columns:1fr;}.about-left{border-right:none;border-bottom:1px solid #dde2f0;}.cat-grid{grid-template-columns:repeat(4,1fr);}.footer-main{grid-template-columns:1fr 1fr;gap:32px;}.info-bar-inner{grid-template-columns:1fr 1fr;}.brands-row{grid-template-columns:repeat(4,1fr);}}
         @media(max-width:480px){.product-grid{grid-template-columns:1fr;}.cat-grid{grid-template-columns:repeat(2,1fr);}.srv-grid{grid-template-columns:1fr;}.footer-main{grid-template-columns:1fr;}.info-bar-inner{grid-template-columns:1fr;}.brands-row{grid-template-columns:repeat(3,1fr);}.hero-title{font-size:32px;}.section{padding:48px 20px;}}
-        /* Cart Drawer Styles */
-        .cart-drawer{
-          position:fixed;
-          top:0;
-          right:0;
-          height:100vh;
-          width:320px;
-          max-width:80%;
-          background:#fff;
-          z-index:1100;
-          transform:translateX(100%);
-          transition:transform .3s ease;
-          box-shadow:-2px 0 12px rgba(0,0,0,.1);
-        }
-        .cart-drawer.open{
-          transform:translateX(0);
-        }
-        .cart-icon-btn{
-          position:relative;
-        }
       `}</style>
 
       {/* UTIL BAR */}
@@ -1152,10 +1191,12 @@ function handleAddToCart(product){
               <button className="nav-icon-btn" onClick={()=>{if(searchOpen&&!searchQuery)setSearchOpen(false);else{setSearchOpen(true);setActiveMenu(null);}}} style={{color:searchOpen?NAVY:"#333"}}>🔍</button>
             </div>
             <button className="nav-icon-btn" onClick={()=>window.open("https://wa.me/919435070738","_blank")}>💬</button>
-            <button className="nav-icon-btn cart-icon-btn" onClick={()=>setCartOpen(true)}>
-              🛒{cart.reduce((total,item)=>total+item.quantity,0)>0&&<span style={{position:"absolute",top:-8,right:-8,background:RED,color:"#fff",borderRadius:"50%",padding:"2px 6px",fontSize:10}}>{cart.reduce((total,item)=>total+item.quantity,0)}</span>}
+            <button onClick={()=>{setPcBuilderOpen(true);setActiveMenu(null);}}
+              style={{background:"none",border:"1.5px solid "+NAVY,color:NAVY,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"inherit",transition:"all .15s"}}
+              onMouseEnter={e=>{e.currentTarget.style.background=NAVY;e.currentTarget.style.color="#fff";}}
+              onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=NAVY;}}>
+              🔧 Build PC
             </button>
-            <button className="nav-cta" onClick={()=>setPcBuilderOpen(true)}>🔧 Build PC</button>
             <button className="nav-cta" onClick={()=>{setModal("contact");setActiveMenu(null);}}>Get Quote</button>
             <button className={"hamburger"+(mobileMenuOpen?" open":"")} onClick={()=>setMobileMenuOpen(o=>!o)} aria-label="Menu">
               <span/><span/><span/>
@@ -1234,9 +1275,6 @@ function handleAddToCart(product){
         </div>
         <div style={{paddingTop:12}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"#aaa",padding:"8px 24px 4px"}}>Shop</div>
-          <div key="Build Your PC" className="mob-cat" onClick={()=>{setPcBuilderOpen(true);setMobileMenuOpen(false);}}>
-            🔧 &nbsp;Build Your PC
-          </div>
           {[{icon:"🏪",label:"All Products"},...CATEGORIES].map((c,i)=>(
             <div key={c.label} className="mob-cat" onClick={()=>{setActiveCat(i===0?"All":c.label);setMobileMenuOpen(false);setTimeout(()=>scroll("products-section"),120);}}>
               {c.icon} &nbsp;{c.label}
@@ -1257,102 +1295,6 @@ function handleAddToCart(product){
         </div>
       </div>
       {mobileMenuOpen&&<div onClick={()=>setMobileMenuOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1099}}/>}
-
-      {/* CART DRAWER */}
-      <div className={"cart-drawer"+(cartOpen?" open":"")}>
-        <div style={{display:"flex",flexDirection:"column",height:"100vh",background:"#fff",borderLeft:`1.5px solid ${NAVY}`}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 24px",borderBottom:"1px solid #e8e8e8"}}>
-            <div style={{fontSize:18,fontWeight:700,color:NAVY}}>Shopping Cart</div>
-            <button onClick={()=>setCartOpen(false)} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#333",lineHeight:1,padding:4}}>×</button>
-          </div>
-          {cart.length===0?(
-            <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"#888"}}>
-              Your cart is empty
-            </div>
-          ):(
-            <>
-              <div style={{flex:1,overflowY:"auto",padding:"16px 24px"}}>
-                {cart.map((item,index)=>(
-                  <div key={item.id} style={{display:"flex",alignItems:"center",padding:"12px 0",borderBottom:"1px solid #f0f0f0"}}>
-                    <div style={{width:"80px",flexShrink:0}}>
-                      {item.image?<img src={item.image} alt={item.name} style={{width:"60px",height:"60px",objectFit:"contain"}}/>:<span style={{fontSize:30}}>{item.icon}</span>}
-                    </div>
-                    <div style={{flex:1,margin:"0 12px"}}>
-                      <div style={{fontWeight:600,color:NAVY,marginBottom:"4px"}}>{item.name}</div>
-                      <div style={{color:"#888",fontSize:13}}>{item.spec}</div>
-                    </div>
-                    <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                      <button onClick={() => {
-                        if (item.quantity > 1) {
-                          setCart(cart.map(c => c.id === item.id ? {...c, quantity: c.quantity - 1} : c));
-                        } else {
-                          setCart(cart.filter(c => c.id !== item.id));
-                        }
-                      }}
-                        style={{background:"#f0f2f8",border:"none",width:"28px",height:"28px",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}
-                      >
-                        −
-                      </button>
-                      <div style={{width:"24px",textAlign:"center",fontWeight:600}}>{item.quantity}</div>
-                      <button onClick={()=>setCart(cart.map(c=>c.id===item.id?{...c,quantity:c.quantity+1}:c))}
-                        style={{background:"#f0f2f8",border:"none",width:"28px",height:"28px",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}
-                      >
-                        +
-                      </button>
-                      <button onClick={()=>setCart(cart.filter(c=>c.id!==item.id))}
-                        style={{background:"none",border:"none",padding:"4px 8px",fontSize:12,color:RED,cursor:"pointer"}}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                    <div style={{width:"80px",flexShrink:0,textAlign:"right",fontWeight:600,color:NAVY}}>
-                      {parseFloat((item.price||"").replace(/[₹,]/g,""))*item.quantity}₹
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{borderTop:"1px solid #e8e8e8",padding:"16px 24px",display:"flex",flexDirection:"column",gap:"12px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",fontWeight:600,color:NAVY}}>
-                  <span>Subtotal:</span>
-                  <span id="cart-subtotal">
-                    {cart.reduce((total,item)=>total+(parseFloat((item.price||"").replace(/[₹,]/g,""))*item.quantity),0)}₹
-                  </span>
-                </div>
-                <button onClick={()=>{
-                  // Create enquiry message for all cart items
-                  let message = "Hi, I'm interested in purchasing the following items:\n\n";
-                  cart.forEach((item,index)=>{
-                    message += `${index+1}. ${item.name} - ${item.quantity} x ${item.price}\n`;
-                  });
-                  message += `\nTotal: ${cart.reduce((total,item)=>total+(parseFloat((item.price||"").replace(/[₹,]/g,""))*item.quantity),0)}₹\n\nPlease share availability and best price.`;
-                  setModal({name:"Enquiry for All Items",price:"",msg:message});
-                  setCartOpen(false);
-                }}
-                style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"12px 0",fontSize:13,fontWeight:600,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",transition:"background .15s"}}
-                onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}
-                >
-                  Enquire for All
-                </button>
-                <button onClick={()=>{
-                  // Create WhatsApp message for all cart items
-                  let message = "Hi, I want to order the following items:\n\n";
-                  cart.forEach((item,index)=>{
-                    message += `${index+1}. ${item.name} - ${item.quantity} x ${item.price}\n`;
-                  });
-                  message += `\nTotal: ${cart.reduce((total,item)=>total+(parseFloat((item.price||"").replace(/[₹,]/g,""))*item.quantity),0)}₹\n\nPlease confirm availability.`;
-                  window.open(`https://wa.me/919435070738?text=${encodeURIComponent(message)}`,"_blank");
-                  setCartOpen(false);
-                }}
-                style={{width:"100%",background:"#25D366",color:"#fff",border:"none",padding:"12px 0",fontSize:13,fontWeight:600,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",transition:"background .15s"}}
-                >
-                  WhatsApp Order
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-      {cartOpen&&<div onClick={()=>setCartOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1099}}/>}
 
       {/* HERO */}
       <section className="hero" style={{background:cur.bg}}>
@@ -1430,7 +1372,7 @@ function handleAddToCart(product){
             </div>
           ):(
             <div className="product-grid">
-              {displayed.map((p,i)=><ProductCard key={p.id} p={p} onQuote={setModal} onView={setSelectedProduct} onCompare={handleCompare} onAddToCart={handleAddToCart} compareList={compareList} delay={i*.04}/>)}
+              {displayed.map((p,i)=><ProductCard key={p.id} p={p} onQuote={setModal} onView={setSelectedProduct} onCompare={handleCompare} compareList={compareList} delay={i*.04}/>)}
             </div>
           )}
         </div>
@@ -1462,7 +1404,7 @@ function handleAddToCart(product){
               <div style={{fontSize:13,color:"rgba(255,255,255,.4)"}}>Carry-in at Anand Arcade or book an onsite visit</div>
             </div>
             <div style={{display:"flex",gap:10}}>
-              <button onClick={()=>setModal("contact")} style={{background:RED,color:"#fff",border:"none",padding:"11px 24px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer"}}>Book Service</button>
+              <button onClick={()=>setRepairOpen(true)} style={{background:RED,color:"#fff",border:"none",padding:"11px 24px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer"}}>Book Service</button>
               <a href="tel:9435070738" style={{background:"none",color:"rgba(255,255,255,.7)",border:"1px solid rgba(255,255,255,.2)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>📞 9435070738</a>
             </div>
           </div>
@@ -1523,6 +1465,19 @@ function handleAddToCart(product){
         </div>
       </div>
 
+      {/* GOOGLE MAPS */}
+      <div style={{width:"100%",position:"relative"}}>
+        <iframe
+          title="Advantage Silchar Location"
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3619.4!2d92.7957!3d24.8333!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x375457b4d1bc11b3%3A0x1234!2sAnand+Arcade%2C+Opposite+Civil+Hospital%2C+Silchar%2C+Assam+788001!5e0!3m2!1sen!2sin!4v1620000000000!5m2!1sen!2sin"
+          width="100%" height="300" style={{border:0,display:"block"}} allowFullScreen loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"/>
+        <a href="https://www.google.com/maps/dir/?api=1&destination=Anand+Arcade+Opposite+Civil+Hospital+Silchar+Assam+788001" target="_blank" rel="noreferrer"
+          style={{position:"absolute",bottom:16,right:16,background:NAVY,color:"#fff",padding:"10px 20px",fontSize:13,fontWeight:700,textDecoration:"none",display:"flex",alignItems:"center",gap:6,boxShadow:"0 2px 8px rgba(0,0,0,.3)"}}>
+          📍 Get Directions
+        </a>
+      </div>
+
       {/* FOOTER */}
       <footer className="footer">
         <div className="footer-top-strip"/>
@@ -1562,11 +1517,8 @@ function handleAddToCart(product){
       {/* MODALS */}
       {compareOpen&&<CompareModal list={compareList} onClose={()=>setCompareOpen(false)} onQuote={setModal}/>}
       {modal&&<QuoteModal product={modal} onClose={()=>setModal(null)}/>}
-      {toast&&(
-        <div style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:toast.type==="error"?RED:NAVY,color:"#fff",padding:"12px 24px",fontSize:14,fontWeight:600,zIndex:3000,boxShadow:"0 4px 20px rgba(0,0,0,.2)",whiteSpace: "nowrap"}}>
-          {toast.type==="error"?"⚠️":"✓"} {toast.msg}
-        </div>
-      )}
+      {pcBuilderOpen&&<PCBuilder onClose={()=>setPcBuilderOpen(false)} onEnquire={setModal}/>}
+      {repairOpen&&<RepairModal onClose={()=>setRepairOpen(false)}/>}
     </>
   );
 }
