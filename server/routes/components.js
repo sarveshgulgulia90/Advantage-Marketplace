@@ -164,7 +164,7 @@ router.post('/seed', adminAuth, async (req, res) => {
 router.put('/:category/:componentId', adminAuth, async (req, res) => {
   try {
     const { category, componentId } = req.params;
-    const { price, inStock, note } = req.body;
+    const { name, price, inStock, note } = req.body;;
 
     // Validate input
     if (price === undefined || price === null || price < 0) {
@@ -173,14 +173,21 @@ router.put('/:category/:componentId', adminAuth, async (req, res) => {
 
     // Find and update the component
     const updatedComponent = await ComponentPrice.findOneAndUpdate(
-      { category, componentId },
-      {
-        price: Number(price),
-        inStock: inStock !== undefined ? !!inStock : true, // Convert to boolean, default true
-        note: note !== undefined ? note : ""
-      },
-      { new: true, upsert: true }
-    );
+  { category, componentId },
+  {
+    category,
+    componentId,
+    name,
+    price: Number(price),
+    inStock: inStock !== undefined ? !!inStock : true,
+    note: note !== undefined ? note : ""
+  },
+  {
+    new: true,
+    upsert: true,
+    runValidators: true
+  }
+);
 
     if (!updatedComponent) {
       return res.status(404).json({ message: 'Component not found' });

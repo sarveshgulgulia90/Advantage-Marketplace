@@ -363,11 +363,61 @@ function RepairModal({onClose}){
             </div>
           </>
         ):(
-          <div style={{padding:"48px 28px",textAlign:"center"}}>
-            <div style={{fontSize:44,marginBottom:16,color:"#16a34a"}}>✓</div>
+          <div style={{padding:"40px 28px",textAlign:"center"}}>
+            <div style={{fontSize:44,marginBottom:12,color:"#16a34a"}}>✓</div>
             <div style={{fontWeight:700,fontSize:20,color:NAVY,marginBottom:8}}>Service Booked!</div>
-            <p style={{fontSize:14,color:"#666",lineHeight:1.7,marginBottom:28}}>We'll call <strong>{form.phone}</strong> to confirm the appointment.<br/>Or call us at <strong style={{color:RED}}>9435070738</strong>.</p>
-            <button onClick={onClose} style={{background:NAVY,color:"#fff",border:"none",padding:"12px 32px",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",fontFamily:"inherit"}}>Close</button>
+            <p style={{fontSize:14,color:"#666",lineHeight:1.7,marginBottom:20}}>We'll call <strong>{form.phone}</strong> to confirm the appointment.<br/>Or call us at <strong style={{color:RED}}>9435070738</strong>.</p>
+
+            {/* Repair summary */}
+            <div style={{background:"#f5f7fa",border:"1px solid #dde2f0",padding:"16px",textAlign:"left",marginBottom:20,fontSize:13}}>
+              <div style={{fontWeight:700,color:NAVY,marginBottom:10}}>📋 Repair Request Summary</div>
+              {[["Device",form.deviceType+" "+form.brand+" "+form.model],["Issue",form.issue],["Service",form.serviceType],form.date&&["Date",form.date],["Name",form.name],["Phone",form.phone]].filter(Boolean).map(([k,v])=>(
+                <div key={k} style={{display:"flex",gap:12,padding:"4px 0",borderBottom:"1px solid #eee"}}>
+                  <span style={{fontWeight:600,color:"#555",minWidth:70}}>{k}</span>
+                  <span style={{color:NAVY}}>{v}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+              <button onClick={()=>{
+                const html=`<!DOCTYPE html><html><head><title>Repair Receipt — Advantage Silchar</title>
+                <style>body{font-family:Arial,sans-serif;padding:40px;max-width:500px;margin:0 auto;}
+                h2{color:#0B1F5E;}table{width:100%;border-collapse:collapse;margin-top:16px;}
+                td{padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;}
+                td:first-child{font-weight:bold;color:#555;width:120px;}
+                .footer{margin-top:24px;font-size:12px;color:#888;border-top:1px solid #ddd;padding-top:12px;}
+                @media print{button{display:none;}}</style></head>
+                <body>
+                <div style="border-left:4px solid #CC1A1A;padding-left:16px;margin-bottom:20px;">
+                  <h2>ADVANTAGE SILCHAR</h2>
+                  <p style="margin:0;font-size:13px;color:#666;">Anand Arcade, Opp. Civil Hospital, Silchar – 788001<br/>Phone: 9435070738</p>
+                </div>
+                <h3 style="color:#CC1A1A;margin-bottom:4px;">REPAIR SERVICE REQUEST</h3>
+                <p style="font-size:12px;color:#888;margin-top:0;">Ref: REP-${Date.now()}</p>
+                <table>
+                  <tr><td>Device</td><td>${form.deviceType} ${form.brand} ${form.model}</td></tr>
+                  <tr><td>Issue</td><td>${form.issue}</td></tr>
+                  <tr><td>Service</td><td>${form.serviceType}</td></tr>
+                  ${form.date?`<tr><td>Date</td><td>${form.date}</td></tr>`:''}
+                  <tr><td>Name</td><td>${form.name}</td></tr>
+                  <tr><td>Phone</td><td>${form.phone}</td></tr>
+                </table>
+                <div class="footer">
+                  <p>Advantage Silchar — Est. 1995. Silchar's trusted computer store.</p>
+                  <p>Keep this receipt for reference. We'll call you to confirm the appointment.</p>
+                </div>
+                <button onclick="window.print()" style="margin-top:20px;background:#0B1F5E;color:#fff;border:none;padding:10px 24px;font-size:14px;cursor:pointer;">🖨️ Print</button>
+                </body></html>`;
+                const w=window.open("","_blank");
+                w.document.write(html);
+                w.document.close();
+                setTimeout(()=>w.print(),500);
+              }} style={{background:NAVY,color:"#fff",border:"none",padding:"11px 20px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
+                📄 Download Receipt
+              </button>
+              <button onClick={onClose} style={{background:"none",border:"1.5px solid "+NAVY,color:NAVY,padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Close</button>
+            </div>
           </div>
         )}
       </div>
@@ -1469,10 +1519,10 @@ export default function App(){
       <div style={{width:"100%",position:"relative"}}>
         <iframe
           title="Advantage Silchar Location"
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3619.4!2d92.7957!3d24.8333!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x375457b4d1bc11b3%3A0x1234!2sAnand+Arcade%2C+Opposite+Civil+Hospital%2C+Silchar%2C+Assam+788001!5e0!3m2!1sen!2sin!4v1620000000000!5m2!1sen!2sin"
-          width="100%" height="300" style={{border:0,display:"block"}} allowFullScreen loading="lazy"
+          src="https://maps.google.com/maps?q=Anand+Arcade+Civil+Hospital+Road+Silchar+Assam+788001&output=embed&z=17"
+          width="100%" height="320" style={{border:0,display:"block"}} allowFullScreen loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"/>
-        <a href="https://www.google.com/maps/dir/?api=1&destination=Anand+Arcade+Opposite+Civil+Hospital+Silchar+Assam+788001" target="_blank" rel="noreferrer"
+        <a href="https://www.google.com/maps/search/Anand+Arcade+Opposite+Civil+Hospital+Silchar+Assam+788001" target="_blank" rel="noreferrer"
           style={{position:"absolute",bottom:16,right:16,background:NAVY,color:"#fff",padding:"10px 20px",fontSize:13,fontWeight:700,textDecoration:"none",display:"flex",alignItems:"center",gap:6,boxShadow:"0 2px 8px rgba(0,0,0,.3)"}}>
           📍 Get Directions
         </a>
