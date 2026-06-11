@@ -11,11 +11,25 @@ app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
+/* ── Debug token check (remove after fixing) ── */
+app.get("/api/debug-token", (req, res) => {
+  const sent     = (req.headers["x-admin-token"] || "").trim();
+  const expected = (process.env.ADMIN_TOKEN || "advantage_admin_secret_2025").trim();
+  res.json({
+    match:          sent === expected,
+    sentLength:     sent.length,
+    expectedLength: expected.length,
+    sentFirst10:    sent.slice(0, 10),
+    expectedFirst10:expected.slice(0, 10),
+  });
+});
+
 /* ── Routes ── */
-app.use("/api/products",  require("./routes/products"));
-app.use("/api/inquiries", require("./routes/inquiries"));
-app.use("/api/ai",        require("./routes/ai"));
-app.use('/api/components', require('./routes/components'));
+app.use("/api/products",    require("./routes/products"));
+app.use("/api/inquiries",   require("./routes/inquiries"));
+app.use("/api/ai",          require("./routes/ai"));
+app.use("/api/components",  require("./routes/components"));
+
 // Auth and orders need extra packages — load only if available
 try { app.use("/api/auth",   require("./routes/auth"));   console.log("✓ Auth routes loaded"); }
 catch(e){ console.warn("⚠ Auth routes skipped:", e.message); }
