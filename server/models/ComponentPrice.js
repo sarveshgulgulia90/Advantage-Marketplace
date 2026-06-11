@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const componentPriceSchema = new mongoose.Schema(
   {
@@ -48,4 +48,4 @@ componentPriceSchema.index(
   { unique: true }
 );
 
-module.exports = mongoose.model("ComponentPrice", componentPriceSchema);
+export default mongoose.model("ComponentPrice", componentPriceSchema);

@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const inquirySchema = new mongoose.Schema({
   name:    { type: String, required: true },
@@ -9,4 +9,4 @@ const inquirySchema = new mongoose.Schema({
   read:    { type: Boolean, default: false },
 }, { timestamps: true });
 
-module.exports = mongoose.model("Inquiry", inquirySchema);
+export default mongoose.model("Inquiry", inquirySchema);
