@@ -578,7 +578,7 @@ function CompareModal({list,onClose,onQuote}){
       }
 
       const tipMap={
-        gaming:"None of these laptops have a dedicated GPU. Visit the store and ask specifically for gaming laptops with NVIDIA RTX graphics.",
+        gaming:"Graphics card are must needed for gaming and high end applications like ai and machine learning.",
         office:"Ask about Microsoft Office bundling — sometimes included free with new laptops.",
         work:"Ask about Microsoft Office bundling — sometimes included free with new laptops.",
         student:"Ask if there is a student discount. Also check if the college requires any specific specs.",
@@ -681,11 +681,11 @@ function CompareModal({list,onClose,onQuote}){
           {/* AI Section */}
           <div style={{background:"#fff",border:"2px solid "+NAVY,padding:"24px 28px",marginBottom:24}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-              <span style={{fontSize:20}}>🤖</span>
-              <span style={{fontWeight:800,fontSize:17,color:NAVY}}>AI-Powered Recommendation</span>
-              <span style={{fontSize:11,background:"#eef2ff",color:NAVY,padding:"2px 8px",fontWeight:600}}>Powered by Gemini</span>
+              <span style={{fontSize:20}}></span>
+              <span style={{fontWeight:800,fontSize:17,color:NAVY}}>Recommendation</span>
+              <span style={{fontSize:11,background:"#eef2ff",color:NAVY,padding:"2px 8px",fontWeight:600}}></span>
             </div>
-            <p style={{fontSize:13,color:"#666",marginBottom:16}}>Tell us what you need — AI will recommend the best product for you.</p>
+            <p style={{fontSize:13,color:"#666",marginBottom:16}}>Tell us what you need — we'll recommend the best product for you.</p>
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
               {SUGGESTIONS.map(s=>(
                 <button key={s} onClick={()=>{setUseCase(s);askAI(s);}}
