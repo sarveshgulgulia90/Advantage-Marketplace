@@ -1,24 +1,15 @@
-// server/middleware/auth.js
-const jwt = require('jsonwebtoken');
+module.exports = function adminAuth(req, res, next) {
+  const token    = (req.headers["x-admin-token"] || req.query.token || "").trim();
+  const envToken = (process.env.ADMIN_TOKEN || "").trim();
+  const fallback = "advantage_admin_secret_2025";
 
-// Middleware to verify JWT token
-module.exports = function (req, res, next) {
-  // Get token from header
-  const token = req.header('x-auth-token');
+  if (!token)
+    return res.status(401).json({ error: "No admin token provided" });
 
-  // Check if token exists
-  if (!token) {
-    return res.status(401).json({ message: 'No token, authorization denied' });
-  }
+  // Accept if matches env token OR the hardcoded fallback
+  if (token === fallback || (envToken && token === envToken))
+    return next();
 
-  try {
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'advantage_jwt_secret_2025');
-
-    // Add user from payload to request
-    req.user = decoded.user;
-    next();
-  } catch (err) {
-    res.status(401).json({ message: 'Token is not valid' });
-  }
+  console.error("[AUTH] Token mismatch. Received:", token.slice(0,12)+"... Expected:", (envToken||fallback).slice(0,12)+"...");
+  return res.status(401).json({ error: "Invalid admin token. Check VITE_ADMIN_TOKEN in .env.local" });
 };

@@ -110,7 +110,7 @@ advantage-silchar/
 ### Clone Repository
 
 ```bash
-git clone (https://github.com/sarveshgulgulia90/Advantage-Marketplace)
+git clone <repository-url>
 cd advantage-silchar
 ```
 
@@ -219,7 +219,6 @@ node server.js
 * Marketplace administration
 * Inventory control
 * Content management
-
 
 
 
