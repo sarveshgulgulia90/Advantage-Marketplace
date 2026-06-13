@@ -425,6 +425,191 @@ function RepairModal({onClose}){
   );
 }
 
+// ─── SERVICE TRACKER ──────────────────────────────────────────────
+function ServiceTracker({onClose}){
+  const[jobId,setJobId]=useState("");
+  const[result,setResult]=useState(null);
+  const[loading,setLoading]=useState(false);
+  const[error,setError]=useState("");
+  const API=import.meta.env.VITE_API_URL||"http://localhost:5000/api";
+
+  async function track(){
+    if(!jobId.trim())return;
+    setLoading(true);setResult(null);setError("");
+    try{
+      const res=await fetch(API+"/service/"+jobId.trim());
+      const d=await res.json();
+      if(!res.ok)throw new Error(d.error||"Job not found");
+      setResult(d);
+    }catch(e){setError(e.message||"Job ID not found. Please check and try again.");}
+    setLoading(false);
+  }
+
+  const STATUS_COLORS={"Received":"#d97706","Diagnosed":"#0891b2","In Progress":"#7c3aed","Ready for Pickup":"#16a34a","Completed":"#16a34a","Cancelled":"#dc2626"};
+
+  return(
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{background:"#fff",width:"100%",maxWidth:480}}>
+        <div style={{padding:"20px 28px 16px",borderBottom:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#999",marginBottom:4}}>Repair Status</div>
+            <div style={{fontWeight:700,fontSize:20,color:NAVY}}>Track Your Service</div>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#aaa"}}>×</button>
+        </div>
+        <div style={{padding:"22px 28px 28px"}}>
+          <div style={{fontSize:13,color:"#666",marginBottom:16}}>Enter your Job ID received at the time of service booking.</div>
+          <div style={{display:"flex",gap:10,marginBottom:20}}>
+            <input value={jobId} onChange={e=>setJobId(e.target.value)} onKeyDown={e=>e.key==="Enter"&&track()}
+              placeholder="e.g. ADV-2026-001"
+              style={{flex:1,border:"1.5px solid #ddd",padding:"11px 14px",fontSize:14,fontFamily:"inherit",outline:"none",color:"#111"}}
+              onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+            <button onClick={track} disabled={!jobId.trim()||loading}
+              style={{background:jobId.trim()?NAVY:"#ccc",color:"#fff",border:"none",padding:"11px 20px",fontSize:13,fontWeight:700,cursor:jobId.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>
+              {loading?"...":"Track"}
+            </button>
+          </div>
+          {error&&<div style={{background:"#fff0f0",border:"1px solid #fecaca",padding:"12px 16px",fontSize:13,color:"#dc2626",marginBottom:16}}>⚠️ {error}</div>}
+          {result&&(
+            <div style={{background:"#f5f7fa",border:"1px solid #dde2f0",padding:"20px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:16,color:NAVY}}>{result.deviceType} — {result.brand} {result.model}</div>
+                  <div style={{fontSize:12,color:"#888",marginTop:3}}>Job ID: <strong>{result.jobId}</strong></div>
+                </div>
+                <span style={{background:STATUS_COLORS[result.status]||"#888",color:"#fff",fontSize:11,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>
+                  {result.status}
+                </span>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {result.timeline?.map((t,i)=>(
+                  <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                    <div style={{width:10,height:10,borderRadius:"50%",background:i===result.timeline.length-1?NAVY:"#ddd",flexShrink:0,marginTop:4}}/>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:600,color:NAVY}}>{t.status}</div>
+                      <div style={{fontSize:11,color:"#888"}}>{new Date(t.date).toLocaleDateString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
+                      {t.note&&<div style={{fontSize:12,color:"#555",marginTop:2}}>{t.note}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {result.estimatedCost&&<div style={{marginTop:14,padding:"10px 14px",background:"#fff",border:"1px solid #e8e8e8",fontSize:13}}><strong>Estimated Cost:</strong> ₹{result.estimatedCost}</div>}
+              {result.status==="Ready for Pickup"&&<div style={{marginTop:10,padding:"10px 14px",background:"#f0fdf4",border:"1px solid #86efac",fontSize:13,color:"#15803d",fontWeight:600}}>✅ Your device is ready! Visit us to collect it.</div>}
+            </div>
+          )}
+          <div style={{marginTop:20,padding:"12px 16px",background:"#f0f2f8",fontSize:12,color:"#555"}}>
+            📞 <strong>Questions?</strong> Call us at <strong style={{color:NAVY}}>9435070738</strong> with your Job ID.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── BULK QUOTE FORM ──────────────────────────────────────────────
+function BulkQuoteModal({onClose}){
+  const[form,setForm]=useState({org:"",orgType:"School",contact:"",phone:"",email:"",products:"",qty:"",budget:"Under ₹1 Lakh"});
+  const[sent,setSent]=useState(false);
+  const[loading,setLoading]=useState(false);
+  const[error,setError]=useState("");
+  const API=import.meta.env.VITE_API_URL||"http://localhost:5000/api";
+  useEffect(()=>{document.body.style.overflow="hidden";return()=>{document.body.style.overflow="";};},[]);
+  const inp={border:"1px solid #ddd",padding:"10px 13px",fontSize:14,fontFamily:"inherit",outline:"none",width:"100%",color:"#111",transition:"border-color .15s"};
+  async function submit(){
+    if(!form.org||!form.contact||!form.phone||!form.products)return;
+    setLoading(true);setError("");
+    try{
+      const res=await fetch(API+"/inquiries",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        name:form.contact,phone:form.phone,email:form.email,
+        product:"Bulk Enquiry: "+form.org,
+        message:"Organisation: "+form.org+" ("+form.orgType+")\nContact: "+form.contact+"\nPhone: "+form.phone+"\nEmail: "+form.email+"\nProducts Needed: "+form.products+"\nQuantity: "+form.qty+"\nBudget: "+form.budget
+      })});
+      if(!res.ok)throw new Error("Failed");
+      setSent(true);
+    }catch(e){setError("Failed to send. Please call 9435070738 directly.");}
+    setLoading(false);
+  }
+  return(
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,overflowY:"auto"}}>
+      <div style={{background:"#fff",width:"100%",maxWidth:540}}>
+        {!sent?(
+          <>
+            <div style={{background:NAVY,padding:"20px 28px"}}>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.5)",marginBottom:4}}>Institutional Orders</div>
+              <div style={{fontWeight:800,fontSize:20,color:"#fff"}}>Bulk / Institutional Quote</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,.5)",marginTop:4}}>For schools, colleges, offices, government departments</div>
+              <button onClick={onClose} style={{position:"absolute",top:16,right:20,background:"none",border:"none",fontSize:22,cursor:"pointer",color:"rgba(255,255,255,.6)",lineHeight:1}}>×</button>
+            </div>
+            <div style={{padding:"24px 28px",display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:12}}>
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>Organisation Name *</div>
+                  <input style={inp} value={form.org} onChange={e=>setForm(f=>({...f,org:e.target.value}))} placeholder="e.g. Silchar Medical College" onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+                </div>
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>Type</div>
+                  <select style={inp} value={form.orgType} onChange={e=>setForm(f=>({...f,orgType:e.target.value}))}>
+                    {["School","College","Office","Government","NGO","Other"].map(t=><option key={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>Contact Person *</div>
+                  <input style={inp} value={form.contact} onChange={e=>setForm(f=>({...f,contact:e.target.value}))} placeholder="Full Name" onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+                </div>
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>Phone *</div>
+                  <input style={inp} value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} placeholder="Phone Number" onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+                </div>
+              </div>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>Email</div>
+                <input style={inp} type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="email@organisation.com" onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+              </div>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>Products Needed *</div>
+                <textarea style={{...inp,resize:"vertical"}} rows={3} value={form.products} onChange={e=>setForm(f=>({...f,products:e.target.value}))} placeholder="e.g. 20 laptops with i5 processor, 5 laser printers, 2 projectors" onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>Approx. Quantity</div>
+                  <input style={inp} type="number" value={form.qty} onChange={e=>setForm(f=>({...f,qty:e.target.value}))} placeholder="e.g. 25" onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+                </div>
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>Budget Range</div>
+                  <select style={inp} value={form.budget} onChange={e=>setForm(f=>({...f,budget:e.target.value}))}>
+                    {["Under ₹1 Lakh","₹1–5 Lakhs","₹5–10 Lakhs","₹10–25 Lakhs","Above ₹25 Lakhs"].map(b=><option key={b}>{b}</option>)}
+                  </select>
+                </div>
+              </div>
+              {error&&<div style={{background:"#fff0f0",border:"1px solid #fecaca",padding:"10px 14px",fontSize:13,color:"#dc2626"}}>{error}</div>}
+              <div style={{display:"flex",gap:12,marginTop:4}}>
+                <button onClick={submit} disabled={!form.org||!form.contact||!form.phone||!form.products||loading}
+                  style={{flex:2,background:form.org&&form.contact&&form.phone&&form.products?NAVY:"#ccc",color:"#fff",border:"none",padding:"13px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"background .15s"}}
+                  onMouseEnter={e=>{if(!loading)e.target.style.background=RED;}} onMouseLeave={e=>e.target.style.background=NAVY}>
+                  {loading?"Sending...":"Submit Bulk Enquiry"}
+                </button>
+                <button onClick={()=>window.open("https://wa.me/919435070738?text="+encodeURIComponent("Hi, I represent "+form.org+" ("+form.orgType+"). We need: "+form.products+" — Budget: "+form.budget),"_blank")}
+                  style={{flex:1,background:"#25D366",color:"#fff",border:"none",padding:"13px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                  💬 WhatsApp
+                </button>
+              </div>
+            </div>
+          </>
+        ):(
+          <div style={{padding:"48px 28px",textAlign:"center"}}>
+            <div style={{fontSize:44,marginBottom:12}}>✅</div>
+            <div style={{fontWeight:800,fontSize:20,color:NAVY,marginBottom:8}}>Bulk Enquiry Received!</div>
+            <p style={{fontSize:14,color:"#666",lineHeight:1.7,marginBottom:24}}>Our team will contact <strong>{form.contact}</strong> at <strong style={{color:RED}}>{form.phone}</strong> within 24 hours with a detailed quote.</p>
+            <button onClick={onClose} style={{background:NAVY,color:"#fff",border:"none",padding:"12px 32px",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Close</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── COMPARE BAR ───────────────────────────────────────────────────
 function CompareBar({list,onRemove,onClear,onCompare}){
   if(list.length===0)return null;
@@ -897,6 +1082,55 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
                 style={{flex:1,minWidth:150,background:"#25D366",color:"#fff",border:"none",padding:"14px 0",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
                 <span>💬</span>WhatsApp
               </button>
+              <button onClick={()=>{
+                const html=`<!DOCTYPE html><html><head><title>Quote — ${p.name}</title>
+                <style>body{font-family:Arial,sans-serif;padding:40px;max-width:600px;margin:0 auto;}
+                h2{color:#0B1F5E;margin-bottom:4px;}
+                .red{color:#CC1A1A;}
+                table{width:100%;border-collapse:collapse;margin-top:16px;}
+                td{padding:10px 14px;border-bottom:1px solid #eee;font-size:14px;}
+                td:first-child{font-weight:bold;color:#555;width:140px;}
+                .price{font-size:28px;font-weight:900;color:#0B1F5E;margin:16px 0;}
+                .footer{margin-top:32px;font-size:12px;color:#888;border-top:1px solid #ddd;padding-top:16px;}
+                .highlights{list-style:none;padding:0;}
+                .highlights li::before{content:"✓ ";color:#CC1A1A;font-weight:bold;}
+                @media print{button{display:none!important;}}</style></head>
+                <body>
+                <div style="border-left:5px solid #CC1A1A;padding-left:16px;margin-bottom:24px;">
+                  <h2>ADVANTAGE SILCHAR</h2>
+                  <p style="margin:0;font-size:13px;color:#666;">Anand Arcade, Opp. Civil Hospital, Hospital Road, Silchar – 788001<br/>📞 9435070738 &nbsp;|&nbsp; ✉️ advantage.it@gmail.com</p>
+                </div>
+                <div style="background:#f5f7fa;padding:16px 20px;border-radius:4px;margin-bottom:20px;">
+                  <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#CC1A1A;margin-bottom:6px;">${p.cat}</div>
+                  <h3 style="color:#0B1F5E;font-size:22px;margin:0 0 6px 0;">${p.name}</h3>
+                  <div style="font-size:13px;color:#666;">${p.spec}</div>
+                  <div class="price">${p.price}</div>
+                  <div style="font-size:12px;color:#888;">*Price valid as of ${new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"})}. Subject to change. Contact for best deal.</div>
+                </div>
+                ${p.highlights&&p.highlights.length>0?`<div style="margin-bottom:20px;"><div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#555;margin-bottom:10px;">Key Highlights</div><ul class="highlights">${p.highlights.map(h=>`<li>${h}</li>`).join("")}</ul></div>`:""}
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#555;margin-bottom:10px;">Specifications</div>
+                <table>
+                  ${Object.entries(p.specs||{}).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("")}
+                  <tr><td>Availability</td><td style="color:#16a34a;font-weight:600;">✓ In Store — Silchar</td></tr>
+                </table>
+                <div style="margin-top:20px;background:#fff3cd;border:1px solid #ffe69c;padding:12px 16px;font-size:13px;color:#856404;">
+                  <strong>For best price:</strong> Visit us at Anand Arcade or call <strong>9435070738</strong>. We offer EMI, exchange, and bulk discounts.
+                </div>
+                <div class="footer">
+                  <p>Advantage Silchar — Est. 1995. Mon–Sat, 10AM–8PM</p>
+                  <p>This is a system-generated quotation and not a tax invoice.</p>
+                </div>
+                <button onclick="window.print()" style="margin-top:20px;background:#0B1F5E;color:#fff;border:none;padding:12px 28px;font-size:14px;cursor:pointer;font-family:Arial;">🖨️ Print / Save as PDF</button>
+                </body></html>`;
+                const w=window.open("","_blank");
+                w.document.write(html);
+                w.document.close();
+                setTimeout(()=>w.print(),600);
+              }} style={{background:"#f0f2f8",color:NAVY,border:"1.5px solid #dde2f0",padding:"14px 16px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,transition:"all .15s"}}
+                onMouseEnter={e=>e.currentTarget.style.background=NAVY+";color:#fff"}
+                onMouseLeave={e=>e.currentTarget.style.background="#f0f2f8"}>
+                📄 Quote
+              </button>
             </div>
             {p.highlights&&p.highlights.length>0&&(
               <div style={{borderTop:"1px solid #e8e8e8",paddingTop:20,marginBottom:24}}>
@@ -1214,6 +1448,37 @@ export default function App(){
         @media(max-width:480px){.product-grid{grid-template-columns:1fr;}.cat-grid{grid-template-columns:repeat(2,1fr);}.srv-grid{grid-template-columns:1fr;}.footer-main{grid-template-columns:1fr;}.info-bar-inner{grid-template-columns:1fr;}.brands-row{grid-template-columns:repeat(3,1fr);}.hero-title{font-size:32px;}.section{padding:48px 20px;}}
       `}</style>
 
+      {/* PWA INSTALL BANNER */}
+      {pwaPrompt&&!pwaInstalled&&(
+        <div style={{background:NAVY,color:"#fff",padding:"10px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap",zIndex:999,position:"relative"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:20}}>📲</span>
+            <span style={{fontSize:13,fontWeight:500}}>Install Advantage Silchar app on your phone for quick access</span>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{pwaPrompt.prompt();pwaPrompt.userChoice.then(()=>setPwaPrompt(null));}}
+              style={{background:RED,color:"#fff",border:"none",padding:"7px 18px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+              Install App
+            </button>
+            <button onClick={()=>setPwaPrompt(null)}
+              style={{background:"none",border:"1px solid rgba(255,255,255,.3)",color:"rgba(255,255,255,.7)",padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+              Not now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PROMO BANNER */}
+      {(()=>{
+        const txt=localStorage.getItem("advantage_banner")|| " 🎓 Student Discount Available &nbsp;|&nbsp; 💻 Free OS Installation on all Desktops &nbsp;|&nbsp; 📞 Call 9435070738 for Best Deals";
+        return(
+          <div style={{background:RED,overflow:"hidden",height:32,display:"flex",alignItems:"center"}}>
+            <style>{`@keyframes marquee{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}.marquee-txt{display:inline-block;animation:marquee 35s linear infinite;white-space:nowrap;}`}</style>
+            <div className="marquee-txt" style={{fontSize:12,fontWeight:600,color:"#fff",letterSpacing:".02em"}} dangerouslySetInnerHTML={{__html:txt}}/>
+          </div>
+        );
+      })()}
+
       {/* UTIL BAR */}
       <div className="util-bar">
         <span>📍 Anand Arcade, Opposite Civil Hospital, Silchar – 788001</span>
@@ -1526,7 +1791,7 @@ export default function App(){
       </div>
 
       {/* GOOGLE MAPS */}
-<div style={{ width: "100%", position: "relative" }}>
+      <div style={{ width: "100%", position: "relative" }}>
   <iframe
     title="Advantage Silchar Location"
     src="https://maps.google.com/maps?q=24.8177744,92.79945&output=embed&z=17"
