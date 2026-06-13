@@ -578,7 +578,7 @@ function CompareModal({list,onClose,onQuote}){
       }
 
       const tipMap={
-        gaming:"Graphics card are must needed for gaming and high end applications like ai and machine learning.",
+        gaming:"None of these laptops have a dedicated GPU. Visit the store and ask specifically for gaming laptops with NVIDIA RTX graphics.",
         office:"Ask about Microsoft Office bundling — sometimes included free with new laptops.",
         work:"Ask about Microsoft Office bundling — sometimes included free with new laptops.",
         student:"Ask if there is a student discount. Also check if the college requires any specific specs.",
@@ -681,11 +681,11 @@ function CompareModal({list,onClose,onQuote}){
           {/* AI Section */}
           <div style={{background:"#fff",border:"2px solid "+NAVY,padding:"24px 28px",marginBottom:24}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-              <span style={{fontSize:20}}></span>
-              <span style={{fontWeight:800,fontSize:17,color:NAVY}}>Recommendation</span>
-              <span style={{fontSize:11,background:"#eef2ff",color:NAVY,padding:"2px 8px",fontWeight:600}}></span>
+              <span style={{fontSize:20}}>🤖</span>
+              <span style={{fontWeight:800,fontSize:17,color:NAVY}}>AI-Powered Recommendation</span>
+              <span style={{fontSize:11,background:"#eef2ff",color:NAVY,padding:"2px 8px",fontWeight:600}}>Powered by Gemini</span>
             </div>
-            <p style={{fontSize:13,color:"#666",marginBottom:16}}>Tell us what you need — we'll recommend the best product for you.</p>
+            <p style={{fontSize:13,color:"#666",marginBottom:16}}>Tell us what you need — AI will recommend the best product for you.</p>
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
               {SUGGESTIONS.map(s=>(
                 <button key={s} onClick={()=>{setUseCase(s);askAI(s);}}
@@ -975,6 +975,8 @@ export default function App(){
   const[adminOpen,setAdminOpen]=useState(false);
   const[pcBuilderOpen,setPcBuilderOpen]=useState(false);
   const[repairOpen,setRepairOpen]=useState(false);
+  const[pwaPrompt,setPwaPrompt]=useState(null);
+  const[pwaInstalled,setPwaInstalled]=useState(false);
   const[mobileMenuOpen,setMobileMenuOpen]=useState(false);
   const[compareList,setCompareList]=useState([]);
   const[compareOpen,setCompareOpen]=useState(false);
@@ -998,6 +1000,14 @@ export default function App(){
     const fn=()=>{if(window.location.hash==="#admin")setAdminOpen(true);};
     window.addEventListener("hashchange",fn);
     return()=>window.removeEventListener("hashchange",fn);
+  },[]);
+
+  // PWA install prompt
+  useEffect(()=>{
+    const handler=e=>{e.preventDefault();setPwaPrompt(e);};
+    window.addEventListener("beforeinstallprompt",handler);
+    window.addEventListener("appinstalled",()=>{setPwaInstalled(true);setPwaPrompt(null);});
+    return()=>window.removeEventListener("beforeinstallprompt",handler);
   },[]);
 
   const q=searchQuery.trim().toLowerCase();
@@ -1516,17 +1526,40 @@ export default function App(){
       </div>
 
       {/* GOOGLE MAPS */}
-      <div style={{width:"100%",position:"relative"}}>
-        <iframe
-          title="Advantage Silchar Location"
-          src="https://maps.google.com/maps?q=Anand+Arcade+Civil+Hospital+Road+Silchar+Assam+788001&output=embed&z=17"
-          width="100%" height="320" style={{border:0,display:"block"}} allowFullScreen loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"/>
-        <a href="https://www.google.com/maps/search/Anand+Arcade+Opposite+Civil+Hospital+Silchar+Assam+788001" target="_blank" rel="noreferrer"
-          style={{position:"absolute",bottom:16,right:16,background:NAVY,color:"#fff",padding:"10px 20px",fontSize:13,fontWeight:700,textDecoration:"none",display:"flex",alignItems:"center",gap:6,boxShadow:"0 2px 8px rgba(0,0,0,.3)"}}>
-          📍 Get Directions
-        </a>
-      </div>
+<div style={{ width: "100%", position: "relative" }}>
+  <iframe
+    title="Advantage Silchar Location"
+    src="https://maps.google.com/maps?q=24.8177744,92.79945&output=embed&z=17"
+    width="100%"
+    height="320"
+    style={{ border: 0, display: "block" }}
+    allowFullScreen
+    loading="lazy"
+    referrerPolicy="no-referrer-when-downgrade"
+  />
+  <a
+    href="https://www.google.com/maps/place/EPSON+AUTHORISED+SERVICE+CENTRE+-+Advantage/@24.8177792,92.7945791,17z/data=!3m1!4b1!4m6!3m5!1s0x374e4b0c5d7d4ed9:0xd45e483c48359750!8m2!3d24.8177744!4d92.79945!16s%2Fg%2F11fsw03y6g"
+    target="_blank"
+    rel="noreferrer"
+    style={{
+      position: "absolute",
+      bottom: 16,
+      right: 16,
+      background: NAVY,
+      color: "#fff",
+      padding: "10px 20px",
+      fontSize: 13,
+      fontWeight: 700,
+      textDecoration: "none",
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      boxShadow: "0 2px 8px rgba(0,0,0,.3)"
+    }}
+  >
+    📍 Get Directions
+  </a>
+</div>
 
       {/* FOOTER */}
       <footer className="footer">
