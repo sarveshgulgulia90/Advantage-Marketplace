@@ -368,6 +368,9 @@ export default function Admin({defaultProducts,onExit}){
           <button className={`tab-btn${tab==="add"?" active":""}`} onClick={()=>{setTab("add");if(!editId)setForm(EMPTY);}}>{editId!==null?"✏️ Edit":"➕ Add Product"}</button>
           <button className={`tab-btn${tab==="inquiries"?" active":""}`} onClick={()=>{setTab("inquiries");loadInquiries();}}>📩 Enquiries{newCount>0?" ("+newCount+" new)":""}</button>
           <button className={`tab-btn${tab==="pcprices"?" active":""}`} onClick={()=>{setTab("pcprices");loadPcPrices();}}>🔧 PC Prices</button>
+          <button className={`tab-btn${tab==="service"?" active":""}`} onClick={()=>{setTab("service");loadServiceJobs();}}>🛠️ Service Jobs</button>
+          <button className={`tab-btn${tab==="analytics"?" active":""}`} onClick={()=>{setTab("analytics");loadAnalytics();}}>📊 Analytics</button>
+          <button className={`tab-btn${tab==="banner"?" active":""}`} onClick={()=>setTab("banner")}>📢 Banner</button>
         </div>
 
         {/* ══ PRODUCTS TAB ══ */}
@@ -663,3 +666,6 @@ export default function Admin({defaultProducts,onExit}){
     </div>
   );
 }
+
+// ── Analytics helpers (appended) ──
+// These are loaded inside the Admin component via the analytics tab

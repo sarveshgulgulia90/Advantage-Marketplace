@@ -1209,6 +1209,8 @@ export default function App(){
   const[adminOpen,setAdminOpen]=useState(false);
   const[pcBuilderOpen,setPcBuilderOpen]=useState(false);
   const[repairOpen,setRepairOpen]=useState(false);
+  const[serviceTrackerOpen,setServiceTrackerOpen]=useState(false);
+  const[bulkQuoteOpen,setBulkQuoteOpen]=useState(false);
   const[pwaPrompt,setPwaPrompt]=useState(null);
   const[pwaInstalled,setPwaInstalled]=useState(false);
   const[mobileMenuOpen,setMobileMenuOpen]=useState(false);
@@ -1470,7 +1472,7 @@ export default function App(){
 
       {/* PROMO BANNER */}
       {(()=>{
-        const txt=localStorage.getItem("advantage_banner")|| " 🎓 Student Discount Available &nbsp;|&nbsp; 💻 Free OS Installation on all Desktops &nbsp;|&nbsp; 📞 Call 9435070738 for Best Deals";
+        const txt=localStorage.getItem("advantage_banner")||"🔥 Summer Sale — Up to ₹5,000 off on Laptops &nbsp;|&nbsp; 🎓 Student Discount Available &nbsp;|&nbsp; 💻 Free OS Installation on all Desktops &nbsp;|&nbsp; 📞 Call 9435070738 for Best Deals";
         return(
           <div style={{background:RED,overflow:"hidden",height:32,display:"flex",alignItems:"center"}}>
             <style>{`@keyframes marquee{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}.marquee-txt{display:inline-block;animation:marquee 35s linear infinite;white-space:nowrap;}`}</style>
@@ -1728,9 +1730,10 @@ export default function App(){
               <div style={{font:"700 16px/1 'DM Sans',sans-serif",color:"#fff",marginBottom:6}}>Need a service? We'll help you fast.</div>
               <div style={{fontSize:13,color:"rgba(255,255,255,.4)"}}>Carry-in at Anand Arcade or book an onsite visit</div>
             </div>
-            <div style={{display:"flex",gap:10}}>
-              <button onClick={()=>setRepairOpen(true)} style={{background:RED,color:"#fff",border:"none",padding:"11px 24px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer"}}>Book Service</button>
-              <a href="tel:9435070738" style={{background:"none",color:"rgba(255,255,255,.7)",border:"1px solid rgba(255,255,255,.2)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>📞 9435070738</a>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+              <button onClick={()=>setRepairOpen(true)} style={{background:RED,color:"#fff",border:"none",padding:"11px 24px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit"}}>Book Service</button>
+              <button onClick={()=>setServiceTrackerOpen(true)} style={{background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>🔍 Track Repair</button>
+              <a href="tel:9435070738" style={{background:"none",color:"rgba(255,255,255,.7)",border:"1px solid rgba(255,255,255,.2)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,textDecoration:"none"}}>📞 9435070738</a>
             </div>
           </div>
         </div>
@@ -1791,7 +1794,7 @@ export default function App(){
       </div>
 
       {/* GOOGLE MAPS */}
-      <div style={{ width: "100%", position: "relative" }}>
+<div style={{ width: "100%", position: "relative" }}>
   <iframe
     title="Advantage Silchar Location"
     src="https://maps.google.com/maps?q=24.8177744,92.79945&output=embed&z=17"
@@ -1825,6 +1828,25 @@ export default function App(){
     📍 Get Directions
   </a>
 </div>
+
+      {/* BULK / INSTITUTIONAL QUOTE */}
+      <div style={{background:"#0B1F5E",borderTop:"3px solid "+RED}}>
+        <div style={{maxWidth:1340,margin:"0 auto",padding:"48px 32px",display:"grid",gridTemplateColumns:"1fr auto",gap:32,alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:RED,marginBottom:10}}>For Schools · Colleges · Offices · Government</div>
+            <h2 style={{fontSize:"clamp(22px,3vw,32px)",fontWeight:800,color:"#fff",marginBottom:10,letterSpacing:"-.01em"}}>Bulk & Institutional Purchases</h2>
+            <p style={{fontSize:14,color:"rgba(255,255,255,.5)",lineHeight:1.7,maxWidth:500}}>Get special pricing on bulk orders. We supply laptops, desktops, printers and networking equipment to schools, government offices and businesses across Silchar and Assam.</p>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:10,flexShrink:0}}>
+            <button onClick={()=>setBulkQuoteOpen(true)}
+              style={{background:RED,color:"#fff",border:"none",padding:"14px 32px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em",textTransform:"uppercase",transition:"background .15s",whiteSpace:"nowrap"}}
+              onMouseEnter={e=>e.target.style.background="#a81515"} onMouseLeave={e=>e.target.style.background=RED}>
+              Request Bulk Quote
+            </button>
+            <a href="tel:9435070738" style={{color:"rgba(255,255,255,.5)",fontSize:13,textAlign:"center",textDecoration:"none"}}>or call 9435070738</a>
+          </div>
+        </div>
+      </div>
 
       {/* FOOTER */}
       <footer className="footer">
@@ -1867,6 +1889,8 @@ export default function App(){
       {modal&&<QuoteModal product={modal} onClose={()=>setModal(null)}/>}
       {pcBuilderOpen&&<PCBuilder onClose={()=>setPcBuilderOpen(false)} onEnquire={setModal}/>}
       {repairOpen&&<RepairModal onClose={()=>setRepairOpen(false)}/>}
+      {serviceTrackerOpen&&<ServiceTracker onClose={()=>setServiceTrackerOpen(false)}/>}
+      {bulkQuoteOpen&&<BulkQuoteModal onClose={()=>setBulkQuoteOpen(false)}/>}
     </>
   );
 }

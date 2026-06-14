@@ -1,9 +1,9 @@
 require("dotenv").config();
-const express  = require("express");
+const express = require("express");
 const mongoose = require("mongoose");
-const cors     = require("cors");
+const cors = require("cors");
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 5000;
 
 /* ── Middleware ── */
@@ -13,29 +13,39 @@ app.use(express.urlencoded({ extended: true }));
 
 /* ── Debug token check (remove after fixing) ── */
 app.get("/api/debug-token", (req, res) => {
-  const sent     = (req.headers["x-admin-token"] || "").trim();
+  const sent = (req.headers["x-admin-token"] || "").trim();
   const expected = (process.env.ADMIN_TOKEN || "advantage_admin_secret_2025").trim();
+  
   res.json({
-    match:          sent === expected,
-    sentLength:     sent.length,
+    match: sent === expected,
+    sentLength: sent.length,
     expectedLength: expected.length,
-    sentFirst10:    sent.slice(0, 10),
-    expectedFirst10:expected.slice(0, 10),
+    sentFirst10: sent.slice(0, 10),
+    expectedFirst10: expected.slice(0, 10),
   });
 });
 
 /* ── Routes ── */
-app.use("/api/products",    require("./routes/products"));
-app.use("/api/inquiries",   require("./routes/inquiries"));
-app.use("/api/ai",          require("./routes/ai"));
-app.use("/api/components",  require("./routes/components"));
+app.use("/api/products", require("./routes/products"));
+app.use("/api/inquiries", require("./routes/inquiries"));
+app.use("/api/ai", require("./routes/ai"));
+app.use("/api/components", require("./routes/components"));
+app.use("/api/service", require("./routes/service"));
 
 // Auth and orders need extra packages — load only if available
-try { app.use("/api/auth",   require("./routes/auth"));   console.log("✓ Auth routes loaded"); }
-catch(e){ console.warn("⚠ Auth routes skipped:", e.message); }
+try {
+  app.use("/api/auth", require("./routes/auth"));
+  console.log("✓ Auth routes loaded");
+} catch (e) {
+  console.warn("⚠ Auth routes skipped:", e.message);
+}
 
-try { app.use("/api/orders", require("./routes/orders")); console.log("✓ Order routes loaded"); }
-catch(e){ console.warn("⚠ Order routes skipped:", e.message); }
+try {
+  app.use("/api/orders", require("./routes/orders"));
+  console.log("✓ Order routes loaded");
+} catch (e) {
+  console.warn("⚠ Order routes skipped:", e.message);
+}
 
 /* ── Health check ── */
 app.get("/", (req, res) => res.json({ status: "Advantage API running ✓" }));
