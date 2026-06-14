@@ -159,10 +159,124 @@ export default function Admin({defaultProducts,onExit}){
   const[pcLoading,setPcLoading]=useState(false);
   const[pcSaveMsg,setPcSaveMsg]=useState({});
 
+  const[serviceJobs,setServiceJobs]=useState([]);
+  const[serviceLoading,setServiceLoading]=useState(false);
+  const[newJobForm,setNewJobForm]=useState({customerName:"",phone:"",deviceType:"Laptop",brand:"",model:"",issue:"",serviceType:"Carry-in"});
+  const[newJobSaving,setNewJobSaving]=useState(false);
+  const[analytics,setAnalytics]=useState(null);
+  const[analyticsLoading,setAnalyticsLoading]=useState(false);
+  const[bannerText,setBannerText]=useState(()=>localStorage.getItem("advantage_banner")||"🔥 Summer Sale — Up to ₹5,000 off on Laptops &nbsp;|&nbsp; 🎓 Student Discount Available &nbsp;|&nbsp; 💻 Free OS Installation on all Desktops &nbsp;|&nbsp; 📞 Call 9435070738 for Best Deals");
+  const[bannerSaved,setBannerSaved]=useState(false);
+
   function showToast(msg,type="success"){ setToast({msg,type}); setTimeout(()=>setToast(null),2800); }
   function persist(arr){ setProducts(arr); ss(arr); }
 
-  // ── Inquiries ──
+  // ── Service Jobs ──
+  async function loadServiceJobs(){
+    setServiceLoading(true);
+    try{
+      const res=await fetch(API+"/service",{headers:{"x-admin-token":BTKN}});
+      const d=await res.json();
+      if(!res.ok) throw new Error(d.error||"Error "+res.status);
+      setServiceJobs(Array.isArray(d)?d:[]);
+    }catch(e){ showToast("Service jobs: "+e.message,"error"); setServiceJobs([]); }
+    setServiceLoading(false);
+  }
+
+  async function createServiceJob(){
+    if(!newJobForm.customerName||!newJobForm.phone||!newJobForm.deviceType) return;
+    setNewJobSaving(true);
+    try{
+      const res=await fetch(API+"/service",{method:"POST",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify(newJobForm)});
+      const d=await res.json();
+      if(!res.ok) throw new Error(d.error||"Failed");
+      showToast("Job created: "+d.jobId);
+      setNewJobForm({customerName:"",phone:"",deviceType:"Laptop",brand:"",model:"",issue:"",serviceType:"Carry-in"});
+      loadServiceJobs();
+    }catch(e){ showToast(e.message,"error"); }
+    setNewJobSaving(false);
+  }
+
+  async function updateJobStatus(jobId,status,note){
+    try{
+      const res=await fetch(API+"/service/"+jobId+"/status",{method:"PUT",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify({status,note})});
+      if(!res.ok) throw new Error("Failed");
+      showToast("Status updated");
+      loadServiceJobs();
+    }catch(e){ showToast(e.message,"error"); }
+  }
+
+  async function deleteServiceJob(jobId){
+    try{
+      await fetch(API+"/service/"+jobId,{method:"DELETE",headers:{"x-admin-token":BTKN}});
+      loadServiceJobs();
+    }catch{}
+  }
+
+  // ── Analytics ──
+  async function loadAnalytics(){
+    setAnalyticsLoading(true);
+    try{
+      const[inqRes,svcRes]=await Promise.all([
+        fetch(API+"/inquiries",{headers:{"x-admin-token":BTKN}}),
+        fetch(API+"/service",{headers:{"x-admin-token":BTKN}}),
+      ]);
+      const inqData=inqRes.ok?await inqRes.json():[];
+      const svcData=svcRes.ok?await svcRes.json():[];
+      // Process analytics
+      const now=new Date();
+      const last7=new Date(now-7*864e5);
+      const last30=new Date(now-30*864e5);
+      const inqLast7=inqData.filter(i=>new Date(i.createdAt)>last7);
+      const inqLast30=inqData.filter(i=>new Date(i.createdAt)>last30);
+      // Top products by enquiry
+      const prodCount={};
+      inqData.forEach(i=>{ if(i.product&&i.product!=="General"){ prodCount[i.product]=(prodCount[i.product]||0)+1; } });
+      const topProducts=Object.entries(prodCount).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}));
+      // Daily enquiries last 7 days
+      const dailyMap={};
+      for(let i=6;i>=0;i--){
+        const d=new Date(now-i*864e5);
+        const key=d.toLocaleDateString("en-IN",{day:"numeric",month:"short"});
+        dailyMap[key]=0;
+      }
+      inqLast7.forEach(i=>{
+        const key=new Date(i.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short"});
+        if(dailyMap[key]!==undefined) dailyMap[key]++;
+      });
+      // Category breakdown
+      const catMap={};
+      inqData.forEach(i=>{
+        const prod=products.find(p=>p.name===i.product);
+        const cat=prod?prod.cat:(i.product?.includes("Repair")?"Repair":i.product?.includes("PC Build")?"PC Build":"Other");
+        catMap[cat]=(catMap[cat]||0)+1;
+      });
+      // Out of stock products
+      const outOfStock=products.filter(p=>p.inStock===false);
+      setAnalytics({
+        totalEnquiries:inqData.length,
+        enquiriesLast7:inqLast7.length,
+        enquiriesLast30:inqLast30.length,
+        unread:inqData.filter(i=>!i.read).length,
+        totalProducts:products.length,
+        outOfStock:outOfStock.length,
+        outOfStockList:outOfStock,
+        totalServiceJobs:svcData.length,
+        activeJobs:svcData.filter(j=>!["Completed","Cancelled"].includes(j.status)).length,
+        topProducts,
+        dailyEnquiries:Object.entries(dailyMap).map(([date,count])=>({date,count})),
+        catBreakdown:Object.entries(catMap).sort((a,b)=>b[1]-a[1]),
+      });
+    }catch(e){ showToast("Analytics: "+e.message,"error"); }
+    setAnalyticsLoading(false);
+  }
+
+  function saveBanner(){
+    localStorage.setItem("advantage_banner",bannerText);
+    setBannerSaved(true);
+    setTimeout(()=>setBannerSaved(false),2000);
+    showToast("Banner updated! Refresh the website to see it.");
+  }
   async function loadInquiries(){
     setInqLoading(true);
     try{
