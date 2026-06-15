@@ -221,8 +221,10 @@ export default function Admin({defaultProducts,onExit}){
         fetch(API+"/inquiries",{headers:{"x-admin-token":BTKN}}),
         fetch(API+"/service",{headers:{"x-admin-token":BTKN}}),
       ]);
-      const inqData=inqRes.ok?await inqRes.json():[];
-      const svcData=svcRes.ok?await svcRes.json():[];
+      const inqRaw=inqRes.ok?await inqRes.json():[];
+      const svcRaw=svcRes.ok?await svcRes.json():[];
+      const inqData=Array.isArray(inqRaw)?inqRaw:[];
+      const svcData=Array.isArray(svcRaw)?svcRaw:[];
       // Process analytics
       const now=new Date();
       const last7=new Date(now-7*864e5);
@@ -595,7 +597,7 @@ export default function Admin({defaultProducts,onExit}){
 
               {/* Icon */}
               <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:24}}>
-                <div style={{fontSize:12,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:12}}>Fallback Icon <span style={{fontWeight:400,color:"#aaa",textTransform:"none"}}>(if no image)</span></div>
+                <div style={{fontSize:12,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:12}}>Fallback Icon <span style={{fontWeight:400,color:"#aaa",textTransform:"none"}}}>(if no image)</span></div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                   {ICONS.map(ic=>(
                     <button key={ic} onClick={()=>setForm(f=>({...f,icon:ic}))}
@@ -754,32 +756,262 @@ export default function Admin({defaultProducts,onExit}){
             ))}
           </div>
         )}
-      </div>
 
-      {/* Delete Modal */}
-      {delConfirm&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#fff",maxWidth:360,width:"100%",padding:"40px 32px",textAlign:"center"}}>
-            <div style={{fontSize:40,marginBottom:16}}>🗑️</div>
-            <div style={{fontWeight:800,fontSize:20,color:NAVY,marginBottom:8}}>Delete this product?</div>
-            <p style={{fontSize:14,color:"#666",marginBottom:28}}>This cannot be undone.</p>
-            <div style={{display:"flex",gap:12}}>
-              <button onClick={()=>setDelConfirm(null)} style={{flex:1,background:"#f5f5f5",border:"none",padding:"12px",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={()=>handleDelete(delConfirm)} style={{flex:1,background:RED,color:"#fff",border:"none",padding:"12px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
+        {/* ══ SERVICE JOBS TAB ══ */}
+        {tab==="service"&&(
+          <div>
+            <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:20,marginBottom:20}}>
+              <div style={{fontWeight:700,fontSize:15,color:NAVY,marginBottom:14}}>➕ Create New Service Job</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:12}}>
+                <div>
+                  <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Customer Name *</div>
+                  <input className="adm-inp" value={newJobForm.customerName} onChange={e=>setNewJobForm(f=>({...f,customerName:e.target.value}))} placeholder="Full name"/>
+                </div>
+                <div>
+                  <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Phone *</div>
+                  <input className="adm-inp" value={newJobForm.phone} onChange={e=>setNewJobForm(f=>({...f,phone:e.target.value}))} placeholder="Phone number"/>
+                </div>
+                <div>
+                  <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Device Type *</div>
+                  <select className="adm-inp" value={newJobForm.deviceType} onChange={e=>setNewJobForm(f=>({...f,deviceType:e.target.value}))}>
+                    {["Laptop","Desktop","Printer","Monitor","Other"].map(t=><option key={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Brand</div>
+                  <input className="adm-inp" value={newJobForm.brand} onChange={e=>setNewJobForm(f=>({...f,brand:e.target.value}))} placeholder="e.g. HP, Dell"/>
+                </div>
+                <div>
+                  <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Model</div>
+                  <input className="adm-inp" value={newJobForm.model} onChange={e=>setNewJobForm(f=>({...f,model:e.target.value}))} placeholder="e.g. Pavilion 15"/>
+                </div>
+                <div>
+                  <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Service Type</div>
+                  <select className="adm-inp" value={newJobForm.serviceType} onChange={e=>setNewJobForm(f=>({...f,serviceType:e.target.value}))}>
+                    {["Carry-in","Onsite Visit"].map(t=><option key={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Issue Description</div>
+                <textarea className="adm-inp" rows={2} value={newJobForm.issue} onChange={e=>setNewJobForm(f=>({...f,issue:e.target.value}))} placeholder="Describe the problem..." style={{resize:"vertical"}}/>
+              </div>
+              <button onClick={createServiceJob} disabled={!newJobForm.customerName||!newJobForm.phone||newJobSaving}
+                style={{background:newJobForm.customerName&&newJobForm.phone?NAVY:"#ccc",color:"#fff",border:"none",padding:"11px 28px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
+                onMouseEnter={e=>{if(newJobForm.customerName)e.target.style.background=RED;}} onMouseLeave={e=>e.target.style.background=NAVY}>
+                {newJobSaving?"Creating...":"Create Job & Get Job ID"}
+              </button>
+            </div>
+
+            {serviceLoading&&<div style={{textAlign:"center",padding:40,color:"#888"}}>Loading...</div>}
+            {!serviceLoading&&serviceJobs.length===0&&<div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid #e8e8e8",color:"#aaa"}}>No service jobs yet. Create one above.</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {serviceJobs.map(job=>{
+                const SC={"Received":"#d97706","Diagnosed":"#0891b2","In Progress":"#7c3aed","Ready for Pickup":"#16a34a","Completed":"#16a34a","Cancelled":"#dc2626"};
+                const STATUSES=["Received","Diagnosed","In Progress","Ready for Pickup","Completed","Cancelled"];
+                return(
+                  <div key={job._id} style={{background:"#fff",border:"1.5px solid #e8e8e8",padding:"14px 18px",display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
+                    <div style={{flex:1,minWidth:200}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
+                        <span style={{fontWeight:800,fontSize:14,color:NAVY}}>{job.customerName}</span>
+                        <span style={{fontSize:12,color:"#888"}}>📞 {job.phone}</span>
+                        <span style={{background:"#eef2ff",color:NAVY,fontSize:11,fontWeight:700,padding:"2px 8px",fontFamily:"monospace"}}>{job.jobId}</span>
+                      </div>
+                      <div style={{fontSize:13,color:"#555",marginBottom:3}}>{job.deviceType} {job.brand} {job.model}</div>
+                      <div style={{fontSize:12,color:"#888",marginBottom:6}}>{job.issue}</div>
+                      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                        <span style={{background:SC[job.status]||"#888",color:"#fff",fontSize:10,fontWeight:700,padding:"2px 8px",letterSpacing:".06em",textTransform:"uppercase"}}>{job.status}</span>
+                        <span style={{fontSize:11,color:"#aaa"}}>{new Date(job.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</span>
+                        {job.estimatedCost>0&&<span style={{fontSize:12,fontWeight:600,color:NAVY}}>Est: ₹{job.estimatedCost}</span>}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:8,flexShrink:0,flexWrap:"wrap",alignItems:"center"}}>
+                      <select defaultValue="" onChange={e=>{if(e.target.value){updateJobStatus(job.jobId,e.target.value,"Updated by admin");e.target.value="";}}}
+                        style={{border:"1px solid #ddd",padding:"6px 10px",fontSize:12,fontFamily:"inherit",cursor:"pointer",outline:"none",color:"#555"}}>
+                        <option value="" disabled>Update status...</option>
+                        {STATUSES.filter(s=>s!==job.status).map(s=><option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <a href={"https://wa.me/91"+job.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("Hi "+job.customerName+", your "+job.deviceType+" repair (Job: "+job.jobId+") status: "+job.status+". Track at our website. Call 9435070738 for details.")}
+                        target="_blank" rel="noreferrer"
+                        style={{background:"#25D366",color:"#fff",padding:"7px 12px",fontSize:12,fontWeight:600,textDecoration:"none",whiteSpace:"nowrap"}}>
+                        💬 Notify
+                      </a>
+                      <button onClick={()=>window.confirm("Delete job "+job.jobId+"?")&&deleteServiceJob(job.jobId)}
+                        style={{background:"#fff0f0",color:RED,border:"1px solid #fecaca",padding:"7px 8px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Toast */}
-      {toast&&(
-        <div style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:toast.type==="error"?RED:NAVY,color:"#fff",padding:"12px 24px",fontSize:14,fontWeight:600,zIndex:3000,boxShadow:"0 4px 20px rgba(0,0,0,.2)",whiteSpace:"nowrap"}}>
-          {toast.type==="error"?"⚠️":"✓"} {toast.msg}
+        {/* ══ ANALYTICS TAB ══ */}
+        {tab==="analytics"&&(
+          <div>
+            {analyticsLoading&&<div style={{textAlign:"center",padding:60,color:"#888",fontSize:14}}>Loading analytics...</div>}
+            {!analyticsLoading&&!analytics&&(
+              <div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid #e8e8e8"}}>
+                <div style={{fontSize:13,color:"#888",marginBottom:16}}>Click to load your store analytics</div>
+                <button onClick={loadAnalytics} style={{background:NAVY,color:"#fff",border:"none",padding:"12px 28px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Load Analytics</button>
+              </div>
+            )}
+            {analytics&&!analyticsLoading&&(
+              <div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+                  {[
+                    {label:"Total Enquiries",value:analytics.totalEnquiries,color:NAVY,icon:"📩"},
+                    {label:"Last 7 Days",value:analytics.enquiriesLast7,color:"#0891b2",icon:"📅"},
+                    {label:"Unread",value:analytics.unread,color:RED,icon:"🔴"},
+                    {label:"Active Repairs",value:analytics.activeJobs,color:"#7c3aed",icon:"🛠️"},
+                    {label:"Total Products",value:analytics.totalProducts,color:NAVY,icon:"📦"},
+                    {label:"Out of Stock",value:analytics.outOfStock,color:"#d97706",icon:"⚠️"},
+                    {label:"Last 30 Days",value:analytics.enquiriesLast30,color:"#16a34a",icon:"📈"},
+                    {label:"Service Jobs",value:analytics.totalServiceJobs,color:"#0891b2",icon:"🔧"},
+                  ].map((k,i)=>(
+                    <div key={i} style={{background:"#fff",border:"1px solid #e8e8e8",padding:"16px 18px"}}>
+                      <div style={{fontSize:20,marginBottom:6}}>{k.icon}</div>
+                      <div style={{fontSize:26,fontWeight:800,color:k.color,lineHeight:1}}>{k.value}</div>
+                      <div style={{fontSize:10,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#aaa",marginTop:5}}>{k.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+                  <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:20}}>
+                    <div style={{fontWeight:700,fontSize:14,color:NAVY,marginBottom:14}}>📅 Enquiries — Last 7 Days</div>
+                    {(()=>{
+                      const max=Math.max(...analytics.dailyEnquiries.map(d=>d.count),1);
+                      return(
+                        <div style={{display:"flex",alignItems:"flex-end",gap:6,height:100}}>
+                          {analytics.dailyEnquiries.map((d,i)=>(
+                            <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                              <div style={{fontSize:11,fontWeight:700,color:NAVY}}>{d.count||""}</div>
+                              <div style={{width:"100%",background:d.count>0?NAVY:"#e8e8e8",height:Math.max((d.count/max)*80,2)+"px",transition:"height .3s"}}/>
+                              <div style={{fontSize:9,color:"#aaa",textAlign:"center"}}>{d.date}</div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:20}}>
+                    <div style={{fontWeight:700,fontSize:14,color:NAVY,marginBottom:14}}>📊 By Category</div>
+                    {analytics.catBreakdown.length===0?<div style={{color:"#aaa",fontSize:13}}>No data yet</div>:
+                      analytics.catBreakdown.map(([cat,count],i)=>{
+                        const max=analytics.catBreakdown[0][1];
+                        return(
+                          <div key={i} style={{marginBottom:10}}>
+                            <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:600,color:NAVY,marginBottom:3}}>
+                              <span>{cat}</span><span>{count}</span>
+                            </div>
+                            <div style={{background:"#f0f2f8",height:8,overflow:"hidden"}}>
+                              <div style={{background:i===0?RED:NAVY,height:"100%",width:(count/max*100)+"%",opacity:1-i*0.1}}/>
+                            </div>
+                          </div>
+                        );
+                      })
+                    }
+                  </div>
+                </div>
+
+                <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:20,marginBottom:16}}>
+                  <div style={{fontWeight:700,fontSize:14,color:NAVY,marginBottom:14}}>🏆 Top Products by Enquiries</div>
+                  {analytics.topProducts.length===0?<div style={{color:"#aaa",fontSize:13}}>No product enquiries yet.</div>:(
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+                      {analytics.topProducts.map((p,i)=>(
+                        <div key={i} style={{background:i===0?"#fff8f0":"#f9f9fb",border:"1px solid "+(i===0?RED:"#e8e8e8"),padding:"12px 14px"}}>
+                          <div style={{fontSize:18,fontWeight:800,color:i===0?RED:NAVY}}>{i+1}</div>
+                          <div style={{fontSize:12,fontWeight:600,color:NAVY,marginTop:4,lineHeight:1.3}}>{p.name}</div>
+                          <div style={{fontSize:11,color:"#888",marginTop:3}}>{p.count} enquir{p.count===1?"y":"ies"}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {analytics.outOfStockList.length>0&&(
+                  <div style={{background:"#fff8ed",border:"1px solid #fed7aa",padding:20,marginBottom:16}}>
+                    <div style={{fontWeight:700,fontSize:14,color:"#c2410c",marginBottom:10}}>⚠️ Out of Stock ({analytics.outOfStockList.length})</div>
+                    {analytics.outOfStockList.map(p=>(
+                      <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #fed7aa"}}>
+                        <div><span style={{fontWeight:600,color:NAVY}}>{p.name}</span><span style={{fontSize:12,color:"#888",marginLeft:8}}>{p.cat}</span></div>
+                        <button onClick={()=>{persist(products.map(x=>x.id===p.id?{...x,inStock:true}:x));showToast(p.name+" marked in stock");loadAnalytics();}}
+                          style={{background:"#dcfce7",color:"#16a34a",border:"1px solid #86efac",padding:"4px 10px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                          Mark In Stock
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button onClick={loadAnalytics} style={{background:"#f0f2f8",color:NAVY,border:"1px solid #dde2f0",padding:"8px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>↺ Refresh</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══ BANNER TAB ══ */}
+        {tab==="banner"&&(
+          <div>
+            <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:24,marginBottom:16}}>
+              <div style={{fontWeight:700,fontSize:16,color:NAVY,marginBottom:4}}>📢 Scrolling Promo Banner</div>
+              <div style={{fontSize:13,color:"#666",marginBottom:16}}>This text scrolls in a red banner at the top of the website. Customers see it on every visit.</div>
+              <textarea value={bannerText} onChange={e=>setBannerText(e.target.value)} rows={3}
+                style={{width:"100%",border:"1.5px solid #dde2f0",padding:"12px 14px",fontSize:14,fontFamily:"inherit",outline:"none",resize:"vertical",color:"#111",marginBottom:12}}
+                onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#dde2f0"}/>
+              <div style={{fontSize:11,fontWeight:700,color:"#555",textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>Live Preview</div>
+              <div style={{background:RED,overflow:"hidden",height:32,display:"flex",alignItems:"center",marginBottom:16,borderRadius:2}}>
+                <style>{"@keyframes bm{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}.bmar{display:inline-block;animation:bm 20s linear infinite;white-space:nowrap;padding-left:100%;}"}</style>
+                <div className="bmar" style={{fontSize:12,fontWeight:600,color:"#fff"}} dangerouslySetInnerHTML={{__html:bannerText}}/>
+              </div>
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={saveBanner} style={{background:bannerSaved?"#16a34a":NAVY,color:"#fff",border:"none",padding:"11px 28px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"background .2s"}}>{bannerSaved?"✓ Saved!":"Save Banner"}</button>
+                <button onClick={()=>setBannerText("🔥 Summer Sale — Up to ₹5,000 off on Laptops &nbsp;|&nbsp; 🎓 Student Discount Available &nbsp;|&nbsp; 💻 Free OS Installation on all Desktops &nbsp;|&nbsp; 📞 Call 9435070738 for Best Deals")}
+                  style={{background:"none",border:"1.5px solid #ddd",color:"#888",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Reset to Default</button>
+              </div>
+              <div style={{marginTop:12,padding:"10px 14px",background:"#f0f2f8",fontSize:12,color:"#555"}}>💡 After saving, refresh the website to see the updated banner.</div>
+            </div>
+            <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:20}}>
+              <div style={{fontWeight:700,fontSize:14,color:NAVY,marginBottom:10}}>Quick Templates</div>
+              {[
+                "🔥 Summer Sale — Up to ₹5,000 off on Laptops &nbsp;|&nbsp; 📞 Call 9435070738 for Best Deals",
+                "🎓 Student Special — Extra ₹1,000 off on all Laptops &nbsp;|&nbsp; Valid this month only",
+                "💻 New Arrivals — Latest HP & Dell Laptops in stock &nbsp;|&nbsp; Visit Anand Arcade, Silchar",
+                "🛠️ Free Diagnosis — Bring your laptop for free checkup &nbsp;|&nbsp; No fix, no charge policy",
+                "📢 Dussehra Sale — Special prices on Desktops, Laptops & Printers &nbsp;|&nbsp; Limited stock!",
+              ].map((t,i)=>(
+                <div key={i} onClick={()=>setBannerText(t)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#f9f9fb",border:"1px solid #e8e8e8",cursor:"pointer",marginBottom:6}}>
+                  <div style={{flex:1,fontSize:12,color:"#444"}} dangerouslySetInnerHTML={{__html:t}}/>
+                  <button style={{background:NAVY,color:"#fff",border:"none",padding:"4px 12px",fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0,fontFamily:"inherit"}}>Use</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+     <>
+  {/* Delete Modal */}
+  {delConfirm && (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: "#fff", maxWidth: 360, width: "100%", padding: "40px 32px", textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>🗑️</div>
+        <div style={{ fontWeight: 800, fontSize: 20, color: NAVY, marginBottom: 8 }}>Delete this product?</div>
+        <p style={{ fontSize: 14, color: "#666", marginBottom: 28 }}>This cannot be undone.</p>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button onClick={() => setDelConfirm(null)} style={{ flex: 1, background: "#f5f5f5", border: "none", padding: "12px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+          <button onClick={() => handleDelete(delConfirm)} style={{ flex: 1, background: RED, color: "#fff", border: "none", padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Delete</button>
         </div>
-      )}
+      </div>
     </div>
-  );
-}
+  )}
 
+  {/* Toast */}
+  {toast && (
+    <div style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", background: toast.type === "error" ? RED : NAVY, color: "#fff", padding: "12px 24px", fontSize: 14, fontWeight: 600, zIndex: 3000, boxShadow: "0 4px 20px rgba(0,0,0,.2)", whiteSpace: "nowrap" }}>
+      {toast.type === "error" ? "⚠️" : "✓"} {toast.msg}
+    </div>
+  )}
+</>
 // ── Analytics helpers (appended) ──
 // These are loaded inside the Admin component via the analytics tab
