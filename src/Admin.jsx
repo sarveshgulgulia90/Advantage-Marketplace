@@ -597,7 +597,7 @@ export default function Admin({defaultProducts,onExit}){
 
               {/* Icon */}
               <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:24}}>
-                <div style={{fontSize:12,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:12}}>Fallback Icon <span style={{fontWeight:400,color:"#aaa",textTransform:"none"}}}>(if no image)</span></div>
+                <div style={{fontSize:12,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:12}}>Fallback Icon <span style={{fontWeight:400,color:"#aaa",textTransform:"none"}}>(if no image)</span></div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                   {ICONS.map(ic=>(
                     <button key={ic} onClick={()=>setForm(f=>({...f,icon:ic}))}
@@ -990,28 +990,30 @@ export default function Admin({defaultProducts,onExit}){
           </div>
         )}
 
-     <>
-  {/* Delete Modal */}
-  {delConfirm && (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ background: "#fff", maxWidth: 360, width: "100%", padding: "40px 32px", textAlign: "center" }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>🗑️</div>
-        <div style={{ fontWeight: 800, fontSize: 20, color: NAVY, marginBottom: 8 }}>Delete this product?</div>
-        <p style={{ fontSize: 14, color: "#666", marginBottom: 28 }}>This cannot be undone.</p>
-        <div style={{ display: "flex", gap: 12 }}>
-          <button onClick={() => setDelConfirm(null)} style={{ flex: 1, background: "#f5f5f5", border: "none", padding: "12px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-          <button onClick={() => handleDelete(delConfirm)} style={{ flex: 1, background: RED, color: "#fff", border: "none", padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Delete</button>
-        </div>
       </div>
-    </div>
-  )}
+      {delConfirm&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#fff",maxWidth:360,width:"100%",padding:"40px 32px",textAlign:"center"}}>
+            <div style={{fontSize:40,marginBottom:16}}>🗑️</div>
+            <div style={{fontWeight:800,fontSize:20,color:NAVY,marginBottom:8}}>Delete this product?</div>
+            <p style={{fontSize:14,color:"#666",marginBottom:28}}>This cannot be undone.</p>
+            <div style={{display:"flex",gap:12}}>
+              <button onClick={()=>setDelConfirm(null)} style={{flex:1,background:"#f5f5f5",border:"none",padding:"12px",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+              <button onClick={()=>handleDelete(delConfirm)} style={{flex:1,background:RED,color:"#fff",border:"none",padding:"12px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
 
-  {/* Toast */}
-  {toast && (
-    <div style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", background: toast.type === "error" ? RED : NAVY, color: "#fff", padding: "12px 24px", fontSize: 14, fontWeight: 600, zIndex: 3000, boxShadow: "0 4px 20px rgba(0,0,0,.2)", whiteSpace: "nowrap" }}>
-      {toast.type === "error" ? "⚠️" : "✓"} {toast.msg}
+      {/* Toast */}
+      {toast&&(
+        <div style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:toast.type==="error"?RED:NAVY,color:"#fff",padding:"12px 24px",fontSize:14,fontWeight:600,zIndex:3000,boxShadow:"0 4px 20px rgba(0,0,0,.2)",whiteSpace:"nowrap"}}>
+          {toast.type==="error"?"⚠️":"✓"} {toast.msg}
+        </div>
+      )}
     </div>
-  )}
-</>
+  );
+}
+
 // ── Analytics helpers (appended) ──
 // These are loaded inside the Admin component via the analytics tab
