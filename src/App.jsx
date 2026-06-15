@@ -437,7 +437,7 @@ function ServiceTracker({onClose}){
     if(!jobId.trim())return;
     setLoading(true);setResult(null);setError("");
     try{
-      const res=await fetch(API+"/service/"+jobId.trim());
+      const res=await fetch(API+"/service/track/"+jobId.trim().toUpperCase());
       const d=await res.json();
       if(!res.ok)throw new Error(d.error||"Job not found");
       setResult(d);
@@ -1793,6 +1793,7 @@ export default function App(){
         </div>
       </div>
 
+      {/* GOOGLE MAPS */}
       {/* GOOGLE MAPS */}
 <div style={{ width: "100%", position: "relative" }}>
   <iframe
