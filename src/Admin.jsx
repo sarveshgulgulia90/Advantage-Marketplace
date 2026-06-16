@@ -175,7 +175,7 @@ export default function Admin({defaultProducts,onExit}){
   async function loadServiceJobs(){
     setServiceLoading(true);
     try{
-      const res=await fetch(API+"/service",{headers:{"x-admin-token":BTKN}});
+      const res=await fetch(API+"/service/all",{headers:{"x-admin-token":BTKN}});
       const d=await res.json();
       if(!res.ok) throw new Error(d.error||"Error "+res.status);
       setServiceJobs(Array.isArray(d)?d:[]);
@@ -187,7 +187,7 @@ export default function Admin({defaultProducts,onExit}){
     if(!newJobForm.customerName||!newJobForm.phone||!newJobForm.deviceType) return;
     setNewJobSaving(true);
     try{
-      const res=await fetch(API+"/service",{method:"POST",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify(newJobForm)});
+      const res=await fetch(API+"/service/create",{method:"POST",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify(newJobForm)});
       const d=await res.json();
       if(!res.ok) throw new Error(d.error||"Failed");
       showToast("Job created: "+d.jobId);
