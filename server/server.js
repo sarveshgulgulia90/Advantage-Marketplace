@@ -66,8 +66,8 @@ app.get("/api/service/all", adminAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ADMIN — create job
-app.post("/api/service/create", adminAuth, async (req, res) => {
+// PUBLIC — create job (called by repair booking form)
+app.post("/api/service/create", async (req, res) => {
   try {
     const { customerName, phone, deviceType, brand, model, issue, serviceType } = req.body;
     if (!customerName || !phone || !deviceType)
