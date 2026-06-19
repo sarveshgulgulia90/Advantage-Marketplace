@@ -2,64 +2,84 @@ import { useState, useEffect } from "react";
 
 const NAVY = "#0B1F5E";
 const RED  = "#CC1A1A";
-const ADMIN_PASSWORD = "advantage1995";
-const STORAGE_KEY    = "advantage_products";
-const API  = import.meta.env.VITE_API_URL   || "http://localhost:5000/api";
+const GREY = "#f5f6f8";
+const BORDER = "#e2e4ea";
+
+const API  = import.meta.env.VITE_API_URL    || "http://localhost:5000/api";
 const BTKN = import.meta.env.VITE_ADMIN_TOKEN || "advantage_admin_secret_2025";
+const ADMIN_PASSWORD = "advantage1995";
+const STORAGE_KEY = "advantage_products";
 
 const CATS = ["Laptops","Desktops","Printers","Accessories","Security & CCTV"];
-const ICONS= ["💻","🖥️","🖨️","⌨️","🖱️","💾","🔌","📷","🎥","🔐"];
-
 const SPEC_KEYS = {
-  Laptops:       ["Processor","RAM","Storage","Display","Graphics","Operating System","Battery","Ports","Connectivity","Weight","Warranty"],
-  Desktops:      ["Processor","RAM","Storage","Form Factor","Graphics","Operating System","Ports","Connectivity","Warranty"],
-  Printers:      ["Type","Print Technology","Print Speed","Print Resolution","Connectivity","Scanner","Paper Size","Page Yield","Warranty"],
-  Accessories:   ["Type","Connectivity","Compatibility","Interface","Weight","Warranty"],
+  Laptops:          ["Processor","RAM","Storage","Display","Graphics","Operating System","Battery","Ports","Connectivity","Weight","Warranty"],
+  Desktops:         ["Processor","RAM","Storage","Form Factor","Graphics","Operating System","Ports","Connectivity","Warranty"],
+  Printers:         ["Type","Print Technology","Print Speed","Print Resolution","Connectivity","Scanner","Paper Size","Page Yield","Warranty"],
+  Accessories:      ["Type","Connectivity","Compatibility","Interface","Weight","Warranty"],
   "Security & CCTV":["Type","Resolution","Connectivity","Storage","Power","IR Range","Warranty"],
 };
-
 const EMPTY = {name:"",cat:"Laptops",price:"",icon:"💻",isNew:false,inStock:true,image:"",spec:"",specs:{},highlights:["","","",""]};
 
 function ls(){ try{ const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):null; }catch{return null;} }
 function ss(a){ localStorage.setItem(STORAGE_KEY,JSON.stringify(a)); }
 
-// ── PC Price Row ──────────────────────────────────────────────────
+/* ─── shared input style ─────────────────────────────────────────── */
+const INP = {
+  width:"100%",border:"1px solid "+BORDER,padding:"9px 12px",
+  fontSize:13,outline:"none",fontFamily:"inherit",color:"#111",
+  background:"#fff",transition:"border-color .15s",borderRadius:0,
+};
+
+/* ─── Stat card ──────────────────────────────────────────────────── */
+function Stat({label,value,alert}){
+  return(
+    <div style={{background:"#fff",border:"1px solid "+BORDER,padding:"18px 22px",flex:1,minWidth:110}}>
+      <div style={{fontSize:26,fontWeight:800,color:alert?RED:NAVY,lineHeight:1}}>{value}</div>
+      <div style={{fontSize:11,fontWeight:600,letterSpacing:".06em",textTransform:"uppercase",color:"#999",marginTop:6}}>{label}</div>
+    </div>
+  );
+}
+
+/* ─── PC Price Row ───────────────────────────────────────────────── */
 function PcPriceRow({item,category,saveMsg,onSave,onDelete}){
   const[price,setPrice]=useState(item.price||0);
   const[inStock,setInStock]=useState(item.inStock!==false);
-  const days=item.updatedAt?Math.floor((Date.now()-new Date(item.updatedAt))/(864e5))+" d ago":"—";
+  const days=item.updatedAt?Math.floor((Date.now()-new Date(item.updatedAt))/(864e5))+"d ago":"—";
   return(
-    <tr style={{borderBottom:"1px solid #f0f0f0"}}>
-      <td style={{padding:"10px 14px",fontSize:13,color:NAVY,fontWeight:500}}>{item.name}</td>
+    <tr style={{borderBottom:"1px solid "+BORDER}}>
+      <td style={{padding:"10px 14px",fontSize:13,color:NAVY}}>{item.name}</td>
       <td style={{padding:"10px 14px"}}>
         <div style={{display:"flex",alignItems:"center",gap:4}}>
-          <span style={{fontSize:13,color:"#555"}}>₹</span>
+          <span style={{fontSize:12,color:"#777"}}>Rs.</span>
           <input type="number" value={price} onChange={e=>setPrice(e.target.value)}
-            style={{border:"1px solid #ddd",padding:"6px 8px",fontSize:13,width:90,outline:"none",fontFamily:"inherit"}}/>
+            style={{...INP,width:90,padding:"5px 8px"}}
+            onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
         </div>
       </td>
       <td style={{padding:"10px 14px"}}>
         <button onClick={()=>setInStock(s=>!s)}
-          style={{background:inStock?"#dcfce7":"#fff0f0",color:inStock?"#16a34a":RED,border:"1px solid "+(inStock?"#86efac":"#fecaca"),padding:"4px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-          {inStock?"✓ In Stock":"✗ Out"}
+          style={{background:"none",border:"1px solid "+(inStock?"#16a34a":RED),color:inStock?"#16a34a":RED,padding:"3px 10px",fontSize:11,fontWeight:600,cursor:"pointer",letterSpacing:".04em"}}>
+          {inStock?"In Stock":"Out of Stock"}
         </button>
       </td>
       <td style={{padding:"10px 14px",fontSize:11,color:"#aaa"}}>{days}</td>
       <td style={{padding:"10px 14px"}}>
         <div style={{display:"flex",gap:6}}>
-          <button onClick={()=>onSave(price,inStock)}
-            style={{background:saveMsg?"#16a34a":NAVY,color:"#fff",border:"none",padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer",transition:"background .2s"}}>
+          <button onClick={()=>onSave(price,inStock,item.name)}
+            style={{background:saveMsg?NAVY:GREY,color:saveMsg?"#fff":NAVY,border:"1px solid "+(saveMsg?NAVY:BORDER),padding:"4px 12px",fontSize:11,fontWeight:600,cursor:"pointer",transition:"all .2s"}}>
             {saveMsg||"Save"}
           </button>
           <button onClick={()=>window.confirm("Delete "+item.name+"?")&&onDelete(category,item.componentId)}
-            style={{background:"#fff0f0",color:RED,border:"1px solid #fecaca",padding:"5px 8px",fontSize:11,cursor:"pointer"}}>🗑️</button>
+            style={{background:"none",border:"1px solid "+BORDER,color:"#999",padding:"4px 10px",fontSize:11,cursor:"pointer"}}>
+            Delete
+          </button>
         </div>
       </td>
     </tr>
   );
 }
 
-// ── Add Part Form ─────────────────────────────────────────────────
+/* ─── Add Part Form ──────────────────────────────────────────────── */
 function AddPartForm({onAdd}){
   const[cat,setCat]=useState("CPU");
   const[cid,setCid]=useState("");
@@ -69,39 +89,108 @@ function AddPartForm({onAdd}){
   async function go(){
     if(!cat||!cid||!nm||!pr){setMsg("All fields required");return;}
     const ok=await onAdd(cat,cid,nm,pr);
-    if(ok){setCid("");setNm("");setPr("");setMsg("✓ Added");}
-    else setMsg("Failed");
-    setTimeout(()=>setMsg(""),2000);
+    if(ok){setCid("");setNm("");setPr("");setMsg("Added successfully");}
+    else setMsg("Failed to add");
+    setTimeout(()=>setMsg(""),2500);
   }
-  const inp={border:"1.5px solid #e0e0e0",padding:"9px 12px",fontSize:13,outline:"none",fontFamily:"inherit",width:"100%"};
   return(
-    <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:16,marginBottom:20}}>
-      <div style={{fontSize:12,fontWeight:700,color:NAVY,letterSpacing:".06em",textTransform:"uppercase",marginBottom:10}}>Add New Component</div>
+    <div style={{background:"#fff",border:"1px solid "+BORDER,padding:18,marginBottom:20}}>
+      <div style={{fontSize:11,fontWeight:700,color:NAVY,letterSpacing:".08em",textTransform:"uppercase",marginBottom:12}}>Add New Component</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 2fr 1fr auto",gap:10,alignItems:"end"}}>
         <div>
-          <div style={{fontSize:11,color:"#888",marginBottom:4}}>Category</div>
-          <input style={inp} placeholder="e.g. CPU" value={cat} onChange={e=>setCat(e.target.value)}/>
+          <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Category</label>
+          <input style={INP} placeholder="e.g. CPU" value={cat} onChange={e=>setCat(e.target.value)}
+            onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
         </div>
         <div>
-          <div style={{fontSize:11,color:"#888",marginBottom:4}}>Component ID</div>
-          <input style={inp} placeholder="e.g. i5-12400" value={cid} onChange={e=>setCid(e.target.value)}/>
+          <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Component ID</label>
+          <input style={INP} placeholder="e.g. i5-12400" value={cid} onChange={e=>setCid(e.target.value)}
+            onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
         </div>
         <div>
-          <div style={{fontSize:11,color:"#888",marginBottom:4}}>Name</div>
-          <input style={inp} placeholder="Full component name" value={nm} onChange={e=>setNm(e.target.value)}/>
+          <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Name</label>
+          <input style={INP} placeholder="Full component name" value={nm} onChange={e=>setNm(e.target.value)}
+            onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
         </div>
         <div>
-          <div style={{fontSize:11,color:"#888",marginBottom:4}}>Price ₹</div>
-          <input style={inp} type="number" placeholder="0" value={pr} onChange={e=>setPr(e.target.value)}/>
+          <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Price (Rs.)</label>
+          <input style={INP} type="number" placeholder="0" value={pr} onChange={e=>setPr(e.target.value)}
+            onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
         </div>
-        <button onClick={go} style={{background:NAVY,color:"#fff",border:"none",padding:"10px 18px",fontSize:13,fontWeight:700,cursor:"pointer",height:40}}>Add</button>
+        <button onClick={go}
+          style={{background:NAVY,color:"#fff",border:"none",padding:"9px 18px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",height:38}}>
+          Add
+        </button>
       </div>
-      {msg&&<div style={{marginTop:8,fontSize:12,color:msg.startsWith("✓")?"#16a34a":RED,fontWeight:600}}>{msg}</div>}
+      {msg&&<div style={{marginTop:8,fontSize:12,color:msg.includes("success")?"#16a34a":RED,fontWeight:600}}>{msg}</div>}
     </div>
   );
 }
 
-// ── Seed Banner ───────────────────────────────────────────────────
+/* ─── Service job inline updater ─────────────────────────────────── */
+function EstCostUpdate({job,onUpdate}){
+  const[status,setStatus]=useState(job.status);
+  const[cost,setCost]=useState(job.estimatedCost||"");
+  const[note,setNote]=useState("");
+  const[open,setOpen]=useState(false);
+  const STATUS_LIST=["Received","Diagnosed","In Progress","Ready for Pickup","Completed","Cancelled"];
+  const BORDER="#e2e4ea";
+  const NAVY="#0B1F5E";
+  const RED="#CC1A1A";
+
+  function save(){
+    onUpdate(job.jobId, status, note, cost);
+    setOpen(false);
+    setNote("");
+  }
+
+  if(!open) return(
+    <button onClick={()=>setOpen(true)}
+      style={{background:"#fff",color:NAVY,border:"1px solid "+NAVY,padding:"6px 14px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+      Update
+    </button>
+  );
+
+  return(
+    <div style={{position:"relative"}}>
+      <div style={{position:"fixed",inset:0,zIndex:100}} onClick={()=>setOpen(false)}/>
+      <div style={{position:"absolute",right:0,top:32,background:"#fff",border:"1px solid "+BORDER,padding:16,zIndex:200,minWidth:260,boxShadow:"0 4px 16px rgba(0,0,0,.1)"}}>
+        <div style={{fontSize:11,fontWeight:700,color:NAVY,letterSpacing:".06em",textTransform:"uppercase",marginBottom:10}}>Update Job</div>
+        <div style={{marginBottom:8}}>
+          <label style={{fontSize:10,color:"#888",fontWeight:600,textTransform:"uppercase",letterSpacing:".05em",display:"block",marginBottom:4}}>Status</label>
+          <select value={status} onChange={e=>setStatus(e.target.value)}
+            style={{width:"100%",border:"1px solid "+BORDER,padding:"7px 10px",fontSize:12,fontFamily:"inherit",outline:"none",color:"#111",background:"#fff"}}>
+            {STATUS_LIST.map(s=><option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div style={{marginBottom:8}}>
+          <label style={{fontSize:10,color:"#888",fontWeight:600,textTransform:"uppercase",letterSpacing:".05em",display:"block",marginBottom:4}}>Estimated Cost (Rs.)</label>
+          <input type="number" value={cost} onChange={e=>setCost(e.target.value)} placeholder="e.g. 1500"
+            style={{width:"100%",border:"1px solid "+BORDER,padding:"7px 10px",fontSize:12,fontFamily:"inherit",outline:"none",color:"#111"}}
+            onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+        </div>
+        <div style={{marginBottom:12}}>
+          <label style={{fontSize:10,color:"#888",fontWeight:600,textTransform:"uppercase",letterSpacing:".05em",display:"block",marginBottom:4}}>Note (optional)</label>
+          <input value={note} onChange={e=>setNote(e.target.value)} placeholder="e.g. Motherboard replaced"
+            style={{width:"100%",border:"1px solid "+BORDER,padding:"7px 10px",fontSize:12,fontFamily:"inherit",outline:"none",color:"#111"}}
+            onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={save}
+            style={{flex:1,background:NAVY,color:"#fff",border:"none",padding:"8px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            Save
+          </button>
+          <button onClick={()=>setOpen(false)}
+            style={{background:"#fff",color:"#888",border:"1px solid "+BORDER,padding:"8px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Seed Banner ────────────────────────────────────────────────── */
 function SeedBanner({products}){
   const[status,setStatus]=useState(null);
   async function seed(){
@@ -112,36 +201,28 @@ function SeedBanner({products}){
       setStatus(res.ok?"done":d.error?.includes("already")?"exists":"error");
     }catch{setStatus("error");}
   }
-  if(status==="done") return <div style={{background:"#dcfce7",border:"1px solid #86efac",padding:"14px 20px",marginBottom:24,fontSize:13,fontWeight:600,color:"#15803d"}}>✓ Products seeded to MongoDB!</div>;
-  if(status==="exists") return <div style={{background:"#fef9c3",border:"1px solid #fde047",padding:"14px 20px",marginBottom:24,fontSize:13,color:"#854d0e"}}>⚠️ Already seeded. Delete all first to re-seed.</div>;
+  if(status==="done") return <div style={{background:"#f0fdf4",border:"1px solid #86efac",padding:"12px 18px",marginBottom:20,fontSize:13,color:"#15803d"}}>Products seeded to MongoDB successfully.</div>;
+  if(status==="exists") return <div style={{background:"#fffbeb",border:"1px solid #fde047",padding:"12px 18px",marginBottom:20,fontSize:13,color:"#854d0e"}}>Products already exist in the database.</div>;
   return(
-    <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",padding:"14px 20px",marginBottom:24,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+    <div style={{background:"#fff",border:"1px solid "+BORDER,padding:"14px 18px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
       <div>
-        <div style={{fontWeight:700,fontSize:14,color:NAVY}}>First time setup — Seed products to MongoDB</div>
-        <div style={{fontSize:12,color:"#555",marginTop:3}}>Pushes {products.length} products from local list into the database. Run once.</div>
+        <div style={{fontWeight:600,fontSize:13,color:NAVY}}>First time setup — seed products to MongoDB</div>
+        <div style={{fontSize:12,color:"#888",marginTop:2}}>Pushes {products.length} products from local list into the database. Run once.</div>
       </div>
       <div style={{display:"flex",gap:10,alignItems:"center"}}>
-        {status==="error"&&<span style={{fontSize:12,color:RED,fontWeight:600}}>Failed — is backend running?</span>}
+        {status==="error"&&<span style={{fontSize:12,color:RED}}>Failed — is backend running?</span>}
         <button onClick={seed} disabled={status==="loading"}
-          style={{background:NAVY,color:"#fff",border:"none",padding:"10px 22px",fontSize:13,fontWeight:700,cursor:"pointer",opacity:status==="loading"?.7:1}}>
-          {status==="loading"?"Seeding...":"Seed to Database →"}
+          style={{background:NAVY,color:"#fff",border:"none",padding:"9px 20px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",opacity:status==="loading"?.7:1}}>
+          {status==="loading"?"Seeding...":"Seed to Database"}
         </button>
       </div>
     </div>
   );
 }
 
-// ── Stat ──────────────────────────────────────────────────────────
-function Stat({label,value,color=NAVY}){
-  return(
-    <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:"18px 22px",flex:1,minWidth:110}}>
-      <div style={{fontSize:26,fontWeight:800,color,lineHeight:1}}>{value}</div>
-      <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#aaa",marginTop:6}}>{label}</div>
-    </div>
-  );
-}
-
-// ── MAIN ADMIN ────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════
+   MAIN ADMIN
+═══════════════════════════════════════════════════════════════════ */
 export default function Admin({defaultProducts,onExit}){
   const[authed,setAuthed]=useState(false);
   const[pw,setPw]=useState("");
@@ -158,173 +239,53 @@ export default function Admin({defaultProducts,onExit}){
   const[pcPrices,setPcPrices]=useState({});
   const[pcLoading,setPcLoading]=useState(false);
   const[pcSaveMsg,setPcSaveMsg]=useState({});
-
   const[serviceJobs,setServiceJobs]=useState([]);
   const[serviceLoading,setServiceLoading]=useState(false);
-  const[newJobForm,setNewJobForm]=useState({customerName:"",phone:"",deviceType:"Laptop",brand:"",model:"",issue:"",serviceType:"Carry-in"});
-  const[newJobSaving,setNewJobSaving]=useState(false);
   const[analytics,setAnalytics]=useState(null);
   const[analyticsLoading,setAnalyticsLoading]=useState(false);
-  const[bannerText,setBannerText]=useState(()=>localStorage.getItem("advantage_banner")||"🔥 Summer Sale — Up to ₹5,000 off on Laptops &nbsp;|&nbsp; 🎓 Student Discount Available &nbsp;|&nbsp; 💻 Free OS Installation on all Desktops &nbsp;|&nbsp; 📞 Call 9435070738 for Best Deals");
+  const[bannerText,setBannerText]=useState(()=>localStorage.getItem("advantage_banner")||"Summer Sale — Up to Rs.5,000 off on Laptops | Student Discount Available | Free OS Installation on all Desktops | Call 9435070738 for Best Deals");
   const[bannerSaved,setBannerSaved]=useState(false);
 
-  function showToast(msg,type="success"){ setToast({msg,type}); setTimeout(()=>setToast(null),2800); }
-  function persist(arr){ setProducts(arr); ss(arr); }
+  function showToast(msg,type="success"){setToast({msg,type});setTimeout(()=>setToast(null),2800);}
+  function persist(arr){setProducts(arr);ss(arr);}
 
-  // ── Service Jobs ──
-  async function loadServiceJobs(){
-    setServiceLoading(true);
-    try{
-      const res=await fetch(API+"/service/all",{headers:{"x-admin-token":BTKN}});
-      const d=await res.json();
-      if(!res.ok) throw new Error(d.error||"Error "+res.status);
-      setServiceJobs(Array.isArray(d)?d:[]);
-    }catch(e){ showToast("Service jobs: "+e.message,"error"); setServiceJobs([]); }
-    setServiceLoading(false);
-  }
-
-  async function createServiceJob(){
-    if(!newJobForm.customerName||!newJobForm.phone||!newJobForm.deviceType) return;
-    setNewJobSaving(true);
-    try{
-      const res=await fetch(API+"/service/create",{method:"POST",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify(newJobForm)});
-      const d=await res.json();
-      if(!res.ok) throw new Error(d.error||"Failed");
-      showToast("Job created: "+d.jobId);
-      setNewJobForm({customerName:"",phone:"",deviceType:"Laptop",brand:"",model:"",issue:"",serviceType:"Carry-in"});
-      loadServiceJobs();
-    }catch(e){ showToast(e.message,"error"); }
-    setNewJobSaving(false);
-  }
-
-  async function updateJobStatus(jobId,status,note){
-    try{
-      const res=await fetch(API+"/service/"+jobId+"/status",{method:"PUT",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify({status,note})});
-      if(!res.ok) throw new Error("Failed");
-      showToast("Status updated");
-      loadServiceJobs();
-    }catch(e){ showToast(e.message,"error"); }
-  }
-
-  async function deleteServiceJob(jobId){
-    try{
-      await fetch(API+"/service/"+jobId,{method:"DELETE",headers:{"x-admin-token":BTKN}});
-      loadServiceJobs();
-    }catch{}
-  }
-
-  // ── Analytics ──
-  async function loadAnalytics(){
-    setAnalyticsLoading(true);
-    try{
-      const[inqRes,svcRes]=await Promise.all([
-        fetch(API+"/inquiries",{headers:{"x-admin-token":BTKN}}),
-        fetch(API+"/service",{headers:{"x-admin-token":BTKN}}),
-      ]);
-      const inqRaw=inqRes.ok?await inqRes.json():[];
-      const svcRaw=svcRes.ok?await svcRes.json():[];
-      const inqData=Array.isArray(inqRaw)?inqRaw:[];
-      const svcData=Array.isArray(svcRaw)?svcRaw:[];
-      // Process analytics
-      const now=new Date();
-      const last7=new Date(now-7*864e5);
-      const last30=new Date(now-30*864e5);
-      const inqLast7=inqData.filter(i=>new Date(i.createdAt)>last7);
-      const inqLast30=inqData.filter(i=>new Date(i.createdAt)>last30);
-      // Top products by enquiry
-      const prodCount={};
-      inqData.forEach(i=>{ if(i.product&&i.product!=="General"){ prodCount[i.product]=(prodCount[i.product]||0)+1; } });
-      const topProducts=Object.entries(prodCount).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}));
-      // Daily enquiries last 7 days
-      const dailyMap={};
-      for(let i=6;i>=0;i--){
-        const d=new Date(now-i*864e5);
-        const key=d.toLocaleDateString("en-IN",{day:"numeric",month:"short"});
-        dailyMap[key]=0;
-      }
-      inqLast7.forEach(i=>{
-        const key=new Date(i.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short"});
-        if(dailyMap[key]!==undefined) dailyMap[key]++;
-      });
-      // Category breakdown
-      const catMap={};
-      inqData.forEach(i=>{
-        const prod=products.find(p=>p.name===i.product);
-        const cat=prod?prod.cat:(i.product?.includes("Repair")?"Repair":i.product?.includes("PC Build")?"PC Build":"Other");
-        catMap[cat]=(catMap[cat]||0)+1;
-      });
-      // Out of stock products
-      const outOfStock=products.filter(p=>p.inStock===false);
-      setAnalytics({
-        totalEnquiries:inqData.length,
-        enquiriesLast7:inqLast7.length,
-        enquiriesLast30:inqLast30.length,
-        unread:inqData.filter(i=>!i.read).length,
-        totalProducts:products.length,
-        outOfStock:outOfStock.length,
-        outOfStockList:outOfStock,
-        totalServiceJobs:svcData.length,
-        activeJobs:svcData.filter(j=>!["Completed","Cancelled"].includes(j.status)).length,
-        topProducts,
-        dailyEnquiries:Object.entries(dailyMap).map(([date,count])=>({date,count})),
-        catBreakdown:Object.entries(catMap).sort((a,b)=>b[1]-a[1]),
-      });
-    }catch(e){ showToast("Analytics: "+e.message,"error"); }
-    setAnalyticsLoading(false);
-  }
-
-  function saveBanner(){
-    localStorage.setItem("advantage_banner",bannerText);
-    setBannerSaved(true);
-    setTimeout(()=>setBannerSaved(false),2000);
-    showToast("Banner updated! Refresh the website to see it.");
-  }
+  /* Inquiries */
   async function loadInquiries(){
     setInqLoading(true);
     try{
       const res=await fetch(API+"/inquiries",{headers:{"x-admin-token":BTKN}});
       const d=await res.json();
-      if(!res.ok) throw new Error(d.error||"Error "+res.status);
+      if(!res.ok)throw new Error(d.error||"Error "+res.status);
       setInquiries(Array.isArray(d)?d:[]);
-    }catch(e){ showToast("Enquiries: "+e.message,"error"); setInquiries([]); }
+    }catch(e){showToast(e.message,"error");setInquiries([]);}
     setInqLoading(false);
   }
   async function markRead(id){
-    try{ await fetch(API+"/inquiries/"+id+"/read",{method:"PUT",headers:{"x-admin-token":BTKN}}); loadInquiries(); }catch{}
+    try{await fetch(API+"/inquiries/"+id+"/read",{method:"PUT",headers:{"x-admin-token":BTKN}});loadInquiries();}catch{}
   }
   async function deleteInquiry(id){
-    try{ await fetch(API+"/inquiries/"+id,{method:"DELETE",headers:{"x-admin-token":BTKN}}); loadInquiries(); }catch{}
+    try{await fetch(API+"/inquiries/"+id,{method:"DELETE",headers:{"x-admin-token":BTKN}});loadInquiries();}catch{}
   }
 
-  // ── PC Prices ──
+  /* PC Prices */
   async function loadPcPrices(){
     setPcLoading(true);
-    try{ const res=await fetch(API+"/components"); if(res.ok)setPcPrices(await res.json()); }catch{}
+    try{const res=await fetch(API+"/components");if(res.ok)setPcPrices(await res.json());}catch{}
     setPcLoading(false);
   }
   async function savePcPrice(cat,cid,price,inStock,name){
     try{
-      const res=await fetch(API+"/components/"+cat+"/"+cid,{
-        method:"PUT",headers:{"Content-Type":"application/json","x-admin-token":BTKN},
-        body:JSON.stringify({price:Number(price),inStock,name,category:cat,componentId:cid})
-      });
-      if(res.ok){
-        setPcSaveMsg(m=>({...m,[cat+":"+cid]:"✓"}));
-        setTimeout(()=>setPcSaveMsg(m=>({...m,[cat+":"+cid]:""})),2000);
-        loadPcPrices();
-      }
+      const res=await fetch(API+"/components/"+cat+"/"+cid,{method:"PUT",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify({price:Number(price),inStock,name,category:cat,componentId:cid})});
+      if(res.ok){setPcSaveMsg(m=>({...m,[cat+":"+cid]:"Saved"}));setTimeout(()=>setPcSaveMsg(m=>({...m,[cat+":"+cid]:""})),2000);loadPcPrices();}
     }catch{}
   }
   async function deletePcPart(cat,cid){
-    try{ await fetch(API+"/components/"+cat+"/"+cid,{method:"DELETE",headers:{"x-admin-token":BTKN}}); loadPcPrices(); }catch{}
+    try{await fetch(API+"/components/"+cat+"/"+cid,{method:"DELETE",headers:{"x-admin-token":BTKN}});loadPcPrices();}catch{}
   }
   async function addPcPart(cat,cid,name,price){
-    if(!cat||!cid||!name||!price) return false;
+    if(!cat||!cid||!name||!price)return false;
     try{
-      const res=await fetch(API+"/components/"+cat+"/"+cid,{
-        method:"PUT",headers:{"Content-Type":"application/json","x-admin-token":BTKN},
-        body:JSON.stringify({price:Number(price),inStock:true,name,category:cat,componentId:cid})
-      });
+      const res=await fetch(API+"/components/"+cat+"/"+cid,{method:"PUT",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify({price:Number(price),inStock:true,name,category:cat,componentId:cid})});
       if(res.ok){loadPcPrices();return true;}
     }catch{}
     return false;
@@ -359,171 +320,253 @@ export default function Admin({defaultProducts,onExit}){
       {category:"PSU",componentId:"450w",name:"450W 80+ Standard",price:3000,inStock:true},
       {category:"PSU",componentId:"550wb",name:"550W 80+ Bronze",price:4500,inStock:true},
       {category:"PSU",componentId:"650wg",name:"650W 80+ Gold",price:6500,inStock:true},
-      {category:"Cooler",componentId:"stock",name:"Stock Cooler",price:0,inStock:true},
+      {category:"Cooler",componentId:"stock",name:"Stock Cooler (Included)",price:0,inStock:true},
       {category:"Cooler",componentId:"hm212",name:"Cooler Master Hyper 212",price:2500,inStock:true},
       {category:"Cooler",componentId:"aio240",name:"240mm AIO Liquid Cooler",price:6000,inStock:true},
     ];
     try{
       const res=await fetch(API+"/components/seed",{method:"POST",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify(defaults)});
-      const d=await res.json();
-      showToast(d.message||"Seeded!");
-      loadPcPrices();
-    }catch{ showToast("Seed failed","error"); }
+      const d=await res.json();showToast(d.message||"Seeded");loadPcPrices();
+    }catch{showToast("Seed failed","error");}
   }
 
-  // ── Products ──
+  /* Service Jobs */
+  async function loadServiceJobs(){
+    setServiceLoading(true);
+    try{
+      const res=await fetch(API+"/service/all",{headers:{"x-admin-token":BTKN}});
+      const d=await res.json();
+      if(!res.ok)throw new Error(d.error||"Error");
+      setServiceJobs(Array.isArray(d)?d:[]);
+    }catch(e){showToast(e.message,"error");setServiceJobs([]);}
+    setServiceLoading(false);
+  }
+  async function updateJobStatus(jobId,status,note,estimatedCost){
+    try{
+      const body={status,note:note||""};
+      if(estimatedCost!==undefined&&estimatedCost!=="") body.estimatedCost=Number(estimatedCost);
+      const res=await fetch(API+"/service/"+jobId+"/status",{method:"PUT",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify(body)});
+      if(!res.ok)throw new Error("Failed");
+      showToast("Job updated — "+status);loadServiceJobs();
+    }catch(e){showToast(e.message,"error");}
+  }
+  async function deleteServiceJob(jobId){
+    try{await fetch(API+"/service/"+jobId,{method:"DELETE",headers:{"x-admin-token":BTKN}});loadServiceJobs();}catch{}
+  }
+
+  /* Analytics */
+  async function loadAnalytics(){
+    setAnalyticsLoading(true);
+    try{
+      const[inqRes,svcRes]=await Promise.all([
+        fetch(API+"/inquiries",{headers:{"x-admin-token":BTKN}}),
+        fetch(API+"/service/all",{headers:{"x-admin-token":BTKN}}),
+      ]);
+      const inqRaw=inqRes.ok?await inqRes.json():[];
+      const svcRaw=svcRes.ok?await svcRes.json():[];
+      const inqData=Array.isArray(inqRaw)?inqRaw:[];
+      const svcData=Array.isArray(svcRaw)?svcRaw:[];
+      const now=new Date();
+      const last7=new Date(now-7*864e5);
+      const last30=new Date(now-30*864e5);
+      const prodCount={};
+      inqData.forEach(i=>{if(i.product&&i.product!=="General"){prodCount[i.product]=(prodCount[i.product]||0)+1;}});
+      const topProducts=Object.entries(prodCount).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}));
+      const dailyMap={};
+      for(let i=6;i>=0;i--){
+        const d=new Date(now-i*864e5);
+        const key=d.toLocaleDateString("en-IN",{day:"numeric",month:"short"});
+        dailyMap[key]=0;
+      }
+      inqData.filter(i=>new Date(i.createdAt)>last7).forEach(i=>{
+        const key=new Date(i.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short"});
+        if(dailyMap[key]!==undefined)dailyMap[key]++;
+      });
+      setAnalytics({
+        totalEnquiries:inqData.length,
+        enquiriesLast7:inqData.filter(i=>new Date(i.createdAt)>last7).length,
+        enquiriesLast30:inqData.filter(i=>new Date(i.createdAt)>last30).length,
+        unread:inqData.filter(i=>!i.read).length,
+        totalProducts:products.length,
+        outOfStock:products.filter(p=>p.inStock===false).length,
+        outOfStockList:products.filter(p=>p.inStock===false),
+        activeJobs:svcData.filter(j=>!["Completed","Cancelled"].includes(j.status)).length,
+        totalServiceJobs:svcData.length,
+        topProducts,
+        dailyEnquiries:Object.entries(dailyMap).map(([date,count])=>({date,count})),
+      });
+    }catch(e){showToast(e.message,"error");}
+    setAnalyticsLoading(false);
+  }
+
+  function saveBanner(){localStorage.setItem("advantage_banner",bannerText);setBannerSaved(true);setTimeout(()=>setBannerSaved(false),2000);showToast("Banner saved. Refresh website to see it.");}
+
+  /* Products */
   function handleSave(){
     if(!form.name.trim()||!form.price.trim()){showToast("Name and Price required","error");return;}
     const spec=form.spec.trim()||Object.values(form.specs).filter(Boolean).slice(0,4).join(" · ");
     const highlights=form.highlights.filter(h=>h.trim());
     if(editId!==null){
       persist(products.map(p=>p.id===editId?{...form,id:editId,spec,highlights}:p));
-      showToast(`"${form.name}" updated`);
+      showToast('"'+form.name+'" updated');
     }else{
       persist([...products,{...form,id:Date.now(),spec,highlights}]);
-      showToast(`"${form.name}" added`);
+      showToast('"'+form.name+'" added');
     }
-    setForm(EMPTY); setEditId(null); setTab("products");
+    setForm(EMPTY);setEditId(null);setTab("products");
   }
   function handleEdit(p){
-    setForm({name:p.name,cat:p.cat,price:p.price,icon:p.icon,isNew:p.isNew||false,inStock:p.inStock!==false,image:p.image||"",spec:p.spec||"",specs:p.specs||{},highlights:p.highlights?.length?p.highlights:["","","",""]});
-    setEditId(p.id); setTab("add"); window.scrollTo({top:0,behavior:"smooth"});
+    setForm({name:p.name,cat:p.cat,price:p.price,icon:p.icon||"💻",isNew:p.isNew||false,inStock:p.inStock!==false,image:p.image||"",spec:p.spec||"",specs:p.specs||{},highlights:p.highlights?.length?p.highlights:["","","",""]});
+    setEditId(p.id);setTab("add");window.scrollTo({top:0,behavior:"smooth"});
   }
-  function handleDelete(id){ persist(products.filter(p=>p.id!==id)); setDelConfirm(null); showToast("Deleted","error"); }
-  function toggleNew(id){ persist(products.map(p=>p.id===id?{...p,isNew:!p.isNew}:p)); }
-  function toggleStock(id){ persist(products.map(p=>p.id===id?{...p,inStock:p.inStock===false?true:false}:p)); }
+  function handleDelete(id){persist(products.filter(p=>p.id!==id));setDelConfirm(null);showToast("Product deleted","error");}
+  function toggleNew(id){persist(products.map(p=>p.id===id?{...p,isNew:!p.isNew}:p));}
+  function toggleStock(id){persist(products.map(p=>p.id===id?{...p,inStock:p.inStock===false}:p));}
 
   const filtered=filterCat==="All"?products:products.filter(p=>p.cat===filterCat);
   const newCount=inquiries.filter(i=>!i.read).length;
 
-  const inp={width:"100%",border:"1.5px solid #e0e0e0",padding:"10px 13px",fontSize:14,outline:"none",fontFamily:"inherit",transition:"border-color .15s",color:"#111"};
-  const foc=e=>e.target.style.borderColor=NAVY;
-  const blr=e=>e.target.style.borderColor="#e0e0e0";
+  /* ─── Styles ─────────────────────────────────────────────────── */
+  const TABS=[
+    {key:"products",label:"Products ("+products.length+")"},
+    {key:"add",label:editId!==null?"Edit Product":"Add Product"},
+    {key:"inquiries",label:"Enquiries"+(newCount>0?" ("+newCount+")":""),onClick:()=>loadInquiries()},
+    {key:"pcprices",label:"PC Prices",onClick:()=>loadPcPrices()},
+    {key:"service",label:"Service Jobs",onClick:()=>loadServiceJobs()},
+    {key:"analytics",label:"Analytics",onClick:()=>loadAnalytics()},
+    {key:"banner",label:"Banner"},
+  ];
 
-  // ── Login ──
+  const STATUS_LIST=["Received","Diagnosed","In Progress","Ready for Pickup","Completed","Cancelled"];
+  const STATUS_COLOR={"Received":"#d97706","Diagnosed":"#0891b2","In Progress":"#7c3aed","Ready for Pickup":"#16a34a","Completed":"#16a34a","Cancelled":"#dc2626"};
+
+  /* ─── Login ──────────────────────────────────────────────────── */
   if(!authed) return(
-    <div style={{minHeight:"100vh",background:"#f0f2f8",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:20}}>
+    <div style={{minHeight:"100vh",background:GREY,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:20}}>
       <style>{"@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');*{box-sizing:border-box;margin:0;padding:0;}"}</style>
-      <div style={{background:"#fff",width:"100%",maxWidth:380,padding:"48px 40px",border:"1px solid #e8e8e8"}}>
+      <div style={{background:"#fff",width:"100%",maxWidth:360,padding:"40px 36px",border:"1px solid "+BORDER}}>
         <div style={{display:"flex",alignItems:"center",marginBottom:32}}>
           <div style={{background:NAVY,padding:"5px 12px",display:"flex",alignItems:"center"}}>
-            <span style={{fontSize:18,fontWeight:800,color:"#fff"}}>AD</span><span style={{fontSize:18,fontWeight:800,color:RED}}>V</span><span style={{fontSize:18,fontWeight:800,color:"#fff"}}>ANTAGE</span>
+            <span style={{fontSize:18,fontWeight:800,color:"#fff"}}>AD</span>
+            <span style={{fontSize:18,fontWeight:800,color:RED}}>V</span>
+            <span style={{fontSize:18,fontWeight:800,color:"#fff"}}>ANTAGE</span>
           </div>
           <div style={{background:"#fff",border:"1px solid "+NAVY,padding:"2px 8px",display:"flex",alignItems:"center"}}>
             <span style={{fontSize:8,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:NAVY}}>ADMIN</span>
           </div>
         </div>
         <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"#aaa",marginBottom:6}}>Admin Access</div>
-        <h2 style={{fontSize:24,fontWeight:800,color:NAVY,marginBottom:28}}>Sign In</h2>
-        <input type="password" placeholder="Admin password" value={pw}
+        <div style={{fontSize:22,fontWeight:800,color:NAVY,marginBottom:24}}>Sign In</div>
+        <input type="password" placeholder="Password" value={pw}
           onChange={e=>{setPw(e.target.value);setPwErr(false);}}
-          onKeyDown={e=>e.key==="Enter"&&(pw===ADMIN_PASSWORD?(setAuthed(true)):setPwErr(true))}
-          style={{...inp,borderColor:pwErr?RED:"#ddd",marginBottom:8}}/>
-        {pwErr&&<div style={{fontSize:13,color:RED,marginBottom:12,fontWeight:500}}>Incorrect password.</div>}
-        <button onClick={()=>pw===ADMIN_PASSWORD?(setAuthed(true)):setPwErr(true)}
-          style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"13px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-          Sign In →
+          onKeyDown={e=>e.key==="Enter"&&(pw===ADMIN_PASSWORD?setAuthed(true):setPwErr(true))}
+          style={{...INP,borderColor:pwErr?RED:BORDER,marginBottom:8,padding:"11px 12px",fontSize:14}}
+          onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=pwErr?RED:BORDER}/>
+        {pwErr&&<div style={{fontSize:12,color:RED,marginBottom:10}}>Incorrect password.</div>}
+        <button onClick={()=>pw===ADMIN_PASSWORD?setAuthed(true):setPwErr(true)}
+          style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"12px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em"}}>
+          Sign In
         </button>
-        <button onClick={onExit} style={{width:"100%",marginTop:12,background:"none",border:"none",fontSize:13,color:"#aaa",cursor:"pointer",padding:"8px 0",fontFamily:"inherit"}}>← Back to Website</button>
+        <button onClick={onExit} style={{width:"100%",marginTop:10,background:"none",border:"none",fontSize:12,color:"#aaa",cursor:"pointer",padding:"8px 0",fontFamily:"inherit"}}>Back to website</button>
       </div>
     </div>
   );
 
-  // ── Main ──
+  /* ─── Main ───────────────────────────────────────────────────── */
   return(
-    <div style={{minHeight:"100vh",background:"#f5f7fa",fontFamily:"'DM Sans',sans-serif"}}>
+    <div style={{minHeight:"100vh",background:GREY,fontFamily:"'DM Sans',sans-serif"}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        .adm-inp{width:100%;border:1.5px solid #e0e0e0;padding:10px 13px;font-size:14px;outline:none;background:#fff;transition:border-color .15s;font-family:inherit;color:#111;}
+        .adm-inp{width:100%;border:1px solid ${BORDER};padding:9px 12px;font-size:13px;outline:none;background:#fff;font-family:inherit;color:#111;transition:border-color .15s;}
         .adm-inp:focus{border-color:${NAVY};}
-        .tab-btn{padding:9px 20px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:all .15s;font-family:inherit;letter-spacing:.02em;}
-        .tab-btn.active{background:${NAVY};color:#fff;}
-        .tab-btn:not(.active){background:#fff;color:#555;border:1.5px solid #e0e0e0;}
-        .prod-row{background:#fff;border:1.5px solid #e8e8e8;padding:14px 18px;display:flex;align-items:center;gap:14px;transition:border-color .2s;}
-        .prod-row:hover{border-color:${NAVY};}
-        .cf-btn{padding:6px 14px;border:1.5px solid #e0e0e0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:#555;transition:all .15s;}
-        .cf-btn.on{background:${NAVY};color:#fff;border-color:${NAVY};}
-        .act-btn{padding:6px 14px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.02em;transition:all .15s;}
+        .adm-inp select{appearance:none;}
       `}</style>
 
-      {/* Top Bar */}
-      <div style={{background:NAVY,height:56,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 32px",position:"sticky",top:0,zIndex:100}}>
-        <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <div style={{display:"flex",alignItems:"center"}}>
-            <div style={{background:"rgba(255,255,255,.1)",padding:"4px 10px"}}>
-              <span style={{fontSize:16,fontWeight:800,color:"#fff"}}>AD</span><span style={{fontSize:16,fontWeight:800,color:RED}}>V</span><span style={{fontSize:16,fontWeight:800,color:"#fff"}}>ANTAGE</span>
-            </div>
-            <div style={{background:"rgba(255,255,255,.08)",padding:"2px 8px",borderLeft:"2px solid "+RED}}>
-              <span style={{fontSize:9,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"rgba(255,255,255,.7)"}}>ADMIN</span>
-            </div>
+      {/* Top bar */}
+      <div style={{background:NAVY,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 32px",position:"sticky",top:0,zIndex:100}}>
+        <div style={{display:"flex",alignItems:"center"}}>
+          <div style={{background:"rgba(255,255,255,.08)",padding:"4px 10px",display:"flex",alignItems:"center"}}>
+            <span style={{fontSize:15,fontWeight:800,color:"#fff"}}>AD</span>
+            <span style={{fontSize:15,fontWeight:800,color:RED}}>V</span>
+            <span style={{fontSize:15,fontWeight:800,color:"#fff"}}>ANTAGE</span>
+          </div>
+          <div style={{borderLeft:"2px solid "+RED,marginLeft:0,padding:"2px 8px"}}>
+            <span style={{fontSize:9,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"rgba(255,255,255,.5)"}}>ADMIN PANEL</span>
           </div>
         </div>
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
-          <span style={{fontSize:12,color:"rgba(255,255,255,.4)"}}>{products.length} products</span>
-          <button onClick={onExit} style={{background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",color:"rgba(255,255,255,.8)",padding:"7px 16px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>← View Website</button>
-          <button onClick={()=>setAuthed(false)} style={{background:"none",border:"1px solid rgba(255,255,255,.15)",color:"rgba(255,255,255,.4)",padding:"7px 14px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Logout</button>
+          <span style={{fontSize:11,color:"rgba(255,255,255,.35)"}}>{products.length} products</span>
+          <button onClick={onExit} style={{background:"none",border:"1px solid rgba(255,255,255,.2)",color:"rgba(255,255,255,.7)",padding:"6px 14px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em"}}>View Website</button>
+          <button onClick={()=>setAuthed(false)} style={{background:"none",border:"none",color:"rgba(255,255,255,.3)",padding:"6px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Logout</button>
         </div>
       </div>
 
       <div style={{maxWidth:1200,margin:"0 auto",padding:"28px 24px"}}>
 
         {/* Stats */}
-        <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}}>
-          <Stat label="Total" value={products.length}/>
+        <div style={{display:"flex",gap:10,marginBottom:20,flexWrap:"wrap"}}>
+          <Stat label="Total Products" value={products.length}/>
           {CATS.map(c=><Stat key={c} label={c.replace(" & CCTV","")} value={products.filter(p=>p.cat===c).length}/>)}
-          <Stat label="NEW" value={products.filter(p=>p.isNew).length} color={RED}/>
-          <Stat label="Out of Stock" value={products.filter(p=>p.inStock===false).length} color="#d97706"/>
+          <Stat label="New" value={products.filter(p=>p.isNew).length}/>
+          <Stat label="Out of Stock" value={products.filter(p=>p.inStock===false).length} alert/>
         </div>
 
         <SeedBanner products={products}/>
 
         {/* Tabs */}
-        <div style={{display:"flex",gap:8,marginBottom:24,flexWrap:"wrap"}}>
-          <button className={`tab-btn${tab==="products"?" active":""}`} onClick={()=>{setTab("products");setForm(EMPTY);setEditId(null);}}>📋 Products ({products.length})</button>
-          <button className={`tab-btn${tab==="add"?" active":""}`} onClick={()=>{setTab("add");if(!editId)setForm(EMPTY);}}>{editId!==null?"✏️ Edit":"➕ Add Product"}</button>
-          <button className={`tab-btn${tab==="inquiries"?" active":""}`} onClick={()=>{setTab("inquiries");loadInquiries();}}>📩 Enquiries{newCount>0?" ("+newCount+" new)":""}</button>
-          <button className={`tab-btn${tab==="pcprices"?" active":""}`} onClick={()=>{setTab("pcprices");loadPcPrices();}}>🔧 PC Prices</button>
-          <button className={`tab-btn${tab==="service"?" active":""}`} onClick={()=>{setTab("service");loadServiceJobs();}}>🛠️ Service Jobs</button>
-          <button className={`tab-btn${tab==="analytics"?" active":""}`} onClick={()=>{setTab("analytics");loadAnalytics();}}>📊 Analytics</button>
-          <button className={`tab-btn${tab==="banner"?" active":""}`} onClick={()=>setTab("banner")}>📢 Banner</button>
+        <div style={{display:"flex",gap:0,marginBottom:24,borderBottom:"2px solid "+BORDER,flexWrap:"wrap"}}>
+          {TABS.map(t=>(
+            <button key={t.key}
+              onClick={()=>{setTab(t.key);t.onClick&&t.onClick();if(!editId&&t.key==="add")setForm(EMPTY);}}
+              style={{padding:"10px 18px",fontSize:12,fontWeight:600,border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",letterSpacing:".03em",color:tab===t.key?NAVY:"#888",borderBottom:"2px solid "+(tab===t.key?NAVY:"transparent"),marginBottom:-2,transition:"all .15s",whiteSpace:"nowrap"}}>
+              {t.label}
+            </button>
+          ))}
         </div>
 
-        {/* ══ PRODUCTS TAB ══ */}
+        {/* ══ PRODUCTS ══ */}
         {tab==="products"&&(
           <div>
-            <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap",justifyContent:"space-between"}}>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {["All",...CATS].map(c=><button key={c} className={`cf-btn${filterCat===c?" on":""}`} onClick={()=>setFilterCat(c)}>{c}</button>)}
+            <div style={{display:"flex",gap:8,marginBottom:18,flexWrap:"wrap",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {["All",...CATS].map(c=>(
+                  <button key={c} onClick={()=>setFilterCat(c)}
+                    style={{padding:"5px 14px",fontSize:12,fontWeight:600,border:"1px solid "+(filterCat===c?NAVY:BORDER),background:filterCat===c?NAVY:"#fff",color:filterCat===c?"#fff":"#555",cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}>
+                    {c}
+                  </button>
+                ))}
               </div>
-              <button onClick={()=>window.confirm("Reset to defaults?")&&persist(defaultProducts)} style={{background:"none",border:"1.5px solid #e0e0e0",padding:"7px 14px",fontSize:12,fontWeight:600,color:"#888",cursor:"pointer",fontFamily:"inherit"}}>↺ Reset</button>
+              <button onClick={()=>window.confirm("Reset to defaults?")&&persist(defaultProducts)}
+                style={{background:"none",border:"1px solid "+BORDER,padding:"5px 14px",fontSize:11,fontWeight:600,color:"#888",cursor:"pointer",fontFamily:"inherit"}}>
+                Reset to Defaults
+              </button>
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {filtered.length===0&&<div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid #e8e8e8",color:"#aaa"}}>No products.</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {filtered.length===0&&<div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid "+BORDER,color:"#aaa",fontSize:13}}>No products in this category.</div>}
               {filtered.map(p=>(
-                <div key={p.id} className="prod-row">
-                  {p.image?<img src={p.image} alt="" style={{width:48,height:48,objectFit:"contain",flexShrink:0}}/>:<span style={{fontSize:28,flexShrink:0}}>{p.icon}</span>}
+                <div key={p.id} style={{background:"#fff",border:"1px solid "+BORDER,padding:"12px 16px",display:"flex",alignItems:"center",gap:14,transition:"border-color .15s"}}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor=NAVY}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor=BORDER}>
+                  {p.image?<img src={p.image} alt="" style={{width:44,height:44,objectFit:"contain",flexShrink:0}}/>:<div style={{width:44,height:44,background:GREY,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{p.icon}</div>}
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
-                      <span style={{fontWeight:700,fontSize:15,color:NAVY}}>{p.name}</span>
-                      {p.isNew&&<span style={{background:RED,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",letterSpacing:".06em",textTransform:"uppercase"}}>NEW</span>}
-                      {p.inStock===false&&<span style={{background:"#d97706",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 7px",letterSpacing:".06em",textTransform:"uppercase"}}>OUT OF STOCK</span>}
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2,flexWrap:"wrap"}}>
+                      <span style={{fontWeight:700,fontSize:14,color:NAVY}}>{p.name}</span>
+                      {p.isNew&&<span style={{background:RED,color:"#fff",fontSize:9,fontWeight:700,padding:"1px 6px",letterSpacing:".06em",textTransform:"uppercase"}}>NEW</span>}
+                      {p.inStock===false&&<span style={{background:"#fff",color:"#d97706",border:"1px solid #d97706",fontSize:9,fontWeight:700,padding:"1px 6px",letterSpacing:".06em",textTransform:"uppercase"}}>OUT OF STOCK</span>}
                     </div>
-                    <div style={{fontSize:11,color:"#888",display:"flex",gap:12,flexWrap:"wrap"}}>
-                      <span style={{color:RED,fontWeight:600,textTransform:"uppercase"}}>{p.cat}</span>
-                      <span>{p.spec}</span>
-                    </div>
+                    <div style={{fontSize:11,color:"#aaa"}}>{p.cat} &nbsp;·&nbsp; {p.spec}</div>
                   </div>
-                  <div style={{fontWeight:800,fontSize:15,color:NAVY,flexShrink:0}}>{p.price}</div>
-                  <div style={{display:"flex",gap:6,flexShrink:0,flexWrap:"wrap"}}>
-                    <button className="act-btn" onClick={()=>toggleNew(p.id)} style={{background:p.isNew?"#fef2f2":"#f0f2f8",color:p.isNew?RED:NAVY,fontSize:11}}>
-                      {p.isNew?"★ NEW":"☆ NEW"}
+                  <div style={{fontWeight:700,fontSize:14,color:NAVY,flexShrink:0}}>{p.price}</div>
+                  <div style={{display:"flex",gap:6,flexShrink:0}}>
+                    <button onClick={()=>toggleNew(p.id)} style={{padding:"4px 10px",fontSize:11,fontWeight:600,border:"1px solid "+BORDER,background:"#fff",color:p.isNew?RED:"#888",cursor:"pointer",fontFamily:"inherit"}}>
+                      {p.isNew?"Remove New":"Mark New"}
                     </button>
-                    <button className="act-btn" onClick={()=>toggleStock(p.id)} style={{background:p.inStock===false?"#fef9c3":"#f0fdf4",color:p.inStock===false?"#854d0e":"#16a34a",fontSize:11}}>
-                      {p.inStock===false?"✗ Stock":"✓ Stock"}
+                    <button onClick={()=>toggleStock(p.id)} style={{padding:"4px 10px",fontSize:11,fontWeight:600,border:"1px solid "+BORDER,background:"#fff",color:p.inStock===false?"#d97706":"#16a34a",cursor:"pointer",fontFamily:"inherit"}}>
+                      {p.inStock===false?"Mark In Stock":"Mark Out"}
                     </button>
-                    <button className="act-btn" onClick={()=>handleEdit(p)} style={{background:"#eef2ff",color:NAVY}}>Edit</button>
-                    <button className="act-btn" onClick={()=>setDelConfirm(p.id)} style={{background:"#fff0f0",color:RED}}>Delete</button>
+                    <button onClick={()=>handleEdit(p)} style={{padding:"4px 12px",fontSize:11,fontWeight:600,border:"1px solid "+NAVY,background:"#fff",color:NAVY,cursor:"pointer",fontFamily:"inherit"}}>Edit</button>
+                    <button onClick={()=>setDelConfirm(p.id)} style={{padding:"4px 12px",fontSize:11,fontWeight:600,border:"1px solid "+BORDER,background:"#fff",color:RED,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
                   </div>
                 </div>
               ))}
@@ -531,46 +574,51 @@ export default function Admin({defaultProducts,onExit}){
           </div>
         )}
 
-        {/* ══ ADD / EDIT TAB ══ */}
+        {/* ══ ADD / EDIT ══ */}
         {tab==="add"&&(
-          <div style={{display:"grid",gridTemplateColumns:"1fr 340px",gap:24,alignItems:"start"}}>
-            {/* Left — Form */}
-            <div style={{display:"flex",flexDirection:"column",gap:18}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:20,alignItems:"start"}}>
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
 
               {/* Basic */}
-              <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:24}}>
-                <div style={{fontSize:12,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:16}}>Basic Info</div>
-                <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                  <input className="adm-inp" placeholder="Product Name *" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div style={{background:"#fff",border:"1px solid "+BORDER,padding:20}}>
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:14}}>Basic Info</div>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  <div>
+                    <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Product Name *</label>
+                    <input className="adm-inp" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="e.g. HP Pavilion 15"
+                      onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                     <div>
-                      <div style={{fontSize:11,color:"#888",marginBottom:6}}>Category</div>
-                      <select className="adm-inp" value={form.cat} onChange={e=>setForm(f=>({...f,cat:e.target.value,specs:{}}))}>
+                      <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Category</label>
+                      <select className="adm-inp" value={form.cat} onChange={e=>setForm(f=>({...f,cat:e.target.value,specs:{}}))}
+                        onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}>
                         {CATS.map(c=><option key={c}>{c}</option>)}
                       </select>
                     </div>
                     <div>
-                      <div style={{fontSize:11,color:"#888",marginBottom:6}}>Price *</div>
-                      <input className="adm-inp" placeholder="₹0,000" value={form.price} onChange={e=>setForm(f=>({...f,price:e.target.value}))}/>
+                      <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Price *</label>
+                      <input className="adm-inp" placeholder="e.g. Rs.52,990" value={form.price} onChange={e=>setForm(f=>({...f,price:e.target.value}))}
+                        onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
                     </div>
                   </div>
-                  <div style={{display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
-                    <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:14,fontWeight:500,color:NAVY}}>
-                      <input type="checkbox" checked={form.isNew} onChange={e=>setForm(f=>({...f,isNew:e.target.checked}))} style={{accentColor:RED,width:16,height:16}}/>
-                      Mark as NEW
+                  <div style={{display:"flex",gap:20}}>
+                    <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,fontWeight:500,color:NAVY}}>
+                      <input type="checkbox" checked={form.isNew} onChange={e=>setForm(f=>({...f,isNew:e.target.checked}))} style={{accentColor:RED,width:14,height:14}}/>
+                      Mark as New
                     </label>
-                    <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:14,fontWeight:500,color:"#16a34a"}}>
-                      <input type="checkbox" checked={form.inStock!==false} onChange={e=>setForm(f=>({...f,inStock:e.target.checked}))} style={{accentColor:"#16a34a",width:16,height:16}}/>
+                    <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,fontWeight:500,color:"#16a34a"}}>
+                      <input type="checkbox" checked={form.inStock!==false} onChange={e=>setForm(f=>({...f,inStock:e.target.checked}))} style={{accentColor:"#16a34a",width:14,height:14}}/>
                       In Stock
                     </label>
                   </div>
                 </div>
               </div>
 
-              {/* Image Upload */}
-              <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:24}}>
-                <div style={{fontSize:12,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:16}}>Product Image</div>
-                <div style={{border:"2px dashed #dde2f0",padding:20,textAlign:"center",background:"#f9fbff",cursor:"pointer",position:"relative"}}
+              {/* Image */}
+              <div style={{background:"#fff",border:"1px solid "+BORDER,padding:20}}>
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:14}}>Product Image</div>
+                <div style={{border:"1px dashed "+BORDER,padding:20,textAlign:"center",background:GREY,cursor:"pointer",marginBottom:10}}
                   onClick={()=>document.getElementById("img-up").click()}
                   onDragOver={e=>e.preventDefault()}
                   onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f&&f.type.startsWith("image/")){const r=new FileReader();r.onload=ev=>setForm(fm=>({...fm,image:ev.target.result}));r.readAsDataURL(f);}}}>
@@ -578,132 +626,117 @@ export default function Admin({defaultProducts,onExit}){
                     onChange={e=>{const f=e.target.files[0];if(f){const r=new FileReader();r.onload=ev=>setForm(fm=>({...fm,image:ev.target.result}));r.readAsDataURL(f);}}}/>
                   {form.image?(
                     <div style={{position:"relative",display:"inline-block"}}>
-                      <img src={form.image} alt="" style={{maxHeight:120,maxWidth:"100%",objectFit:"contain",display:"block",margin:"0 auto"}}/>
-                      <button onClick={e=>{e.stopPropagation();setForm(f=>({...f,image:""}));}} style={{position:"absolute",top:-8,right:-8,background:RED,color:"#fff",border:"none",width:22,height:22,borderRadius:"50%",fontSize:12,cursor:"pointer",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+                      <img src={form.image} alt="" style={{maxHeight:100,maxWidth:"100%",objectFit:"contain"}}/>
+                      <button onClick={e=>{e.stopPropagation();setForm(f=>({...f,image:""}));}} style={{position:"absolute",top:-8,right:-8,background:RED,color:"#fff",border:"none",width:20,height:20,borderRadius:"50%",fontSize:11,cursor:"pointer",fontWeight:700}}>x</button>
                     </div>
                   ):(
-                    <>
-                      <div style={{fontSize:28,marginBottom:8}}>📷</div>
-                      <div style={{fontSize:13,fontWeight:600,color:NAVY}}>Click or drag & drop</div>
-                      <div style={{fontSize:11,color:"#aaa",marginTop:4}}>JPG, PNG, WebP</div>
-                    </>
+                    <div style={{fontSize:12,color:"#aaa"}}>Click or drag to upload image</div>
                   )}
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:8,margin:"10px 0 4px"}}>
-                  <div style={{flex:1,height:1,background:"#e8e8e8"}}/><span style={{fontSize:11,color:"#aaa",fontWeight:600}}>OR</span><div style={{flex:1,height:1,background:"#e8e8e8"}}/>
-                </div>
-                <input className="adm-inp" placeholder="Paste image URL" value={form.image.startsWith("data:")?"":(form.image||"")} onChange={e=>setForm(f=>({...f,image:e.target.value}))}/>
-              </div>
-
-              {/* Icon */}
-              <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:24}}>
-                <div style={{fontSize:12,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:12}}>Fallback Icon <span style={{fontWeight:400,color:"#aaa",textTransform:"none"}}>(if no image)</span></div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  {ICONS.map(ic=>(
-                    <button key={ic} onClick={()=>setForm(f=>({...f,icon:ic}))}
-                      style={{fontSize:22,padding:"8px 10px",border:"2px solid "+(form.icon===ic?NAVY:"#e0e0e0"),background:form.icon===ic?"#eef2ff":"#fff",cursor:"pointer",transition:"all .15s"}}>
-                      {ic}
-                    </button>
-                  ))}
-                </div>
+                <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Or paste URL</label>
+                <input className="adm-inp" placeholder="https://..." value={form.image.startsWith("data:")?"":(form.image||"")} onChange={e=>setForm(f=>({...f,image:e.target.value}))}
+                  onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
               </div>
 
               {/* Specs */}
-              <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:24}}>
-                <div style={{fontSize:12,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:16}}>Specifications</div>
-                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{background:"#fff",border:"1px solid "+BORDER,padding:20}}>
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:14}}>Specifications</div>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {(SPEC_KEYS[form.cat]||SPEC_KEYS.Accessories).map(k=>(
                     <div key={k} style={{display:"grid",gridTemplateColumns:"140px 1fr",gap:10,alignItems:"center"}}>
-                      <span style={{fontSize:12,fontWeight:600,color:"#555",letterSpacing:".03em"}}>{k}</span>
-                      <input className="adm-inp" value={form.specs[k]||""} onChange={e=>setForm(f=>({...f,specs:{...f.specs,[k]:e.target.value}}))} placeholder={"Enter "+k.toLowerCase()}/>
+                      <span style={{fontSize:12,fontWeight:600,color:"#555"}}>{k}</span>
+                      <input className="adm-inp" value={form.specs[k]||""} onChange={e=>setForm(f=>({...f,specs:{...f.specs,[k]:e.target.value}}))} placeholder={k}
+                        onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
                     </div>
                   ))}
                 </div>
-                <div style={{marginTop:16}}>
-                  <div style={{fontSize:12,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#aaa",marginBottom:8}}>Short Summary (auto-generated if blank)</div>
-                  <input className="adm-inp" value={form.spec} onChange={e=>setForm(f=>({...f,spec:e.target.value}))} placeholder="e.g. Intel i5 · 8GB · 512GB SSD"/>
+                <div style={{marginTop:12}}>
+                  <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Short Summary (auto-generated if blank)</label>
+                  <input className="adm-inp" value={form.spec} onChange={e=>setForm(f=>({...f,spec:e.target.value}))} placeholder="e.g. Intel i5 · 8GB · 512GB SSD"
+                    onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
                 </div>
               </div>
 
               {/* Highlights */}
-              <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:24}}>
-                <div style={{fontSize:12,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:12}}>Key Highlights</div>
+              <div style={{background:"#fff",border:"1px solid "+BORDER,padding:20}}>
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:12}}>Key Highlights</div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {[0,1,2,3].map(i=>(
                     <input key={i} className="adm-inp" placeholder={"Highlight "+(i+1)} value={form.highlights[i]||""}
-                      onChange={e=>{const h=[...form.highlights];h[i]=e.target.value;setForm(f=>({...f,highlights:h}));}}/>
+                      onChange={e=>{const h=[...form.highlights];h[i]=e.target.value;setForm(f=>({...f,highlights:h}));}}
+                      onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
                   ))}
                 </div>
               </div>
 
-              {/* Save */}
-              <div style={{display:"flex",gap:12}}>
+              <div style={{display:"flex",gap:10}}>
                 <button onClick={handleSave}
-                  style={{flex:1,background:NAVY,color:"#fff",border:"none",padding:"14px",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"background .15s"}}
+                  style={{flex:1,background:NAVY,color:"#fff",border:"none",padding:"13px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em",transition:"background .15s"}}
                   onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
-                  {editId!==null?"Update Product ✓":"Add Product +"}
+                  {editId!==null?"Update Product":"Add Product"}
                 </button>
                 <button onClick={()=>{setForm(EMPTY);setEditId(null);setTab("products");}}
-                  style={{padding:"14px 24px",background:"none",border:"1.5px solid #ddd",color:"#666",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  style={{padding:"13px 20px",background:"#fff",border:"1px solid "+BORDER,color:"#666",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                   Cancel
                 </button>
               </div>
             </div>
 
-            {/* Right — Preview */}
-            <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:20,position:"sticky",top:72}}>
-              <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#aaa",marginBottom:14}}>Preview</div>
-              <div style={{background:"#f5f5f5",height:140,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,overflow:"hidden",position:"relative"}}>
-                {form.isNew&&<span style={{position:"absolute",top:8,left:8,background:RED,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 8px",letterSpacing:".06em",textTransform:"uppercase"}}>NEW</span>}
-                {form.inStock===false&&<span style={{position:"absolute",top:8,right:8,background:"#d97706",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 8px",letterSpacing:".06em",textTransform:"uppercase"}}>OUT OF STOCK</span>}
-                {form.image?<img src={form.image} alt="" style={{maxHeight:140,maxWidth:"100%",objectFit:"contain",padding:8}}/>:<span style={{fontSize:56}}>{form.icon}</span>}
+            {/* Preview */}
+            <div style={{background:"#fff",border:"1px solid "+BORDER,padding:18,position:"sticky",top:64}}>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#aaa",marginBottom:12}}>Preview</div>
+              <div style={{background:GREY,height:130,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12,overflow:"hidden",position:"relative"}}>
+                {form.isNew&&<span style={{position:"absolute",top:6,left:6,background:RED,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",letterSpacing:".06em",textTransform:"uppercase"}}>NEW</span>}
+                {form.image?<img src={form.image} alt="" style={{maxHeight:130,maxWidth:"100%",objectFit:"contain",padding:8}}/>:<span style={{fontSize:48}}>{form.icon}</span>}
               </div>
-              <div style={{fontSize:10,color:RED,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",marginBottom:4}}>{form.cat}</div>
-              <div style={{fontWeight:700,fontSize:16,color:NAVY,marginBottom:4,lineHeight:1.2}}>{form.name||"Product Name"}</div>
-              <div style={{fontSize:12,color:"#888",marginBottom:8}}>{form.spec||Object.values(form.specs).filter(Boolean).slice(0,3).join(" · ")||"Specifications"}</div>
-              <div style={{fontWeight:800,fontSize:20,color:NAVY}}>{form.price||"₹0,000"}</div>
-              <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:4}}>
-                {form.highlights.filter(h=>h.trim()).map((h,i)=>(
-                  <div key={i} style={{fontSize:12,color:"#444",display:"flex",gap:6,alignItems:"flex-start"}}>
-                    <span style={{color:RED,fontWeight:700,flexShrink:0}}>✓</span>{h}
-                  </div>
-                ))}
-              </div>
+              <div style={{fontSize:10,color:RED,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",marginBottom:3}}>{form.cat}</div>
+              <div style={{fontWeight:700,fontSize:14,color:NAVY,marginBottom:4,lineHeight:1.2}}>{form.name||"Product Name"}</div>
+              <div style={{fontSize:11,color:"#aaa",marginBottom:8}}>{form.spec||Object.values(form.specs).filter(Boolean).slice(0,3).join(" · ")||"Specifications"}</div>
+              <div style={{fontWeight:800,fontSize:18,color:NAVY}}>{form.price||"Rs.0,000"}</div>
+              {form.highlights.filter(h=>h).map((h,i)=>(
+                <div key={i} style={{fontSize:11,color:"#444",marginTop:6,display:"flex",gap:5,alignItems:"flex-start"}}>
+                  <span style={{color:RED,fontWeight:700,flexShrink:0}}>—</span>{h}
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* ══ ENQUIRIES TAB ══ */}
+        {/* ══ ENQUIRIES ══ */}
         {tab==="inquiries"&&(
           <div>
-            {inqLoading&&<div style={{textAlign:"center",padding:40,color:"#888",fontSize:14}}>Loading enquiries...</div>}
-            {!inqLoading&&inquiries.length===0&&(
-              <div style={{textAlign:"center",padding:"48px 20px",background:"#fff",border:"1px solid #e8e8e8",color:"#aaa",fontSize:14}}>
-                No enquiries yet. When customers submit the form, they'll appear here.
-              </div>
-            )}
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {inqLoading&&<div style={{textAlign:"center",padding:40,color:"#aaa",fontSize:13}}>Loading enquiries...</div>}
+            {!inqLoading&&inquiries.length===0&&<div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid "+BORDER,color:"#aaa",fontSize:13}}>No enquiries yet.</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {inquiries.map(inq=>(
-                <div key={inq._id||inq.id} style={{background:"#fff",border:"1.5px solid "+(inq.read?"#e8e8e8":NAVY),padding:"18px 20px",display:"flex",gap:16,alignItems:"flex-start"}}>
+                <div key={inq._id||inq.id} style={{background:"#fff",border:"1px solid "+(inq.read?BORDER:NAVY),padding:"16px 18px",display:"flex",gap:16,alignItems:"flex-start"}}>
                   <div style={{flex:1}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6,flexWrap:"wrap"}}>
-                      <span style={{fontWeight:700,fontSize:15,color:NAVY}}>{inq.name}</span>
-                      <span style={{fontSize:12,color:"#888"}}>📞 {inq.phone}</span>
-                      {inq.email&&<span style={{fontSize:12,color:"#888"}}>✉️ {inq.email}</span>}
-                      {!inq.read&&<span style={{background:RED,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 8px",letterSpacing:".04em",textTransform:"uppercase"}}>NEW</span>}
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4,flexWrap:"wrap"}}>
+                      <span style={{fontWeight:700,fontSize:14,color:NAVY}}>{inq.name}</span>
+                      <span style={{fontSize:12,color:"#888"}}>{inq.phone}</span>
+                      {inq.email&&<span style={{fontSize:12,color:"#888"}}>{inq.email}</span>}
+                      {!inq.read&&<span style={{background:RED,color:"#fff",fontSize:9,fontWeight:700,padding:"1px 6px",letterSpacing:".04em",textTransform:"uppercase"}}>New</span>}
                     </div>
-                    <div style={{fontSize:12,color:RED,fontWeight:600,marginBottom:6}}>{inq.product}</div>
+                    <div style={{fontSize:11,color:RED,fontWeight:600,marginBottom:4,letterSpacing:".03em",textTransform:"uppercase"}}>{inq.product}</div>
                     <div style={{fontSize:13,color:"#444",lineHeight:1.6,whiteSpace:"pre-line"}}>{inq.message}</div>
-                    <div style={{fontSize:11,color:"#aaa",marginTop:8}}>{new Date(inq.createdAt).toLocaleString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+                    <div style={{fontSize:11,color:"#bbb",marginTop:6}}>{new Date(inq.createdAt).toLocaleString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
                   </div>
-                  <div style={{display:"flex",gap:8,flexShrink:0,flexDirection:"column"}}>
+                  <div style={{display:"flex",gap:6,flexShrink:0,flexDirection:"column",minWidth:120}}>
                     <a href={"https://wa.me/91"+inq.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("Hi "+inq.name+", regarding your enquiry about "+inq.product+"...")}
                       target="_blank" rel="noreferrer"
-                      style={{background:"#25D366",color:"#fff",padding:"8px 14px",fontSize:12,fontWeight:600,cursor:"pointer",textDecoration:"none",display:"block",textAlign:"center"}}>
-                      💬 WhatsApp
+                      style={{background:"#25D366",color:"#fff",padding:"7px 12px",fontSize:11,fontWeight:600,cursor:"pointer",textDecoration:"none",textAlign:"center",display:"block"}}>
+                      WhatsApp
                     </a>
-                    {!inq.read&&<button onClick={()=>markRead(inq._id||inq.id)} style={{background:"#eef2ff",color:NAVY,border:"none",padding:"7px 12px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>✓ Mark Read</button>}
-                    <button onClick={()=>deleteInquiry(inq._id||inq.id)} style={{background:"#fff0f0",color:RED,border:"none",padding:"7px 12px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
+                    {!inq.read&&(
+                      <button onClick={()=>markRead(inq._id||inq.id)}
+                        style={{background:"#fff",color:NAVY,border:"1px solid "+NAVY,padding:"6px 12px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                        Mark Read
+                      </button>
+                    )}
+                    <button onClick={()=>deleteInquiry(inq._id||inq.id)}
+                      style={{background:"#fff",color:RED,border:"1px solid "+BORDER,padding:"6px 12px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}
@@ -711,35 +744,29 @@ export default function Admin({defaultProducts,onExit}){
           </div>
         )}
 
-        {/* ══ PC PRICES TAB ══ */}
+        {/* ══ PC PRICES ══ */}
         {tab==="pcprices"&&(
           <div>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:10}}>
               <div>
-                <div style={{fontWeight:700,fontSize:16,color:NAVY}}>PC Component Prices</div>
-                <div style={{fontSize:12,color:"#888",marginTop:2}}>Edit prices and stock status. Changes reflect in PC Builder immediately.</div>
+                <div style={{fontWeight:700,fontSize:15,color:NAVY}}>PC Component Prices</div>
+                <div style={{fontSize:12,color:"#888",marginTop:2}}>Edit prices and stock. Changes appear in PC Builder immediately.</div>
               </div>
-              <button onClick={seedPcPrices} style={{background:"#eef2ff",color:NAVY,border:"1px solid #dde2f0",padding:"9px 18px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                Seed Default Prices (First Time)
-              </button>
+              <button onClick={seedPcPrices} style={{background:"#fff",color:NAVY,border:"1px solid "+NAVY,padding:"8px 16px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Seed Default Prices</button>
             </div>
-
             <AddPartForm onAdd={addPcPart}/>
-
-            {pcLoading&&<div style={{textAlign:"center",padding:40,color:"#888"}}>Loading prices...</div>}
+            {pcLoading&&<div style={{textAlign:"center",padding:40,color:"#aaa",fontSize:13}}>Loading...</div>}
             {!pcLoading&&Object.keys(pcPrices).length===0&&(
-              <div style={{background:"#fff3cd",border:"1px solid #ffe69c",padding:"14px 18px",fontSize:13,color:"#856404",marginBottom:20}}>
-                No prices in DB yet. Click <strong>"Seed Default Prices"</strong> to get started, then edit them here.
-              </div>
+              <div style={{background:"#fffbeb",border:"1px solid #fde047",padding:"12px 16px",fontSize:13,color:"#854d0e"}}>No prices in database. Click "Seed Default Prices" to start.</div>
             )}
             {Object.entries(pcPrices).map(([category,items])=>(
-              <div key={category} style={{marginBottom:24}}>
-                <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:RED,marginBottom:10,padding:"6px 0",borderBottom:"2px solid #dde2f0"}}>{category}</div>
-                <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <div key={category} style={{marginBottom:20}}>
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:NAVY,marginBottom:8,paddingBottom:6,borderBottom:"1px solid "+BORDER}}>{category}</div>
+                <table style={{width:"100%",borderCollapse:"collapse",background:"#fff",border:"1px solid "+BORDER}}>
                   <thead>
-                    <tr style={{background:"#f5f7fa"}}>
-                      {["Component","Price (₹)","Stock","Updated","Actions"].map(h=>(
-                        <td key={h} style={{padding:"8px 14px",fontSize:11,fontWeight:700,color:"#777",textTransform:"uppercase",letterSpacing:".06em"}}>{h}</td>
+                    <tr style={{borderBottom:"1px solid "+BORDER}}>
+                      {["Component","Price","Stock","Updated","Actions"].map(h=>(
+                        <td key={h} style={{padding:"8px 14px",fontSize:10,fontWeight:700,color:"#aaa",textTransform:"uppercase",letterSpacing:".06em"}}>{h}</td>
                       ))}
                     </tr>
                   </thead>
@@ -747,7 +774,7 @@ export default function Admin({defaultProducts,onExit}){
                     {items.map(item=>(
                       <PcPriceRow key={item.componentId} item={item} category={category}
                         saveMsg={pcSaveMsg[category+":"+item.componentId]||""}
-                        onSave={(price,inStock)=>savePcPrice(category,item.componentId,price,inStock,item.name)}
+                        onSave={(price,inStock,name)=>savePcPrice(category,item.componentId,price,inStock,name)}
                         onDelete={deletePcPart}/>
                     ))}
                   </tbody>
@@ -757,98 +784,86 @@ export default function Admin({defaultProducts,onExit}){
           </div>
         )}
 
-        {/* ══ SERVICE JOBS TAB ══ */}
+        {/* ══ SERVICE JOBS ══ */}
         {tab==="service"&&(
           <div>
-            <div style={{background:"#fff3cd",border:"1px solid #ffe69c",padding:"12px 18px",marginBottom:20,fontSize:13,color:"#856404"}}>
-              📋 Service jobs are created automatically when customers book a repair on the website. Your job is to update status and notify customers.
+            <div style={{background:"#fffbeb",border:"1px solid #fde047",padding:"10px 16px",marginBottom:16,fontSize:12,color:"#854d0e"}}>
+              Service jobs are created automatically when customers book a repair. Update status and notify customers here.
             </div>
-
-            {serviceLoading&&<div style={{textAlign:"center",padding:40,color:"#888"}}>Loading...</div>}
-            {!serviceLoading&&serviceJobs.length===0&&<div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid #e8e8e8",color:"#aaa"}}>No service jobs yet. Create one above.</div>}
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {serviceJobs.map(job=>{
-                const SC={"Received":"#d97706","Diagnosed":"#0891b2","In Progress":"#7c3aed","Ready for Pickup":"#16a34a","Completed":"#16a34a","Cancelled":"#dc2626"};
-                const STATUSES=["Received","Diagnosed","In Progress","Ready for Pickup","Completed","Cancelled"];
-                return(
-                  <div key={job._id} style={{background:"#fff",border:"1.5px solid #e8e8e8",padding:"14px 18px",display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
-                    <div style={{flex:1,minWidth:200}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
-                        <span style={{fontWeight:800,fontSize:14,color:NAVY}}>{job.customerName}</span>
-                        <span style={{fontSize:12,color:"#888"}}>📞 {job.phone}</span>
-                        <span style={{background:"#eef2ff",color:NAVY,fontSize:11,fontWeight:700,padding:"2px 8px",fontFamily:"monospace"}}>{job.jobId}</span>
-                      </div>
-                      <div style={{fontSize:13,color:"#555",marginBottom:3}}>{job.deviceType} {job.brand} {job.model}</div>
-                      <div style={{fontSize:12,color:"#888",marginBottom:6}}>{job.issue}</div>
-                      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                        <span style={{background:SC[job.status]||"#888",color:"#fff",fontSize:10,fontWeight:700,padding:"2px 8px",letterSpacing:".06em",textTransform:"uppercase"}}>{job.status}</span>
-                        <span style={{fontSize:11,color:"#aaa"}}>{new Date(job.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</span>
-                        {job.estimatedCost>0&&<span style={{fontSize:12,fontWeight:600,color:NAVY}}>Est: ₹{job.estimatedCost}</span>}
-                      </div>
+            {serviceLoading&&<div style={{textAlign:"center",padding:40,color:"#aaa",fontSize:13}}>Loading...</div>}
+            {!serviceLoading&&serviceJobs.length===0&&<div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid "+BORDER,color:"#aaa",fontSize:13}}>No service jobs yet.</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {serviceJobs.map(job=>(
+                <div key={job._id} style={{background:"#fff",border:"1px solid "+BORDER,padding:"14px 16px",display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
+                  <div style={{flex:1,minWidth:200}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
+                      <span style={{fontWeight:700,fontSize:14,color:NAVY}}>{job.customerName}</span>
+                      <span style={{fontSize:12,color:"#888"}}>{job.phone}</span>
+                      <span style={{background:GREY,color:NAVY,fontSize:10,fontWeight:700,padding:"2px 8px",fontFamily:"monospace",border:"1px solid "+BORDER}}>{job.jobId}</span>
                     </div>
-                    <div style={{display:"flex",gap:8,flexShrink:0,flexWrap:"wrap",alignItems:"center"}}>
-                      <select defaultValue="" onChange={e=>{if(e.target.value){updateJobStatus(job.jobId,e.target.value,"Updated by admin");e.target.value="";}}}
-                        style={{border:"1px solid #ddd",padding:"6px 10px",fontSize:12,fontFamily:"inherit",cursor:"pointer",outline:"none",color:"#555"}}>
-                        <option value="" disabled>Update status...</option>
-                        {STATUSES.filter(s=>s!==job.status).map(s=><option key={s} value={s}>{s}</option>)}
-                      </select>
-                      <a href={"https://wa.me/91"+job.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("Hi "+job.customerName+", your "+job.deviceType+" repair (Job: "+job.jobId+") status: "+job.status+". Track at our website. Call 9435070738 for details.")}
-                        target="_blank" rel="noreferrer"
-                        style={{background:"#25D366",color:"#fff",padding:"7px 12px",fontSize:12,fontWeight:600,textDecoration:"none",whiteSpace:"nowrap"}}>
-                        💬 Notify
-                      </a>
-                      <button onClick={()=>window.confirm("Delete job "+job.jobId+"?")&&deleteServiceJob(job.jobId)}
-                        style={{background:"#fff0f0",color:RED,border:"1px solid #fecaca",padding:"7px 8px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>🗑️</button>
+                    <div style={{fontSize:12,color:"#555",marginBottom:3}}>{job.deviceType} {job.brand} {job.model}</div>
+                    <div style={{fontSize:11,color:"#888",marginBottom:6}}>{job.issue}</div>
+                    <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                      <span style={{background:STATUS_COLOR[job.status]||"#888",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 8px",letterSpacing:".06em",textTransform:"uppercase"}}>{job.status}</span>
+                      <span style={{fontSize:10,color:"#bbb"}}>{new Date(job.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</span>
+                      {job.serviceType&&<span style={{fontSize:10,color:"#aaa"}}>{job.serviceType}</span>}
+                      {job.estimatedCost>0&&<span style={{fontSize:11,fontWeight:700,color:NAVY,background:"#f0f2f8",padding:"1px 8px",border:"1px solid #dde2f0"}}>Est. Rs.{job.estimatedCost.toLocaleString()}</span>}
                     </div>
                   </div>
-                );
-              })}
+                  <div style={{display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"wrap"}}>
+                    <EstCostUpdate job={job} onUpdate={updateJobStatus}/>
+                    <a href={"https://wa.me/91"+job.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("Hi "+job.customerName+", your "+job.deviceType+" repair (Job: "+job.jobId+") status is now: "+job.status+". Call 9435070738 for details.")}
+                      target="_blank" rel="noreferrer"
+                      style={{background:"#25D366",color:"#fff",padding:"6px 12px",fontSize:11,fontWeight:600,textDecoration:"none",whiteSpace:"nowrap"}}>
+                      Notify
+                    </a>
+                    <button onClick={()=>window.confirm("Delete job "+job.jobId+"?")&&deleteServiceJob(job.jobId)}
+                      style={{background:"#fff",color:RED,border:"1px solid "+BORDER,padding:"6px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* ══ ANALYTICS TAB ══ */}
+        {/* ══ ANALYTICS ══ */}
         {tab==="analytics"&&(
           <div>
-            {analyticsLoading&&<div style={{textAlign:"center",padding:60,color:"#888",fontSize:14}}>Loading analytics...</div>}
+            {analyticsLoading&&<div style={{textAlign:"center",padding:60,color:"#aaa",fontSize:13}}>Loading analytics...</div>}
             {!analyticsLoading&&!analytics&&(
-              <div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid #e8e8e8"}}>
-                <div style={{fontSize:13,color:"#888",marginBottom:16}}>Click to load your store analytics</div>
-                <button onClick={loadAnalytics} style={{background:NAVY,color:"#fff",border:"none",padding:"12px 28px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Load Analytics</button>
+              <div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid "+BORDER}}>
+                <div style={{fontSize:13,color:"#aaa",marginBottom:14}}>Load your store analytics</div>
+                <button onClick={loadAnalytics} style={{background:NAVY,color:"#fff",border:"none",padding:"10px 24px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Load Analytics</button>
               </div>
             )}
-            {analytics&&!analyticsLoading&&(
+            {analytics&&(
               <div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:18}}>
                   {[
-                    {label:"Total Enquiries",value:analytics.totalEnquiries,color:NAVY,icon:"📩"},
-                    {label:"Last 7 Days",value:analytics.enquiriesLast7,color:"#0891b2",icon:"📅"},
-                    {label:"Unread",value:analytics.unread,color:RED,icon:"🔴"},
-                    {label:"Active Repairs",value:analytics.activeJobs,color:"#7c3aed",icon:"🛠️"},
-                    {label:"Total Products",value:analytics.totalProducts,color:NAVY,icon:"📦"},
-                    {label:"Out of Stock",value:analytics.outOfStock,color:"#d97706",icon:"⚠️"},
-                    {label:"Last 30 Days",value:analytics.enquiriesLast30,color:"#16a34a",icon:"📈"},
-                    {label:"Service Jobs",value:analytics.totalServiceJobs,color:"#0891b2",icon:"🔧"},
-                  ].map((k,i)=>(
-                    <div key={i} style={{background:"#fff",border:"1px solid #e8e8e8",padding:"16px 18px"}}>
-                      <div style={{fontSize:20,marginBottom:6}}>{k.icon}</div>
-                      <div style={{fontSize:26,fontWeight:800,color:k.color,lineHeight:1}}>{k.value}</div>
-                      <div style={{fontSize:10,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#aaa",marginTop:5}}>{k.label}</div>
-                    </div>
-                  ))}
+                    {label:"Total Enquiries",value:analytics.totalEnquiries},
+                    {label:"Last 7 Days",value:analytics.enquiriesLast7},
+                    {label:"Unread",value:analytics.unread,alert:analytics.unread>0},
+                    {label:"Active Repairs",value:analytics.activeJobs},
+                    {label:"Total Products",value:analytics.totalProducts},
+                    {label:"Out of Stock",value:analytics.outOfStock,alert:analytics.outOfStock>0},
+                    {label:"Last 30 Days",value:analytics.enquiriesLast30},
+                    {label:"Total Service Jobs",value:analytics.totalServiceJobs},
+                  ].map((k,i)=><Stat key={i} label={k.label} value={k.value} alert={k.alert}/>)}
                 </div>
 
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-                  <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:20}}>
-                    <div style={{fontWeight:700,fontSize:14,color:NAVY,marginBottom:14}}>📅 Enquiries — Last 7 Days</div>
+                  <div style={{background:"#fff",border:"1px solid "+BORDER,padding:20}}>
+                    <div style={{fontWeight:700,fontSize:13,color:NAVY,marginBottom:14,letterSpacing:".02em"}}>Enquiries — Last 7 Days</div>
                     {(()=>{
                       const max=Math.max(...analytics.dailyEnquiries.map(d=>d.count),1);
                       return(
-                        <div style={{display:"flex",alignItems:"flex-end",gap:6,height:100}}>
+                        <div style={{display:"flex",alignItems:"flex-end",gap:6,height:90}}>
                           {analytics.dailyEnquiries.map((d,i)=>(
                             <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-                              <div style={{fontSize:11,fontWeight:700,color:NAVY}}>{d.count||""}</div>
-                              <div style={{width:"100%",background:d.count>0?NAVY:"#e8e8e8",height:Math.max((d.count/max)*80,2)+"px",transition:"height .3s"}}/>
+                              <div style={{fontSize:10,fontWeight:700,color:NAVY}}>{d.count||""}</div>
+                              <div style={{width:"100%",background:d.count>0?NAVY:BORDER,height:Math.max((d.count/max)*72,2)+"px"}}/>
                               <div style={{fontSize:9,color:"#aaa",textAlign:"center"}}>{d.date}</div>
                             </div>
                           ))}
@@ -857,94 +872,83 @@ export default function Admin({defaultProducts,onExit}){
                     })()}
                   </div>
 
-                  <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:20}}>
-                    <div style={{fontWeight:700,fontSize:14,color:NAVY,marginBottom:14}}>📊 By Category</div>
-                    {analytics.catBreakdown.length===0?<div style={{color:"#aaa",fontSize:13}}>No data yet</div>:
-                      analytics.catBreakdown.map(([cat,count],i)=>{
-                        const max=analytics.catBreakdown[0][1];
-                        return(
-                          <div key={i} style={{marginBottom:10}}>
-                            <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:600,color:NAVY,marginBottom:3}}>
-                              <span>{cat}</span><span>{count}</span>
-                            </div>
-                            <div style={{background:"#f0f2f8",height:8,overflow:"hidden"}}>
-                              <div style={{background:i===0?RED:NAVY,height:"100%",width:(count/max*100)+"%",opacity:1-i*0.1}}/>
-                            </div>
-                          </div>
-                        );
-                      })
+                  <div style={{background:"#fff",border:"1px solid "+BORDER,padding:20}}>
+                    <div style={{fontWeight:700,fontSize:13,color:NAVY,marginBottom:14,letterSpacing:".02em"}}>Top Products by Enquiries</div>
+                    {analytics.topProducts.length===0?<div style={{color:"#aaa",fontSize:12}}>No product enquiries yet.</div>:
+                      analytics.topProducts.slice(0,5).map((p,i)=>(
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,padding:"6px 0",borderBottom:"1px solid "+BORDER}}>
+                          <span style={{fontSize:11,fontWeight:800,color:i===0?RED:NAVY,minWidth:18}}>{i+1}</span>
+                          <span style={{fontSize:12,color:NAVY,flex:1}}>{p.name}</span>
+                          <span style={{fontSize:11,color:"#aaa"}}>{p.count}</span>
+                        </div>
+                      ))
                     }
                   </div>
                 </div>
 
-                <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:20,marginBottom:16}}>
-                  <div style={{fontWeight:700,fontSize:14,color:NAVY,marginBottom:14}}>🏆 Top Products by Enquiries</div>
-                  {analytics.topProducts.length===0?<div style={{color:"#aaa",fontSize:13}}>No product enquiries yet.</div>:(
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
-                      {analytics.topProducts.map((p,i)=>(
-                        <div key={i} style={{background:i===0?"#fff8f0":"#f9f9fb",border:"1px solid "+(i===0?RED:"#e8e8e8"),padding:"12px 14px"}}>
-                          <div style={{fontSize:18,fontWeight:800,color:i===0?RED:NAVY}}>{i+1}</div>
-                          <div style={{fontSize:12,fontWeight:600,color:NAVY,marginTop:4,lineHeight:1.3}}>{p.name}</div>
-                          <div style={{fontSize:11,color:"#888",marginTop:3}}>{p.count} enquir{p.count===1?"y":"ies"}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
                 {analytics.outOfStockList.length>0&&(
-                  <div style={{background:"#fff8ed",border:"1px solid #fed7aa",padding:20,marginBottom:16}}>
-                    <div style={{fontWeight:700,fontSize:14,color:"#c2410c",marginBottom:10}}>⚠️ Out of Stock ({analytics.outOfStockList.length})</div>
+                  <div style={{background:"#fff",border:"1px solid #fde047",padding:18,marginBottom:16}}>
+                    <div style={{fontWeight:700,fontSize:13,color:"#854d0e",marginBottom:10}}>Out of Stock ({analytics.outOfStockList.length})</div>
                     {analytics.outOfStockList.map(p=>(
-                      <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #fed7aa"}}>
-                        <div><span style={{fontWeight:600,color:NAVY}}>{p.name}</span><span style={{fontSize:12,color:"#888",marginLeft:8}}>{p.cat}</span></div>
+                      <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid "+BORDER}}>
+                        <div><span style={{fontWeight:600,fontSize:13,color:NAVY}}>{p.name}</span><span style={{fontSize:11,color:"#aaa",marginLeft:8}}>{p.cat}</span></div>
                         <button onClick={()=>{persist(products.map(x=>x.id===p.id?{...x,inStock:true}:x));showToast(p.name+" marked in stock");loadAnalytics();}}
-                          style={{background:"#dcfce7",color:"#16a34a",border:"1px solid #86efac",padding:"4px 10px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                          style={{background:"#fff",color:"#16a34a",border:"1px solid #16a34a",padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                           Mark In Stock
                         </button>
                       </div>
                     ))}
                   </div>
                 )}
-                <button onClick={loadAnalytics} style={{background:"#f0f2f8",color:NAVY,border:"1px solid #dde2f0",padding:"8px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>↺ Refresh</button>
+                <button onClick={loadAnalytics} style={{background:"#fff",color:NAVY,border:"1px solid "+BORDER,padding:"7px 16px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Refresh</button>
               </div>
             )}
           </div>
         )}
 
-        {/* ══ BANNER TAB ══ */}
+        {/* ══ BANNER ══ */}
         {tab==="banner"&&(
           <div>
-            <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:24,marginBottom:16}}>
-              <div style={{fontWeight:700,fontSize:16,color:NAVY,marginBottom:4}}>📢 Scrolling Promo Banner</div>
-              <div style={{fontSize:13,color:"#666",marginBottom:16}}>This text scrolls in a red banner at the top of the website. Customers see it on every visit.</div>
+            <div style={{background:"#fff",border:"1px solid "+BORDER,padding:22,marginBottom:14}}>
+              <div style={{fontWeight:700,fontSize:15,color:NAVY,marginBottom:4}}>Scrolling Promo Banner</div>
+              <div style={{fontSize:12,color:"#888",marginBottom:16}}>This text scrolls across the top of the website. Customers see it on every visit.</div>
+              <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>Banner Text</label>
               <textarea value={bannerText} onChange={e=>setBannerText(e.target.value)} rows={3}
-                style={{width:"100%",border:"1.5px solid #dde2f0",padding:"12px 14px",fontSize:14,fontFamily:"inherit",outline:"none",resize:"vertical",color:"#111",marginBottom:12}}
-                onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#dde2f0"}/>
-              <div style={{fontSize:11,fontWeight:700,color:"#555",textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>Live Preview</div>
-              <div style={{background:RED,overflow:"hidden",height:32,display:"flex",alignItems:"center",marginBottom:16,borderRadius:2}}>
+                style={{...INP,resize:"vertical",marginBottom:14,padding:"10px 12px",fontSize:13}}
+                onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+              <div style={{fontSize:11,color:"#888",fontWeight:600,textTransform:"uppercase",letterSpacing:".05em",marginBottom:6}}>Preview</div>
+              <div style={{background:RED,overflow:"hidden",height:30,display:"flex",alignItems:"center",marginBottom:16}}>
                 <style>{"@keyframes bm{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}.bmar{display:inline-block;animation:bm 20s linear infinite;white-space:nowrap;padding-left:100%;}"}</style>
                 <div className="bmar" style={{fontSize:12,fontWeight:600,color:"#fff"}} dangerouslySetInnerHTML={{__html:bannerText}}/>
               </div>
               <div style={{display:"flex",gap:10}}>
-                <button onClick={saveBanner} style={{background:bannerSaved?"#16a34a":NAVY,color:"#fff",border:"none",padding:"11px 28px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"background .2s"}}>{bannerSaved?"✓ Saved!":"Save Banner"}</button>
-                <button onClick={()=>setBannerText("🔥 Summer Sale — Up to ₹5,000 off on Laptops &nbsp;|&nbsp; 🎓 Student Discount Available &nbsp;|&nbsp; 💻 Free OS Installation on all Desktops &nbsp;|&nbsp; 📞 Call 9435070738 for Best Deals")}
-                  style={{background:"none",border:"1.5px solid #ddd",color:"#888",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Reset to Default</button>
+                <button onClick={saveBanner}
+                  style={{background:bannerSaved?"#16a34a":NAVY,color:"#fff",border:"none",padding:"10px 24px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"background .2s"}}>
+                  {bannerSaved?"Saved":"Save Banner"}
+                </button>
+                <button onClick={()=>setBannerText("Summer Sale — Up to Rs.5,000 off on Laptops | Student Discount Available | Free OS Installation on all Desktops | Call 9435070738")}
+                  style={{background:"#fff",border:"1px solid "+BORDER,color:"#666",padding:"10px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                  Reset to Default
+                </button>
               </div>
-              <div style={{marginTop:12,padding:"10px 14px",background:"#f0f2f8",fontSize:12,color:"#555"}}>💡 After saving, refresh the website to see the updated banner.</div>
+              <div style={{marginTop:12,fontSize:12,color:"#aaa"}}>After saving, refresh the website to see the updated banner.</div>
             </div>
-            <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:20}}>
-              <div style={{fontWeight:700,fontSize:14,color:NAVY,marginBottom:10}}>Quick Templates</div>
+
+            <div style={{background:"#fff",border:"1px solid "+BORDER,padding:20}}>
+              <div style={{fontWeight:700,fontSize:13,color:NAVY,marginBottom:12}}>Quick Templates</div>
               {[
-                "🔥 Summer Sale — Up to ₹5,000 off on Laptops &nbsp;|&nbsp; 📞 Call 9435070738 for Best Deals",
-                "🎓 Student Special — Extra ₹1,000 off on all Laptops &nbsp;|&nbsp; Valid this month only",
-                "💻 New Arrivals — Latest HP & Dell Laptops in stock &nbsp;|&nbsp; Visit Anand Arcade, Silchar",
-                "🛠️ Free Diagnosis — Bring your laptop for free checkup &nbsp;|&nbsp; No fix, no charge policy",
-                "📢 Dussehra Sale — Special prices on Desktops, Laptops & Printers &nbsp;|&nbsp; Limited stock!",
+                "Summer Sale — Up to Rs.5,000 off on Laptops | Call 9435070738 for Best Deals",
+                "Student Special — Extra Rs.1,000 off on all Laptops | Valid this month only",
+                "New Arrivals — Latest HP and Dell Laptops in stock | Visit Anand Arcade, Silchar",
+                "Free Diagnosis — Bring your laptop for free checkup | No fix, no charge",
+                "Dussehra Sale — Special prices on Desktops, Laptops and Printers | Limited stock",
               ].map((t,i)=>(
-                <div key={i} onClick={()=>setBannerText(t)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:"#f9f9fb",border:"1px solid #e8e8e8",cursor:"pointer",marginBottom:6}}>
-                  <div style={{flex:1,fontSize:12,color:"#444"}} dangerouslySetInnerHTML={{__html:t}}/>
-                  <button style={{background:NAVY,color:"#fff",border:"none",padding:"4px 12px",fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0,fontFamily:"inherit"}}>Use</button>
+                <div key={i} onClick={()=>setBannerText(t)}
+                  style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",border:"1px solid "+BORDER,cursor:"pointer",marginBottom:6,background:"#fff",transition:"border-color .15s"}}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor=NAVY}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor=BORDER}>
+                  <div style={{flex:1,fontSize:12,color:"#444"}}>{t}</div>
+                  <button style={{background:NAVY,color:"#fff",border:"none",padding:"4px 12px",fontSize:11,fontWeight:600,cursor:"pointer",flexShrink:0,fontFamily:"inherit"}}>Use</button>
                 </div>
               ))}
             </div>
@@ -952,15 +956,16 @@ export default function Admin({defaultProducts,onExit}){
         )}
 
       </div>
+
+      {/* Delete Modal */}
       {delConfirm&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"#fff",maxWidth:360,width:"100%",padding:"40px 32px",textAlign:"center"}}>
-            <div style={{fontSize:40,marginBottom:16}}>🗑️</div>
-            <div style={{fontWeight:800,fontSize:20,color:NAVY,marginBottom:8}}>Delete this product?</div>
-            <p style={{fontSize:14,color:"#666",marginBottom:28}}>This cannot be undone.</p>
-            <div style={{display:"flex",gap:12}}>
-              <button onClick={()=>setDelConfirm(null)} style={{flex:1,background:"#f5f5f5",border:"none",padding:"12px",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-              <button onClick={()=>handleDelete(delConfirm)} style={{flex:1,background:RED,color:"#fff",border:"none",padding:"12px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.4)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#fff",maxWidth:340,width:"100%",padding:"32px 28px",border:"1px solid "+BORDER}}>
+            <div style={{fontWeight:700,fontSize:18,color:NAVY,marginBottom:8}}>Delete this product?</div>
+            <p style={{fontSize:13,color:"#666",marginBottom:24}}>This cannot be undone.</p>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>setDelConfirm(null)} style={{flex:1,background:"#fff",border:"1px solid "+BORDER,padding:"10px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",color:"#555"}}>Cancel</button>
+              <button onClick={()=>handleDelete(delConfirm)} style={{flex:1,background:RED,color:"#fff",border:"none",padding:"10px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
             </div>
           </div>
         </div>
@@ -968,13 +973,10 @@ export default function Admin({defaultProducts,onExit}){
 
       {/* Toast */}
       {toast&&(
-        <div style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:toast.type==="error"?RED:NAVY,color:"#fff",padding:"12px 24px",fontSize:14,fontWeight:600,zIndex:3000,boxShadow:"0 4px 20px rgba(0,0,0,.2)",whiteSpace:"nowrap"}}>
-          {toast.type==="error"?"⚠️":"✓"} {toast.msg}
+        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:toast.type==="error"?RED:NAVY,color:"#fff",padding:"10px 20px",fontSize:13,fontWeight:600,zIndex:3000,boxShadow:"0 4px 16px rgba(0,0,0,.15)",whiteSpace:"nowrap"}}>
+          {toast.msg}
         </div>
       )}
     </div>
   );
 }
-
-// ── Analytics helpers (appended) ──
-// These are loaded inside the Admin component via the analytics tab

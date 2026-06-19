@@ -176,13 +176,13 @@ function QuoteModal({product,onClose}){
               </button>
               <button onClick={()=>window.open("https://wa.me/919435070738?text="+encodeURIComponent(form.msg||"Hi, I want to enquire."),"_blank")}
                 style={{background:"#25D366",color:"#fff",border:"none",padding:"12px",fontSize:14,fontWeight:600,fontFamily:"inherit",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                <span>💬</span> Send via WhatsApp
+                Send via WhatsApp
               </button>
             </div>
           </>
         ):(
           <div style={{padding:"48px 28px",textAlign:"center"}}>
-            <div style={{fontSize:44,marginBottom:16,color:RED}}>✓</div>
+            <div style={{fontSize:44,marginBottom:16,color:RED}}></div>
             <div style={{fontWeight:700,fontSize:20,color:NAVY,marginBottom:8}}>Enquiry Received!</div>
             <p style={{fontSize:14,color:"#666",lineHeight:1.7,marginBottom:28}}>We'll call <strong>{form.phone}</strong> shortly.<br/>Or call us at <strong style={{color:RED}}>9435070738</strong>.</p>
             <button onClick={onClose} style={{background:NAVY,color:"#fff",border:"none",padding:"12px 32px",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",fontFamily:"inherit"}}>Close</button>
@@ -205,7 +205,7 @@ function ProductCard({p,onQuote,onView,onCompare,compareList=[],delay}){
         <div style={{position:"absolute",top:12,right:12,zIndex:1}}>
           <button onClick={e=>{e.stopPropagation();onCompare&&onCompare(p);}}
             style={{background:inCmp?NAVY:"rgba(255,255,255,.9)",color:inCmp?"#fff":"#888",border:"1.5px solid "+(inCmp?NAVY:"#ddd"),padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",transition:"all .15s"}}>
-            {inCmp?"✓ Added":"+ Compare"}
+            {inCmp?"Added":"Compare"}
           </button>
         </div>
         <div style={{background:"#f5f5f5",height:200,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden"}} onClick={()=>onView(p)}>
@@ -229,9 +229,7 @@ function ProductCard({p,onQuote,onView,onCompare,compareList=[],delay}){
             </button>
             <button onClick={()=>window.open("https://wa.me/919435070738?text=Hi%2C+I'm+interested+in+"+encodeURIComponent(p.name)+"_at_"+encodeURIComponent(p.price),"_blank")}
               style={{width:40,background:"#fff",border:"1px solid #e8e8e8",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"border-color .15s"}}
-              onMouseEnter={e=>e.target.style.borderColor=NAVY} onMouseLeave={e=>e.target.style.borderColor="#e8e8e8"}>
-              💬
-            </button>
+              onMouseEnter={e=>e.target.style.borderColor=NAVY} onMouseLeave={e=>e.target.style.borderColor="#e8e8e8"}></button>
           </div>
         </div>
       </div>
@@ -357,13 +355,13 @@ function RepairModal({onClose}){
               </button>
               <button onClick={()=>window.open("https://wa.me/919435070738?text="+waMsg,"_blank")}
                 style={{background:"#25D366",color:"#fff",border:"none",padding:"12px",fontSize:14,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontFamily:"inherit"}}>
-                💬 Book via WhatsApp
+                Book via WhatsApp
               </button>
             </div>
           </>
         ):(
           <div style={{padding:"40px 28px",textAlign:"center"}}>
-            <div style={{fontSize:44,marginBottom:12,color:"#16a34a"}}>✓</div>
+            <div style={{fontSize:44,marginBottom:12,color:"#16a34a"}}></div>
             <div style={{fontWeight:700,fontSize:20,color:NAVY,marginBottom:8}}>Service Booked!</div>
             <p style={{fontSize:14,color:"#666",lineHeight:1.7,marginBottom:16}}>We'll call <strong>{form.phone}</strong> to confirm the appointment.</p>
 
@@ -376,7 +374,7 @@ function RepairModal({onClose}){
             )}
 
             <div style={{background:"#f5f7fa",border:"1px solid #dde2f0",padding:"14px 18px",textAlign:"left",marginBottom:20,fontSize:13}}>
-              <div style={{fontWeight:700,color:NAVY,marginBottom:8}}>📋 Your Booking</div>
+              <div style={{fontWeight:700,color:NAVY,marginBottom:8}}>Your Booking</div>
               {[
                 ["Device", form.deviceType+" "+form.brand+" "+form.model],
                 ["Issue", form.issue],
@@ -401,7 +399,7 @@ function RepairModal({onClose}){
                 <body>
                 <div style="border-left:4px solid #CC1A1A;padding-left:16px;margin-bottom:20px;">
                   <h2>ADVANTAGE SILCHAR</h2>
-                  <p style="margin:0;font-size:12px;color:#666;">Anand Arcade, Opp. Civil Hospital, Silchar – 788001 | 📞 9435070738</p>
+                  <p style="margin:0;font-size:12px;color:#666;">Anand Arcade, Opp. Civil Hospital, Silchar – 788001 | 9435070738</p>
                 </div>
                 <h3 style="color:#CC1A1A;margin-bottom:4px;">REPAIR SERVICE RECEIPT</h3>
                 ${jobId?'<p style="font-size:13px;color:#555;margin:0;">Job ID:</p><div class="jobid">'+jobId+'</div>':''}
@@ -424,7 +422,7 @@ function RepairModal({onClose}){
                 w.document.close();
                 setTimeout(()=>w.print(),500);
               }} style={{background:NAVY,color:"#fff",border:"none",padding:"11px 20px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
-                📄 Download Receipt
+                Download Receipt
               </button>
               <button onClick={onClose} style={{background:"none",border:"1.5px solid "+NAVY,color:NAVY,padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Close</button>
             </div>
@@ -482,33 +480,34 @@ function ServiceTracker({onClose}){
           {error&&<div style={{background:"#fff0f0",border:"1px solid #fecaca",padding:"12px 16px",fontSize:13,color:"#dc2626",marginBottom:16}}>⚠️ {error}</div>}
           {result&&(
             <div style={{background:"#f5f7fa",border:"1px solid #dde2f0",padding:"20px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
                 <div>
                   <div style={{fontWeight:700,fontSize:16,color:NAVY}}>{result.deviceType} — {result.brand} {result.model}</div>
-                  <div style={{fontSize:12,color:"#888",marginTop:3}}>Job ID: <strong>{result.jobId}</strong></div>
+                  <div style={{fontSize:12,color:"#888",marginTop:3}}>Job ID: <strong style={{fontFamily:"monospace"}}>{result.jobId}</strong></div>
+                  {result.customerName&&<div style={{fontSize:12,color:"#888",marginTop:2}}>{result.customerName}</div>}
                 </div>
-                <span style={{background:STATUS_COLORS[result.status]||"#888",color:"#fff",fontSize:11,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>
+                <span style={{background:STATUS_COLORS[result.status]||"#888",color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".06em",textTransform:"uppercase",flexShrink:0}}>
                   {result.status}
                 </span>
               </div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 {result.timeline?.map((t,i)=>(
                   <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-                    <div style={{width:10,height:10,borderRadius:"50%",background:i===result.timeline.length-1?NAVY:"#ddd",flexShrink:0,marginTop:4}}/>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:i===result.timeline.length-1?NAVY:"#ddd",flexShrink:0,marginTop:5,border:i===result.timeline.length-1?"2px solid "+NAVY:"2px solid #ddd"}}/>
                     <div>
                       <div style={{fontSize:13,fontWeight:600,color:NAVY}}>{t.status}</div>
-                      <div style={{fontSize:11,color:"#888"}}>{new Date(t.date).toLocaleDateString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
+                      <div style={{fontSize:11,color:"#888"}}>{new Date(t.date).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
                       {t.note&&<div style={{fontSize:12,color:"#555",marginTop:2}}>{t.note}</div>}
                     </div>
                   </div>
                 ))}
               </div>
-              {result.estimatedCost&&<div style={{marginTop:14,padding:"10px 14px",background:"#fff",border:"1px solid #e8e8e8",fontSize:13}}><strong>Estimated Cost:</strong> ₹{result.estimatedCost}</div>}
-              {result.status==="Ready for Pickup"&&<div style={{marginTop:10,padding:"10px 14px",background:"#f0fdf4",border:"1px solid #86efac",fontSize:13,color:"#15803d",fontWeight:600}}>✅ Your device is ready! Visit us to collect it.</div>}
+              {result.estimatedCost>0&&<div style={{marginTop:14,padding:"10px 14px",background:"#fff",border:"1px solid #e8e8e8",fontSize:13}}><strong>Estimated Cost:</strong> ₹{result.estimatedCost}</div>}
+              {result.status==="Ready for Pickup"&&<div style={{marginTop:10,padding:"10px 14px",background:"#f0fdf4",border:"1px solid #86efac",fontSize:13,color:"#15803d",fontWeight:600}}>Your device is ready. Please visit the store to collect it.</div>}
             </div>
           )}
           <div style={{marginTop:20,padding:"12px 16px",background:"#f0f2f8",fontSize:12,color:"#555"}}>
-            📞 <strong>Questions?</strong> Call us at <strong style={{color:NAVY}}>9435070738</strong> with your Job ID.
+            <strong>Questions?</strong> Call us at <strong style={{color:NAVY}}>9435070738</strong> with your Job ID.
           </div>
         </div>
       </div>
@@ -602,14 +601,14 @@ function BulkQuoteModal({onClose}){
                 </button>
                 <button onClick={()=>window.open("https://wa.me/919435070738?text="+encodeURIComponent("Hi, I represent "+form.org+" ("+form.orgType+"). We need: "+form.products+" — Budget: "+form.budget),"_blank")}
                   style={{flex:1,background:"#25D366",color:"#fff",border:"none",padding:"13px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                  💬 WhatsApp
+                  WhatsApp
                 </button>
               </div>
             </div>
           </>
         ):(
           <div style={{padding:"48px 28px",textAlign:"center"}}>
-            <div style={{fontSize:44,marginBottom:12}}>✅</div>
+            <div style={{fontSize:44,marginBottom:12}}></div>
             <div style={{fontWeight:800,fontSize:20,color:NAVY,marginBottom:8}}>Bulk Enquiry Received!</div>
             <p style={{fontSize:14,color:"#666",lineHeight:1.7,marginBottom:24}}>Our team will contact <strong>{form.contact}</strong> at <strong style={{color:RED}}>{form.phone}</strong> within 24 hours with a detailed quote.</p>
             <button onClick={onClose} style={{background:NAVY,color:"#fff",border:"none",padding:"12px 32px",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Close</button>
@@ -640,7 +639,7 @@ function CompareBar({list,onRemove,onClear,onCompare}){
         <button onClick={onCompare} disabled={list.length<2}
           style={{background:list.length>=2?NAVY:"#ccc",color:"#fff",border:"none",padding:"9px 24px",fontSize:13,fontWeight:700,cursor:list.length>=2?"pointer":"not-allowed",letterSpacing:".04em",textTransform:"uppercase",transition:"background .15s"}}
           onMouseEnter={e=>{if(list.length>=2)e.target.style.background=RED;}} onMouseLeave={e=>{if(list.length>=2)e.target.style.background=NAVY;}}>
-          Compare Now →
+          Compare Now
         </button>
       </div>
     </div>
@@ -867,7 +866,7 @@ function CompareModal({list,onClose,onQuote}){
           <span style={{fontWeight:800,fontSize:18,color:"#fff"}}>Compare Products</span>
           <span style={{fontSize:12,color:"rgba(255,255,255,.4)",background:"rgba(255,255,255,.1)",padding:"3px 10px"}}>{list.length} products</span>
         </div>
-        <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,.2)",color:"rgba(255,255,255,.7)",fontSize:14,fontWeight:600,cursor:"pointer",padding:"6px 14px",fontFamily:"inherit"}}>✕ Close</button>
+        <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,.2)",color:"rgba(255,255,255,.7)",fontSize:14,fontWeight:600,cursor:"pointer",padding:"6px 14px",fontFamily:"inherit"}}>Close</button>
       </div>
 
       <div style={{flex:1,overflowY:"auto",background:"#f5f7fa"}}>
@@ -876,7 +875,7 @@ function CompareModal({list,onClose,onQuote}){
           {/* AI Section */}
           <div style={{background:"#fff",border:"2px solid "+NAVY,padding:"24px 28px",marginBottom:24}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-              <span style={{fontSize:20}}>🤖</span>
+              <span style={{fontSize:20}}></span>
               <span style={{fontWeight:800,fontSize:17,color:NAVY}}>AI-Powered Recommendation</span>
               <span style={{fontSize:11,background:"#eef2ff",color:NAVY,padding:"2px 8px",fontWeight:600}}>Powered by Gemini</span>
             </div>
@@ -900,12 +899,12 @@ function CompareModal({list,onClose,onQuote}){
                 {aiLoading?"Analysing...":"Ask AI →"}
               </button>
             </div>
-            {aiLoading&&<div style={{marginTop:16,padding:"14px",background:"#f0f2f8",textAlign:"center",fontSize:13,color:NAVY,fontWeight:600}}>🔍 Analysing products for "{useCase}"...</div>}
+            {aiLoading&&<div style={{marginTop:16,padding:"14px",background:"#f0f2f8",textAlign:"center",fontSize:13,color:NAVY,fontWeight:600}}> Analysing products for "{useCase}"...</div>}
             {aiError&&<div style={{marginTop:12,padding:"12px 16px",background:"#fff0f0",border:"1px solid #fecaca",fontSize:13,color:"#dc2626",fontWeight:500}}>⚠️ {aiError}</div>}
             {aiResult&&!aiLoading&&(
               <div style={{marginTop:20}}>
                 <div style={{background:NAVY,color:"#fff",padding:"16px 20px",marginBottom:12,display:"flex",alignItems:"center",gap:14}}>
-                  <span style={{fontSize:28}}>🏆</span>
+                  <span style={{fontSize:28}}></span>
                   <div>
                     <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"rgba(255,255,255,.5)",marginBottom:4}}>Best for "{useCase}"</div>
                     <div style={{fontWeight:800,fontSize:18}}>{aiResult.winner}</div>
@@ -921,7 +920,7 @@ function CompareModal({list,onClose,onQuote}){
                     </div>
                   ))}
                 </div>
-                {aiResult.tip&&<div style={{background:"#fffbeb",border:"1px solid #fde68a",padding:"12px 16px",fontSize:13,color:"#92400e",display:"flex",gap:10,alignItems:"flex-start"}}><span>💡</span><span><strong>Buying Tip:</strong> {aiResult.tip}</span></div>}
+                {aiResult.tip&&<div style={{background:"#fffbeb",border:"1px solid #fde68a",padding:"12px 16px",fontSize:13,color:"#92400e",display:"flex",gap:10,alignItems:"flex-start"}}><span></span><span><strong>Buying Tip:</strong> {aiResult.tip}</span></div>}
               </div>
             )}
           </div>
@@ -934,8 +933,8 @@ function CompareModal({list,onClose,onQuote}){
               const aiV=aiResult&&(aiResult.verdicts||[]).find(v=>v.name===p.name);
               return(
                 <div key={p.id} style={{background:"#fff",border:"2px solid "+(isAiWin?RED:badges.length>0?NAVY:"#e8e8e8"),padding:"20px 18px",textAlign:"center",position:"relative"}}>
-                  {isAiWin&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>🏆 AI PICK</div>}
-                  {!isAiWin&&badges.length>0&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>★ {badges[0].label}</div>}
+                  {isAiWin&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>AI PICK</div>}
+                  {!isAiWin&&badges.length>0&&<div style={{position:"absolute",top:-1,left:"50%",transform:"translateX(-50%)",background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"3px 14px",letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{badges[0].label}</div>}
                   <div style={{marginTop:isAiWin||badges.length>0?16:0}}>
                     <div style={{height:80,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10,overflow:"hidden"}}>
                       {p.image?<img src={p.image} alt={p.name} style={{maxHeight:"100%",maxWidth:"100%",objectFit:"contain"}}/>:<span style={{fontSize:44}}>{p.icon}</span>}
@@ -990,7 +989,7 @@ function CompareModal({list,onClose,onQuote}){
                         return(
                           <td key={p.id} style={{padding:"12px 18px",textAlign:"center",borderLeft:"1px solid #e8e8e8",fontSize:12,lineHeight:1.55,verticalAlign:"top",fontWeight:isWin?700:400,color:isWin?"#15803d":NAVY,background:isWin?"#f0fdf4":(!allSame&&val!=="—"?"#fffbeb":"transparent")}}>
                             {val}
-                            {isWin&&val!=="—"&&<div style={{fontSize:9,color:"#16a34a",fontWeight:700,marginTop:2}}>✓ BEST</div>}
+                            {isWin&&val!=="—"&&<div style={{fontSize:9,color:"#16a34a",fontWeight:700,marginTop:2}}> BEST</div>}
                           </td>
                         );
                       })}
@@ -1003,7 +1002,7 @@ function CompareModal({list,onClose,onQuote}){
                     <td key={p.id} style={{padding:"13px 18px",textAlign:"left",borderLeft:"1px solid #e8e8e8",verticalAlign:"top"}}>
                       {(p.highlights||[]).filter(Boolean).map((h,i)=>(
                         <div key={i} style={{fontSize:11,color:"#444",marginBottom:4,display:"flex",gap:5,alignItems:"flex-start"}}>
-                          <span style={{color:RED,fontWeight:700,flexShrink:0}}>✓</span>{h}
+                          <span style={{color:RED,fontWeight:700,flexShrink:0}}></span>{h}
                         </div>
                       ))}
                     </td>
@@ -1017,9 +1016,9 @@ function CompareModal({list,onClose,onQuote}){
                     return(
                       <td key={p.id} style={{padding:"14px 18px",textAlign:"center",borderLeft:"1px solid rgba(255,255,255,.1)"}}>
                         {isAiWin
-                          ?<span style={{background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>🏆 AI Pick</span>
+                          ?<span style={{background:RED,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>AI Pick</span>
                           :badges.length>0
-                            ?<span style={{background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>★ {badges[0].label}</span>
+                            ?<span style={{background:badges[0].color,color:"#fff",fontSize:10,fontWeight:700,padding:"4px 12px",letterSpacing:".04em",textTransform:"uppercase"}}>{badges[0].label}</span>
                             :<span style={{fontSize:12,color:"rgba(255,255,255,.3)"}}>—</span>
                         }
                       </td>
@@ -1030,7 +1029,7 @@ function CompareModal({list,onClose,onQuote}){
             </table>
           </div>
           <div style={{marginTop:12,fontSize:11,color:"#aaa",textAlign:"center"}}>
-            🟢 Green = best in category &nbsp;·&nbsp; 🟡 Yellow = values differ &nbsp;·&nbsp; 🏆 AI Pick = recommended for your use case
+            🟢 Green = best in category &nbsp;·&nbsp; 🟡 Yellow = values differ &nbsp;·&nbsp; AI Pick = recommended for your use case
           </div>
         </div>
       </div>
@@ -1069,7 +1068,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
             )}
             <div style={{marginTop:16,background:"#f0f2f8",border:"1px solid #dde2f0",padding:"16px 18px"}}>
               <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#aaa",marginBottom:12}}>Store Info</div>
-              {[{icon:"📍",text:"Anand Arcade, Opposite Civil Hospital, Silchar – 788001"},{icon:"📞",text:"03842-230952 · 9435070738"},{icon:"🕙",text:"Mon – Sat · 10:00 AM – 8:00 PM"},{icon:"✅",text:"In-store demo available on request"}].map((item,i)=>(
+              {[{icon:"Location",text:"Anand Arcade, Opposite Civil Hospital, Silchar – 788001"},{icon:"Phone",text:"03842-230952 · 9435070738"},{icon:"Hours",text:"Mon – Sat · 10:00 AM – 8:00 PM"},{icon:"",text:"In-store demo available on request"}].map((item,i)=>(
                 <div key={i} style={{display:"flex",gap:10,fontSize:12,color:"#444",marginBottom:7,fontWeight:500,alignItems:"flex-start"}}><span style={{flexShrink:0}}>{item.icon}</span><span>{item.text}</span></div>
               ))}
             </div>
@@ -1090,7 +1089,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
               </button>
               <button onClick={()=>window.open("https://wa.me/919435070738?text=Hi%2C+I'm+interested+in+"+encodeURIComponent(p.name)+"_"+encodeURIComponent(p.price)+". Please confirm availability.","_blank")}
                 style={{flex:1,minWidth:150,background:"#25D366",color:"#fff",border:"none",padding:"14px 0",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                <span>💬</span>WhatsApp
+                WhatsApp
               </button>
               <button onClick={()=>{
                 const html=`<!DOCTYPE html><html><head><title>Quote — ${p.name}</title>
@@ -1103,12 +1102,12 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
                 .price{font-size:28px;font-weight:900;color:#0B1F5E;margin:16px 0;}
                 .footer{margin-top:32px;font-size:12px;color:#888;border-top:1px solid #ddd;padding-top:16px;}
                 .highlights{list-style:none;padding:0;}
-                .highlights li::before{content:"✓ ";color:#CC1A1A;font-weight:bold;}
+                .highlights li::before{content:" ";color:#CC1A1A;font-weight:bold;}
                 @media print{button{display:none!important;}}</style></head>
                 <body>
                 <div style="border-left:5px solid #CC1A1A;padding-left:16px;margin-bottom:24px;">
                   <h2>ADVANTAGE SILCHAR</h2>
-                  <p style="margin:0;font-size:13px;color:#666;">Anand Arcade, Opp. Civil Hospital, Hospital Road, Silchar – 788001<br/>📞 9435070738 &nbsp;|&nbsp; ✉️ advantage.it@gmail.com</p>
+                  <p style="margin:0;font-size:13px;color:#666;">Anand Arcade, Opp. Civil Hospital, Hospital Road, Silchar – 788001<br/>9435070738 &nbsp;|&nbsp; ✉️ advantage.it@gmail.com</p>
                 </div>
                 <div style="background:#f5f7fa;padding:16px 20px;border-radius:4px;margin-bottom:20px;">
                   <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#CC1A1A;margin-bottom:6px;">${p.cat}</div>
@@ -1121,7 +1120,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
                 <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#555;margin-bottom:10px;">Specifications</div>
                 <table>
                   ${Object.entries(p.specs||{}).map(([k,v])=>"<tr><td>"+k+"</td><td>"+v+"</td></tr>").join("")}
-                  <tr><td>Availability</td><td style="color:#16a34a;font-weight:600;">✓ In Store — Silchar</td></tr>
+                  <tr><td>Availability</td><td style="color:#16a34a;font-weight:600;"> In Store — Silchar</td></tr>
                 </table>
                 <div style="margin-top:20px;background:#fff3cd;border:1px solid #ffe69c;padding:12px 16px;font-size:13px;color:#856404;">
                   <strong>For best price:</strong> Visit us at Anand Arcade or call <strong>9435070738</strong>. We offer EMI, exchange, and bulk discounts.
@@ -1139,7 +1138,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
               }} style={{background:"#f0f2f8",color:NAVY,border:"1.5px solid #dde2f0",padding:"14px 16px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,transition:"all .15s"}}
                 onMouseEnter={e=>e.currentTarget.style.background=NAVY+";color:#fff"}
                 onMouseLeave={e=>e.currentTarget.style.background="#f0f2f8"}>
-                📄 Quote
+                Get Quote PDF
               </button>
             </div>
             {p.highlights&&p.highlights.length>0&&(
@@ -1148,7 +1147,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                   {p.highlights.map((h,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,fontSize:13,color:"#333"}}>
-                      <span style={{color:RED,fontWeight:800,flexShrink:0,marginTop:1}}>✓</span><span style={{fontWeight:500}}>{h}</span>
+                      <span style={{color:RED,fontWeight:800,flexShrink:0,marginTop:1}}></span><span style={{fontWeight:500}}>{h}</span>
                     </div>
                   ))}
                 </div>
@@ -1179,7 +1178,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
               ))}
               <tr style={{background:Object.keys(p.specs||{}).length%2===0?"#f9f9fb":"#fff",borderBottom:"1px solid #f0f0f0"}}>
                 <td style={{padding:"14px 24px",fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777"}}>Availability</td>
-                <td style={{padding:"14px 24px",fontSize:14,fontWeight:700,color:"#16a34a"}}>✓ Available — Anand Arcade, Silchar</td>
+                <td style={{padding:"14px 24px",fontSize:14,fontWeight:700,color:"#16a34a"}}> Available — Anand Arcade, Silchar</td>
               </tr>
               <tr>
                 <td style={{padding:"14px 24px",fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777"}}>Price</td>
@@ -1205,7 +1204,7 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
             style={{background:"none",border:"1.5px solid "+NAVY,color:NAVY,padding:"11px 28px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:8,transition:"all .15s"}}
             onMouseEnter={e=>{e.currentTarget.style.background=NAVY;e.currentTarget.style.color="#fff";}}
             onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=NAVY;}}>
-            ← Back to Products
+            Back to Products
           </button>
         </div>
       </div>
@@ -1316,7 +1315,7 @@ export default function App(){
       <ProductPage p={selectedProduct} onBack={()=>{setSelectedProduct(null);window.scrollTo({top:0});}} onQuote={setModal} onViewRelated={p=>{setSelectedProduct(p);window.scrollTo({top:0});}}/>
       <button style={{position:"fixed",bottom:24,right:24,zIndex:1500,background:"#25D366",color:"#fff",border:"none",borderRadius:3,padding:"11px 20px",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 16px rgba(37,211,102,.4)",fontFamily:"inherit"}}
         onClick={()=>window.open("https://wa.me/919435070738?text=Hi%2C+I'm+interested+in+"+encodeURIComponent(selectedProduct.name),"_blank")}>
-        💬 WhatsApp
+        WhatsApp
       </button>
       {modal&&<QuoteModal product={modal} onClose={()=>setModal(null)}/>}
     </>
@@ -1387,9 +1386,9 @@ export default function App(){
         .section-view-all{font-size:13px;font-weight:600;color:${RED};cursor:pointer;}
         .section-view-all:hover{text-decoration:underline;}
         .cat-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;background:#dde2f0;border:1px solid #dde2f0;}
-        .cat-tile{background:#fff;padding:24px 12px 20px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:background .15s;text-align:center;}
-        .cat-tile:hover{background:#f0f2f8;}
-        .cat-tile .ct-icon{font-size:32px;}.cat-tile .ct-label{font-size:12px;font-weight:700;color:${NAVY};letter-spacing:.02em;}
+        .cat-tile{background:#fff;padding:20px 12px 18px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:background .15s,border-color .15s;text-align:center;border-bottom:2px solid transparent;}
+        .cat-tile:hover{background:#f0f2f8;border-bottom-color:${RED};}
+        .cat-tile .ct-label{font-size:13px;font-weight:700;color:${NAVY};letter-spacing:.02em;}
         .cat-tile .ct-sub{font-size:10px;color:#999;line-height:1.4;}
         .product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#dde2f0;border:1px solid #dde2f0;}
         .srv-section{background:${NAVY};}
@@ -1464,7 +1463,7 @@ export default function App(){
       {pwaPrompt&&!pwaInstalled&&(
         <div style={{background:NAVY,color:"#fff",padding:"10px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap",zIndex:999,position:"relative"}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:20}}>📲</span>
+            <span style={{fontSize:20}}></span>
             <span style={{fontSize:13,fontWeight:500}}>Install Advantage Silchar app on your phone for quick access</span>
           </div>
           <div style={{display:"flex",gap:8}}>
@@ -1525,14 +1524,14 @@ export default function App(){
                   onKeyDown={e=>{if(e.key==="Escape"){setSearchOpen(false);setSearchQuery("");}if(e.key==="Enter"&&searchQuery.trim())scroll("products-section");}}/>
                 {searchQuery&&<button className="search-clear" onClick={()=>setSearchQuery("")}>×</button>}
               </div>
-              <button className="nav-icon-btn" onClick={()=>{if(searchOpen&&!searchQuery)setSearchOpen(false);else{setSearchOpen(true);setActiveMenu(null);}}} style={{color:searchOpen?NAVY:"#333"}}>🔍</button>
+              <button className="nav-icon-btn" onClick={()=>{if(searchOpen&&!searchQuery)setSearchOpen(false);else{setSearchOpen(true);setActiveMenu(null);}}} style={{color:searchOpen?NAVY:"#333"}}></button>
             </div>
-            <button className="nav-icon-btn" onClick={()=>window.open("https://wa.me/919435070738","_blank")}>💬</button>
+            <button className="nav-icon-btn" onClick={()=>window.open("https://wa.me/919435070738","_blank")}></button>
             <button onClick={()=>{setPcBuilderOpen(true);setActiveMenu(null);}}
               style={{background:"none",border:"1.5px solid "+NAVY,color:NAVY,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"inherit",transition:"all .15s"}}
               onMouseEnter={e=>{e.currentTarget.style.background=NAVY;e.currentTarget.style.color="#fff";}}
               onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=NAVY;}}>
-              🔧 Build PC
+              Build Your PC
             </button>
             <button className="nav-cta" onClick={()=>{setModal("contact");setActiveMenu(null);}}>Get Quote</button>
             <button className={"hamburger"+(mobileMenuOpen?" open":"")} onClick={()=>setMobileMenuOpen(o=>!o)} aria-label="Menu">
@@ -1608,7 +1607,7 @@ export default function App(){
         </div>
         <div style={{display:"flex",borderBottom:"1px solid #e8e8e8"}}>
           <button onClick={()=>{setModal("contact");setMobileMenuOpen(false);}} style={{flex:1,background:RED,color:"#fff",border:"none",padding:"14px",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",fontFamily:"inherit"}}>Get Quote</button>
-          <button onClick={()=>window.open("https://wa.me/919435070738","_blank")} style={{flex:1,background:"#25D366",color:"#fff",border:"none",padding:"14px",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,fontFamily:"inherit"}}>💬 WhatsApp</button>
+          <button onClick={()=>window.open("https://wa.me/919435070738","_blank")} style={{flex:1,background:"#25D366",color:"#fff",border:"none",padding:"14px",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,fontFamily:"inherit"}}>WhatsApp</button>
         </div>
         <div style={{paddingTop:12}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"#aaa",padding:"8px 24px 4px"}}>Shop</div>
@@ -1626,7 +1625,7 @@ export default function App(){
         </div>
         <div style={{background:"#f5f7fa",margin:"16px",padding:"16px 18px"}}>
           <div style={{fontSize:12,fontWeight:700,color:NAVY,marginBottom:10,textTransform:"uppercase",letterSpacing:".06em"}}>Visit Us</div>
-          {[{icon:"📍",text:"Anand Arcade, Opp. Civil Hospital, Silchar – 788001"},{icon:"📞",text:"03842-230952 · 9435070738"},{icon:"🕙",text:"Mon – Sat · 10:00 AM – 8:00 PM"}].map((c,i)=>(
+          {[{icon:"Location",text:"Anand Arcade, Opp. Civil Hospital, Silchar – 788001"},{icon:"Phone",text:"03842-230952 · 9435070738"},{icon:"Hours",text:"Mon – Sat · 10:00 AM – 8:00 PM"}].map((c,i)=>(
             <div key={i} style={{display:"flex",gap:8,fontSize:12,color:"#555",marginBottom:7,fontWeight:500,alignItems:"flex-start"}}><span style={{flexShrink:0}}>{c.icon}</span><span>{c.text}</span></div>
           ))}
         </div>
@@ -1645,7 +1644,7 @@ export default function App(){
               <button className="hero-btn-outline" onClick={()=>setModal("contact")}>{cur.cta2}</button>
             </div>
           </div>
-          <div className="hero-icon">{cur.icon}</div>
+          
         </div>
         <div className="hero-dots">{HERO_SLIDES.map((_,i)=><button key={i} className={"hero-dot"+(i===slide?" active":"")} onClick={()=>setSlide(i)}/>)}</div>
       </section>
@@ -1655,7 +1654,7 @@ export default function App(){
         <div className="quick-links-inner">
           {[{icon:"🏪",label:"All Products",cat:"All"},...CATEGORIES.map(c=>({icon:c.icon,label:c.label,cat:c.label}))].map(l=>(
             <div key={l.label} className={"quick-link"+(activeCat===l.cat?" ql-active":"")} onClick={()=>{setActiveCat(l.cat);scroll("products-section");}}>
-              <span style={{fontSize:14}}>{l.icon}</span>{l.label}
+              {l.label}
             </div>
           ))}
         </div>
@@ -1677,7 +1676,6 @@ export default function App(){
             <div className="cat-grid">
               {CATEGORIES.map((c,i)=>(
                 <div key={i} className="cat-tile" onClick={()=>{setActiveCat(c.label);scroll("products-section");}}>
-                  <span className="ct-icon">{c.icon}</span>
                   <span className="ct-label">{c.label}</span>
                   <span className="ct-sub">{c.sub}</span>
                 </div>
@@ -1702,7 +1700,7 @@ export default function App(){
           </Fade>
           {displayed.length===0?(
             <div style={{textAlign:"center",padding:"72px 20px",border:"1px solid #dde2f0"}}>
-              <div style={{fontSize:48,marginBottom:16}}>🔍</div>
+              <div style={{fontSize:48,marginBottom:16}}></div>
               <div style={{fontWeight:700,fontSize:18,color:NAVY,marginBottom:8}}>No results for "{searchQuery}"</div>
               <p style={{fontSize:14,color:"#888",marginBottom:24}}>Try a brand name, product type, or spec.</p>
               <button onClick={()=>{setSearchQuery("");setSearchOpen(false);}} style={{background:NAVY,color:"#fff",border:"none",padding:"11px 28px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer"}}>View All Products</button>
@@ -1728,7 +1726,6 @@ export default function App(){
             {SERVICES_LIST.map((s,i)=>(
               <Fade key={i} delay={i*.07}>
                 <div className="srv-tile">
-                  <div className="st-icon">{s.icon}</div>
                   <div className="st-title">{s.title}</div>
                   <ul className="st-list">{s.items.map(item=><li key={item}>{item}</li>)}</ul>
                 </div>
@@ -1741,9 +1738,9 @@ export default function App(){
               <div style={{fontSize:13,color:"rgba(255,255,255,.4)"}}>Carry-in at Anand Arcade or book an onsite visit</div>
             </div>
             <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-              <button onClick={()=>setRepairOpen(true)} style={{background:RED,color:"#fff",border:"none",padding:"11px 24px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit"}}>Book Service</button>
-              <button onClick={()=>setServiceTrackerOpen(true)} style={{background:"rgba(255,255,255,.1)",color:"#fff",border:"1px solid rgba(255,255,255,.2)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>🔍 Track Repair</button>
-              <a href="tel:9435070738" style={{background:"none",color:"rgba(255,255,255,.7)",border:"1px solid rgba(255,255,255,.2)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,textDecoration:"none"}}>📞 9435070738</a>
+              <button onClick={()=>setRepairOpen(true)} style={{background:RED,color:"#fff",border:"none",padding:"11px 24px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit"}}>Book a Service</button>
+              <button onClick={()=>setServiceTrackerOpen(true)} style={{background:"rgba(255,255,255,.08)",color:"rgba(255,255,255,.8)",border:"1px solid rgba(255,255,255,.2)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Track Repair</button>
+              <a href="tel:9435070738" style={{background:"none",color:"rgba(255,255,255,.6)",border:"1px solid rgba(255,255,255,.15)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,textDecoration:"none"}}>9435070738</a>
             </div>
           </div>
         </div>
@@ -1790,13 +1787,12 @@ export default function App(){
       <div className="info-bar" id="contact-section">
         <div className="info-bar-inner">
           {[
-            {icon:"📍",label:"Address", val:"Anand Arcade\nOpposite Civil Hospital\nSilchar – 788001, Assam"},
-            {icon:"📞",label:"Phone",   val:"03842-230952\n9435070738"},
-            {icon:"✉️",label:"Email",   val:"advantage.it@gmail.com"},
-            {icon:"🕙",label:"Hours",   val:"Monday – Saturday\n10:00 AM – 8:00 PM"},
+            {icon:"Location",label:"Address", val:"Anand Arcade\nOpposite Civil Hospital\nSilchar – 788001, Assam"},
+            {icon:"Phone",label:"Phone",   val:"03842-230952\n9435070738"},
+            {icon:"Email",label:"Email",   val:"advantage.it@gmail.com"},
+            {icon:"Hours",label:"Hours",   val:"Monday – Saturday\n10:00 AM – 8:00 PM"},
           ].map((c,i)=>(
             <div key={i} className="info-item">
-              <span className="ii-icon">{c.icon}</span>
               <div><div className="ii-label">{c.label}</div><div className="ii-val">{c.val}</div></div>
             </div>
           ))}
@@ -1804,41 +1800,17 @@ export default function App(){
       </div>
 
       {/* GOOGLE MAPS */}
-     
-<div style={{ width: "100%", position: "relative" }}>
-  <iframe
-    title="Advantage Silchar Location"
-    src="https://maps.google.com/maps?q=24.8177744,92.79945&output=embed&z=17"
-    width="100%"
-    height="320"
-    style={{ border: 0, display: "block" }}
-    allowFullScreen
-    loading="lazy"
-    referrerPolicy="no-referrer-when-downgrade"
-  />
-  <a
-    href="https://www.google.com/maps/place/EPSON+AUTHORISED+SERVICE+CENTRE+-+Advantage/@24.8177792,92.7945791,17z/data=!3m1!4b1!4m6!3m5!1s0x374e4b0c5d7d4ed9:0xd45e483c48359750!8m2!3d24.8177744!4d92.79945!16s%2Fg%2F11fsw03y6g"
-    target="_blank"
-    rel="noreferrer"
-    style={{
-      position: "absolute",
-      bottom: 16,
-      right: 16,
-      background: NAVY,
-      color: "#fff",
-      padding: "10px 20px",
-      fontSize: 13,
-      fontWeight: 700,
-      textDecoration: "none",
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      boxShadow: "0 2px 8px rgba(0,0,0,.3)"
-    }}
-  >
-    📍 Get Directions
-  </a>
-</div>
+      <div style={{width:"100%",position:"relative"}}>
+        <iframe
+          title="Advantage Silchar Location"
+          src="https://maps.google.com/maps?q=Anand+Arcade+Civil+Hospital+Road+Silchar+Assam+788001&output=embed&z=17"
+          width="100%" height="320" style={{border:0,display:"block"}} allowFullScreen loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"/>
+        <a href="https://www.google.com/maps/search/Anand+Arcade+Opposite+Civil+Hospital+Silchar+Assam+788001" target="_blank" rel="noreferrer"
+          style={{position:"absolute",bottom:16,right:16,background:NAVY,color:"#fff",padding:"10px 20px",fontSize:13,fontWeight:700,textDecoration:"none",display:"flex",alignItems:"center",gap:6,boxShadow:"0 2px 8px rgba(0,0,0,.3)"}}>
+          📍 Get Directions
+        </a>
+      </div>
 
       {/* BULK / INSTITUTIONAL QUOTE */}
       <div style={{background:"#0B1F5E",borderTop:"3px solid "+RED}}>
@@ -1889,7 +1861,7 @@ export default function App(){
       {/* WA FLOAT */}
       <button className="wa-float" style={{bottom:compareList.length>0?90:24}}
         onClick={()=>window.open("https://wa.me/919435070738?text=Hi%2C+I+want+to+enquire+about+your+products+and+services.","_blank")}>
-        💬 WhatsApp
+        WhatsApp
       </button>
 
       {/* COMPARE BAR */}
