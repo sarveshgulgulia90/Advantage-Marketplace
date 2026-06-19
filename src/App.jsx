@@ -1800,17 +1800,40 @@ export default function App(){
       </div>
 
       {/* GOOGLE MAPS */}
-      <div style={{width:"100%",position:"relative"}}>
-        <iframe
-          title="Advantage Silchar Location"
-          src="https://maps.google.com/maps?q=Anand+Arcade+Civil+Hospital+Road+Silchar+Assam+788001&output=embed&z=17"
-          width="100%" height="320" style={{border:0,display:"block"}} allowFullScreen loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"/>
-        <a href="https://www.google.com/maps/search/Anand+Arcade+Opposite+Civil+Hospital+Silchar+Assam+788001" target="_blank" rel="noreferrer"
-          style={{position:"absolute",bottom:16,right:16,background:NAVY,color:"#fff",padding:"10px 20px",fontSize:13,fontWeight:700,textDecoration:"none",display:"flex",alignItems:"center",gap:6,boxShadow:"0 2px 8px rgba(0,0,0,.3)"}}>
-          📍 Get Directions
-        </a>
-      </div>
+<div style={{ width: "100%", position: "relative" }}>
+  <iframe
+    title="Advantage Silchar Location"
+    src="https://maps.google.com/maps?q=24.8177744,92.79945&output=embed&z=17"
+    width="100%"
+    height="320"
+    style={{ border: 0, display: "block" }}
+    allowFullScreen
+    loading="lazy"
+    referrerPolicy="no-referrer-when-downgrade"
+  />
+  <a
+    href="https://www.google.com/maps/place/EPSON+AUTHORISED+SERVICE+CENTRE+-+Advantage/@24.8177792,92.7945791,17z/data=!3m1!4b1!4m6!3m5!1s0x374e4b0c5d7d4ed9:0xd45e483c48359750!8m2!3d24.8177744!4d92.79945!16s%2Fg%2F11fsw03y6g"
+    target="_blank"
+    rel="noreferrer"
+    style={{
+      position: "absolute",
+      bottom: 16,
+      right: 16,
+      background: NAVY,
+      color: "#fff",
+      padding: "10px 20px",
+      fontSize: 13,
+      fontWeight: 700,
+      textDecoration: "none",
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      boxShadow: "0 2px 8px rgba(0,0,0,.3)"
+    }}
+  >
+    📍 Get Directions
+  </a>
+</div>
 
       {/* BULK / INSTITUTIONAL QUOTE */}
       <div style={{background:"#0B1F5E",borderTop:"3px solid "+RED}}>
