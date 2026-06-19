@@ -760,47 +760,8 @@ export default function Admin({defaultProducts,onExit}){
         {/* ══ SERVICE JOBS TAB ══ */}
         {tab==="service"&&(
           <div>
-            <div style={{background:"#fff",border:"1px solid #e8e8e8",padding:20,marginBottom:20}}>
-              <div style={{fontWeight:700,fontSize:15,color:NAVY,marginBottom:14}}>➕ Create New Service Job</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:12}}>
-                <div>
-                  <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Customer Name *</div>
-                  <input className="adm-inp" value={newJobForm.customerName} onChange={e=>setNewJobForm(f=>({...f,customerName:e.target.value}))} placeholder="Full name"/>
-                </div>
-                <div>
-                  <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Phone *</div>
-                  <input className="adm-inp" value={newJobForm.phone} onChange={e=>setNewJobForm(f=>({...f,phone:e.target.value}))} placeholder="Phone number"/>
-                </div>
-                <div>
-                  <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Device Type *</div>
-                  <select className="adm-inp" value={newJobForm.deviceType} onChange={e=>setNewJobForm(f=>({...f,deviceType:e.target.value}))}>
-                    {["Laptop","Desktop","Printer","Monitor","Other"].map(t=><option key={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Brand</div>
-                  <input className="adm-inp" value={newJobForm.brand} onChange={e=>setNewJobForm(f=>({...f,brand:e.target.value}))} placeholder="e.g. HP, Dell"/>
-                </div>
-                <div>
-                  <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Model</div>
-                  <input className="adm-inp" value={newJobForm.model} onChange={e=>setNewJobForm(f=>({...f,model:e.target.value}))} placeholder="e.g. Pavilion 15"/>
-                </div>
-                <div>
-                  <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Service Type</div>
-                  <select className="adm-inp" value={newJobForm.serviceType} onChange={e=>setNewJobForm(f=>({...f,serviceType:e.target.value}))}>
-                    {["Carry-in","Onsite Visit"].map(t=><option key={t}>{t}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div style={{marginBottom:12}}>
-                <div style={{fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",fontWeight:700,letterSpacing:".05em"}}>Issue Description</div>
-                <textarea className="adm-inp" rows={2} value={newJobForm.issue} onChange={e=>setNewJobForm(f=>({...f,issue:e.target.value}))} placeholder="Describe the problem..." style={{resize:"vertical"}}/>
-              </div>
-              <button onClick={createServiceJob} disabled={!newJobForm.customerName||!newJobForm.phone||newJobSaving}
-                style={{background:newJobForm.customerName&&newJobForm.phone?NAVY:"#ccc",color:"#fff",border:"none",padding:"11px 28px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}
-                onMouseEnter={e=>{if(newJobForm.customerName)e.target.style.background=RED;}} onMouseLeave={e=>e.target.style.background=NAVY}>
-                {newJobSaving?"Creating...":"Create Job & Get Job ID"}
-              </button>
+            <div style={{background:"#fff3cd",border:"1px solid #ffe69c",padding:"12px 18px",marginBottom:20,fontSize:13,color:"#856404"}}>
+              📋 Service jobs are created automatically when customers book a repair on the website. Your job is to update status and notify customers.
             </div>
 
             {serviceLoading&&<div style={{textAlign:"center",padding:40,color:"#888"}}>Loading...</div>}

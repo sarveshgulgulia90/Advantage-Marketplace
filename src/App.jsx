@@ -404,12 +404,12 @@ function RepairModal({onClose}){
                   <p style="margin:0;font-size:12px;color:#666;">Anand Arcade, Opp. Civil Hospital, Silchar – 788001 | 📞 9435070738</p>
                 </div>
                 <h3 style="color:#CC1A1A;margin-bottom:4px;">REPAIR SERVICE RECEIPT</h3>
-                ${jobId?`<p style="font-size:13px;color:#555;margin:0;">Job ID:</p><div class="jobid">${jobId}</div>`:""}
+                ${jobId?'<p style="font-size:13px;color:#555;margin:0;">Job ID:</p><div class="jobid">'+jobId+'</div>':''}
                 <table>
                   <tr><td>Device</td><td>${form.deviceType} ${form.brand} ${form.model}</td></tr>
                   <tr><td>Issue</td><td>${form.issue}</td></tr>
                   <tr><td>Service</td><td>${form.serviceType}</td></tr>
-                  ${form.date?`<tr><td>Date</td><td>${form.date}</td></tr>`:""}
+                  ${form.date?'<tr><td>Date</td><td>'+form.date+'</td></tr>':''}
                   <tr><td>Name</td><td>${form.name}</td></tr>
                   <tr><td>Phone</td><td>${form.phone}</td></tr>
                 </table>
@@ -418,189 +418,6 @@ function RepairModal({onClose}){
                   <p>Advantage Silchar — Est. 1995 | Mon–Sat, 10AM–8PM</p>
                 </div>
                 <button onclick="window.print()" style="margin-top:16px;background:#0B1F5E;color:#fff;border:none;padding:10px 24px;font-size:13px;cursor:pointer;">🖨️ Print Receipt</button>
-                </body></html>`;
-                const w=window.open("","_blank");
-                w.document.write(html);
-                w.document.close();
-                setTimeout(()=>w.print(),500);
-              }} style={{background:NAVY,color:"#fff",border:"none",padding:"11px 20px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
-                📄 Download Receipt
-              </button>
-              <button onClick={onClose} style={{background:"none",border:"1.5px solid "+NAVY,color:NAVY,padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Close</button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-  const[form,setForm]=useState({deviceType:"Laptop",brand:"",model:"",issue:"",serviceType:"Carry-in",date:"",name:"",phone:""});
-  const[sent,setSent]=useState(false);
-  const[loading,setLoading]=useState(false);
-  const[error,setError]=useState("");
-  useEffect(()=>{ document.body.style.overflow="hidden"; return()=>{document.body.style.overflow="";}; },[]);
-
-  async function submit(){
-    if(!form.name||!form.phone||!form.issue) return;
-    setLoading(true); setError("");
-    const product="Repair: "+form.deviceType+" "+form.brand;
-    const message=
-      "Device: "+form.deviceType+" | Brand: "+form.brand+" | Model: "+form.model+
-      "\nIssue: "+form.issue+
-      "\nService Type: "+form.serviceType+
-      (form.date?"\nPreferred Date: "+form.date:"");
-    try{
-      const res=await fetch(API+"/inquiries",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:form.name,phone:form.phone,product,message})});
-      if(!res.ok) throw new Error("Failed");
-      setSent(true);
-    }catch(e){ setError("Failed to send. Please use WhatsApp below."); }
-    setLoading(false);
-  }
-
-  const waMsg=encodeURIComponent(
-    "Hi, I need "+form.serviceType+" repair service.\n"+
-    "Device: "+form.deviceType+" "+form.brand+" "+form.model+"\n"+
-    "Issue: "+form.issue+
-    (form.date?"\nPreferred Date: "+form.date:"")+
-    "\nName: "+form.name+" | Phone: "+form.phone
-  );
-
-  const inp={border:"1px solid #ddd",padding:"10px 13px",fontSize:14,fontFamily:"inherit",outline:"none",width:"100%",transition:"border-color .15s",color:"#111"};
-  const radioStyle={display:"flex",gap:12,flexWrap:"wrap"};
-  const RadioBtn=({val,group})=>(
-    <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:14,fontWeight:500,color:form[group]===val?NAVY:"#555"}}>
-      <input type="radio" name={group} checked={form[group]===val} onChange={()=>setForm({...form,[group]:val})} style={{accentColor:NAVY}}/>{val}
-    </label>
-  );
-
-  return(
-    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,overflowY:"auto"}}>
-      <div style={{background:"#fff",width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto"}}>
-        {!sent?(
-          <>
-            <div style={{padding:"20px 28px 16px",borderBottom:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"sticky",top:0,background:"#fff",zIndex:1}}>
-              <div>
-                <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#999",marginBottom:4}}>Book a Service</div>
-                <div style={{fontWeight:700,fontSize:20,color:NAVY}}>Repair Request</div>
-              </div>
-              <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#aaa",lineHeight:1}}>×</button>
-            </div>
-            <div style={{padding:"20px 28px 28px",display:"flex",flexDirection:"column",gap:14}}>
-
-              {/* Device Type */}
-              <div>
-                <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:8,textTransform:"uppercase",letterSpacing:".06em"}}>Device Type *</div>
-                <div style={radioStyle}>
-                  {["Laptop","Desktop","Printer","Other"].map(v=><RadioBtn key={v} val={v} group="deviceType"/>)}
-                </div>
-              </div>
-
-              {/* Brand & Model */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                <div>
-                  <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Brand</div>
-                  <input value={form.brand} onChange={e=>setForm({...form,brand:e.target.value})} placeholder="e.g. HP, Dell, Canon" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
-                </div>
-                <div>
-                  <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Model</div>
-                  <input value={form.model} onChange={e=>setForm({...form,model:e.target.value})} placeholder="e.g. Pavilion 15" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
-                </div>
-              </div>
-
-              {/* Issue */}
-              <div>
-                <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Issue Description *</div>
-                <textarea value={form.issue} onChange={e=>setForm({...form,issue:e.target.value})} rows={3} placeholder="Describe the problem — e.g. Screen cracked, not turning on, slow performance..." style={{...inp,resize:"vertical"}} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
-              </div>
-
-              {/* Service Type */}
-              <div>
-                <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:8,textTransform:"uppercase",letterSpacing:".06em"}}>Service Type *</div>
-                <div style={radioStyle}>
-                  <RadioBtn val="Carry-in" group="serviceType"/>
-                  <RadioBtn val="Onsite Visit" group="serviceType"/>
-                </div>
-                <div style={{fontSize:11,color:"#888",marginTop:6}}>
-                  {form.serviceType==="Carry-in"?"Bring your device to Anand Arcade, Opp. Civil Hospital, Silchar":"Our technician will visit your home/office"}
-                </div>
-              </div>
-
-              {/* Preferred Date */}
-              <div>
-                <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Preferred Date</div>
-                <input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} min={new Date().toISOString().split("T")[0]} style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
-              </div>
-
-              {/* Name & Phone */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                <div>
-                  <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Your Name *</div>
-                  <input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Full Name" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
-                </div>
-                <div>
-                  <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Phone *</div>
-                  <input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="Phone Number" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
-                </div>
-              </div>
-
-              {error&&<div style={{background:"#fff0f0",border:"1px solid #fecaca",padding:"10px 14px",fontSize:13,color:"#dc2626",fontWeight:500}}>⚠️ {error}</div>}
-
-              <button disabled={!form.name||!form.phone||!form.issue||loading} onClick={submit}
-                style={{background:form.name&&form.phone&&form.issue?NAVY:"#ccc",color:"#fff",border:"none",padding:"13px",fontSize:14,fontWeight:700,cursor:form.name&&form.phone&&form.issue?"pointer":"not-allowed",letterSpacing:".04em",textTransform:"uppercase",fontFamily:"inherit"}}>
-                {loading?"Sending...":"Book Repair Service"}
-              </button>
-              <button onClick={()=>window.open("https://wa.me/919435070738?text="+waMsg,"_blank")}
-                style={{background:"#25D366",color:"#fff",border:"none",padding:"12px",fontSize:14,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontFamily:"inherit"}}>
-                💬 Book via WhatsApp
-              </button>
-            </div>
-          </>
-        ):(
-          <div style={{padding:"40px 28px",textAlign:"center"}}>
-            <div style={{fontSize:44,marginBottom:12,color:"#16a34a"}}>✓</div>
-            <div style={{fontWeight:700,fontSize:20,color:NAVY,marginBottom:8}}>Service Booked!</div>
-            <p style={{fontSize:14,color:"#666",lineHeight:1.7,marginBottom:20}}>We'll call <strong>{form.phone}</strong> to confirm the appointment.<br/>Or call us at <strong style={{color:RED}}>9435070738</strong>.</p>
-
-            {/* Repair summary */}
-            <div style={{background:"#f5f7fa",border:"1px solid #dde2f0",padding:"16px",textAlign:"left",marginBottom:20,fontSize:13}}>
-              <div style={{fontWeight:700,color:NAVY,marginBottom:10}}>📋 Repair Request Summary</div>
-              {[["Device",form.deviceType+" "+form.brand+" "+form.model],["Issue",form.issue],["Service",form.serviceType],form.date&&["Date",form.date],["Name",form.name],["Phone",form.phone]].filter(Boolean).map(([k,v])=>(
-                <div key={k} style={{display:"flex",gap:12,padding:"4px 0",borderBottom:"1px solid #eee"}}>
-                  <span style={{fontWeight:600,color:"#555",minWidth:70}}>{k}</span>
-                  <span style={{color:NAVY}}>{v}</span>
-                </div>
-              ))}
-            </div>
-
-            <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-              <button onClick={()=>{
-                const html=`<!DOCTYPE html><html><head><title>Repair Receipt — Advantage Silchar</title>
-                <style>body{font-family:Arial,sans-serif;padding:40px;max-width:500px;margin:0 auto;}
-                h2{color:#0B1F5E;}table{width:100%;border-collapse:collapse;margin-top:16px;}
-                td{padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;}
-                td:first-child{font-weight:bold;color:#555;width:120px;}
-                .footer{margin-top:24px;font-size:12px;color:#888;border-top:1px solid #ddd;padding-top:12px;}
-                @media print{button{display:none;}}</style></head>
-                <body>
-                <div style="border-left:4px solid #CC1A1A;padding-left:16px;margin-bottom:20px;">
-                  <h2>ADVANTAGE SILCHAR</h2>
-                  <p style="margin:0;font-size:13px;color:#666;">Anand Arcade, Opp. Civil Hospital, Silchar – 788001<br/>Phone: 9435070738</p>
-                </div>
-                <h3 style="color:#CC1A1A;margin-bottom:4px;">REPAIR SERVICE REQUEST</h3>
-                <p style="font-size:12px;color:#888;margin-top:0;">Ref: REP-${Date.now()}</p>
-                <table>
-                  <tr><td>Device</td><td>${form.deviceType} ${form.brand} ${form.model}</td></tr>
-                  <tr><td>Issue</td><td>${form.issue}</td></tr>
-                  <tr><td>Service</td><td>${form.serviceType}</td></tr>
-                  ${form.date?`<tr><td>Date</td><td>${form.date}</td></tr>`:''}
-                  <tr><td>Name</td><td>${form.name}</td></tr>
-                  <tr><td>Phone</td><td>${form.phone}</td></tr>
-                </table>
-                <div class="footer">
-                  <p>Advantage Silchar — Est. 1995. Silchar's trusted computer store.</p>
-                  <p>Keep this receipt for reference. We'll call you to confirm the appointment.</p>
-                </div>
-                <button onclick="window.print()" style="margin-top:20px;background:#0B1F5E;color:#fff;border:none;padding:10px 24px;font-size:14px;cursor:pointer;">🖨️ Print</button>
                 </body></html>`;
                 const w=window.open("","_blank");
                 w.document.write(html);
@@ -1300,10 +1117,10 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
                   <div class="price">${p.price}</div>
                   <div style="font-size:12px;color:#888;">*Price valid as of ${new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"})}. Subject to change. Contact for best deal.</div>
                 </div>
-                ${p.highlights&&p.highlights.length>0?`<div style="margin-bottom:20px;"><div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#555;margin-bottom:10px;">Key Highlights</div><ul class="highlights">${p.highlights.map(h=>`<li>${h}</li>`).join("")}</ul></div>`:""}
+                ${p.highlights&&p.highlights.length>0?"<div style='margin-bottom:20px;'><div style='font-size:11px;font-weight:700;text-transform:uppercase;color:#555;margin-bottom:10px;'>Key Highlights</div><ul class='highlights'>"+p.highlights.map(h=>"<li>"+h+"</li>").join("")+"</ul></div>":""}
                 <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#555;margin-bottom:10px;">Specifications</div>
                 <table>
-                  ${Object.entries(p.specs||{}).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("")}
+                  ${Object.entries(p.specs||{}).map(([k,v])=>"<tr><td>"+k+"</td><td>"+v+"</td></tr>").join("")}
                   <tr><td>Availability</td><td style="color:#16a34a;font-weight:600;">✓ In Store — Silchar</td></tr>
                 </table>
                 <div style="margin-top:20px;background:#fff3cd;border:1px solid #ffe69c;padding:12px 16px;font-size:13px;color:#856404;">
@@ -1987,6 +1804,7 @@ export default function App(){
       </div>
 
       {/* GOOGLE MAPS */}
+     
 <div style={{ width: "100%", position: "relative" }}>
   <iframe
     title="Advantage Silchar Location"
