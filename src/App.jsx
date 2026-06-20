@@ -194,42 +194,61 @@ function QuoteModal({product,onClose}){
 }
 
 // ─── PRODUCT CARD ──────────────────────────────────────────────────
-function ProductCard({p,onQuote,onView,onCompare,compareList=[],delay}){
+function ProductCard({p,onQuote,onView,onCompare,onAddToCart,compareList=[],wishlist=[],onWishlist,delay}){
   const[hov,setHov]=useState(false);
   const inCmp=compareList.some(c=>c.id===p.id);
+  const inWish=wishlist.some(w=>w.id===p.id);
+  const outOfStock=p.inStock===false;
   return(
     <Fade delay={delay}>
       <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-        style={{background:"#fff",border:"1px solid "+(hov?NAVY:"#e8e8e8"),transition:"border-color .2s",position:"relative",height:"100%"}}>
-        {p.isNew&&<div style={{position:"absolute",top:12,left:12,background:RED,color:"#fff",fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",padding:"3px 10px",zIndex:1}}>NEW</div>}
-        <div style={{position:"absolute",top:12,right:12,zIndex:1}}>
+        style={{background:"#fff",border:"1px solid "+(hov?NAVY:"#e8e8e8"),transition:"border-color .2s",position:"relative",height:"100%",display:"flex",flexDirection:"column"}}>
+
+        {/* Badges */}
+        {p.isNew&&<div style={{position:"absolute",top:12,left:12,background:RED,color:"#fff",fontSize:9,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",padding:"3px 8px",zIndex:2}}>NEW</div>}
+        {outOfStock&&<div style={{position:"absolute",top:12,left:p.isNew?52:12,background:"#555",color:"#fff",fontSize:9,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",padding:"3px 8px",zIndex:2}}>Out of Stock</div>}
+
+        {/* Top-right actions */}
+        <div style={{position:"absolute",top:10,right:10,zIndex:2,display:"flex",flexDirection:"column",gap:4}}>
+          <button onClick={e=>{e.stopPropagation();onWishlist&&onWishlist(p);}}
+            title={inWish?"Remove from wishlist":"Add to wishlist"}
+            style={{background:inWish?RED:"rgba(255,255,255,.95)",color:inWish?"#fff":"#aaa",border:"1px solid "+(inWish?RED:"#ddd"),width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:13,fontWeight:700,transition:"all .15s"}}>
+            {inWish?"♥":"♡"}
+          </button>
           <button onClick={e=>{e.stopPropagation();onCompare&&onCompare(p);}}
-            style={{background:inCmp?NAVY:"rgba(255,255,255,.9)",color:inCmp?"#fff":"#888",border:"1.5px solid "+(inCmp?NAVY:"#ddd"),padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",transition:"all .15s"}}>
+            style={{background:inCmp?NAVY:"rgba(255,255,255,.95)",color:inCmp?"#fff":"#888",border:"1px solid "+(inCmp?NAVY:"#ddd"),padding:"2px 6px",fontSize:9,fontWeight:700,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase",transition:"all .15s",whiteSpace:"nowrap"}}>
             {inCmp?"Added":"Compare"}
           </button>
         </div>
-        <div style={{background:"#f5f5f5",height:200,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden"}} onClick={()=>onView(p)}>
-          {p.image?<img src={p.image} alt={p.name} style={{width:"100%",height:"100%",objectFit:"contain",padding:12}}/>:<span style={{fontSize:80}}>{p.icon}</span>}
+
+        {/* Image */}
+        <div style={{background:"#f5f5f5",height:200,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",position:"relative",flexShrink:0}} onClick={()=>onView(p)}>
+          {p.image?<img src={p.image} alt={p.name} style={{width:"100%",height:"100%",objectFit:"contain",padding:12,opacity:outOfStock?.5:1}}/>:<span style={{fontSize:72,opacity:outOfStock?.4:1}}>{p.icon}</span>}
+          {outOfStock&&<div style={{position:"absolute",inset:0,background:"rgba(255,255,255,.4)",display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{background:"#fff",color:"#555",fontSize:11,fontWeight:700,padding:"4px 12px",border:"1px solid #ddd",letterSpacing:".04em"}}>OUT OF STOCK</span></div>}
         </div>
-        <div style={{padding:"16px 18px 20px"}}>
-          <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:RED,marginBottom:5}}>{p.cat}</div>
-          <div style={{fontWeight:700,fontSize:17,color:NAVY,marginBottom:6,lineHeight:1.2,cursor:"pointer"}} onClick={()=>onView(p)}>{p.name}</div>
-          <div style={{fontSize:12,color:"#888",lineHeight:1.55,marginBottom:12,minHeight:36}}>{p.spec}</div>
-          <div style={{fontWeight:800,fontSize:20,color:NAVY,marginBottom:14}}>{p.price}</div>
-          <div style={{display:"flex",gap:8}}>
+
+        {/* Info */}
+        <div style={{padding:"14px 16px 18px",flex:1,display:"flex",flexDirection:"column"}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:RED,marginBottom:4}}>{p.cat}</div>
+          <div style={{fontWeight:700,fontSize:16,color:NAVY,marginBottom:5,lineHeight:1.2,cursor:"pointer",flex:1}} onClick={()=>onView(p)}>{p.name}</div>
+          <div style={{fontSize:11,color:"#888",lineHeight:1.55,marginBottom:10}}>{p.spec}</div>
+          <div style={{fontWeight:800,fontSize:19,color:NAVY,marginBottom:12}}>{p.price}</div>
+          <div style={{display:"flex",gap:6}}>
             <button onClick={()=>onView(p)}
-              style={{flex:1,background:"#fff",color:NAVY,border:"1.5px solid "+NAVY,padding:"9px 0",fontSize:12,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
+              style={{flex:1,background:"#fff",color:NAVY,border:"1.5px solid "+NAVY,padding:"8px 0",fontSize:11,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
               onMouseEnter={e=>{e.target.style.background=NAVY;e.target.style.color="#fff";}} onMouseLeave={e=>{e.target.style.background="#fff";e.target.style.color=NAVY;}}>
               View
             </button>
+            <button onClick={()=>!outOfStock&&onAddToCart&&onAddToCart(p)} disabled={outOfStock}
+              style={{flex:1,background:outOfStock?"#eee":RED,color:outOfStock?"#aaa":"#fff",border:"none",padding:"8px 0",fontSize:11,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:outOfStock?"not-allowed":"pointer",fontFamily:"inherit",transition:"background .15s"}}
+              onMouseEnter={e=>{if(!outOfStock)e.target.style.background="#a81515";}} onMouseLeave={e=>{if(!outOfStock)e.target.style.background=RED;}}>
+              {outOfStock?"Unavailable":"Add to Cart"}
+            </button>
             <button onClick={()=>onQuote(p)}
-              style={{flex:1,background:NAVY,color:"#fff",border:"none",padding:"10px 0",fontSize:12,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"background .15s"}}
+              style={{flex:1,background:NAVY,color:"#fff",border:"none",padding:"8px 0",fontSize:11,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"background .15s"}}
               onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
               Enquire
             </button>
-            <button onClick={()=>window.open("https://wa.me/919435070738?text=Hi%2C+I'm+interested+in+"+encodeURIComponent(p.name)+"_at_"+encodeURIComponent(p.price),"_blank")}
-              style={{width:40,background:"#fff",border:"1px solid #e8e8e8",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"border-color .15s"}}
-              onMouseEnter={e=>e.target.style.borderColor=NAVY} onMouseLeave={e=>e.target.style.borderColor="#e8e8e8"}></button>
           </div>
         </div>
       </div>
@@ -1220,8 +1239,34 @@ export default function App(){
   const[repairOpen,setRepairOpen]=useState(false);
   const[serviceTrackerOpen,setServiceTrackerOpen]=useState(false);
   const[bulkQuoteOpen,setBulkQuoteOpen]=useState(false);
+  const[wishlistOpen,setWishlistOpen]=useState(false);
   const[pwaPrompt,setPwaPrompt]=useState(null);
   const[pwaInstalled,setPwaInstalled]=useState(false);
+
+  const[wishlist,setWishlist]=useState(()=>{
+    try{const s=localStorage.getItem("advantage_wishlist");return s?JSON.parse(s):[];}catch{return[];}
+  });
+  const[recentlyViewed,setRecentlyViewed]=useState(()=>{
+    try{const s=localStorage.getItem("advantage_recent");return s?JSON.parse(s):[];}catch{return[];}
+  });
+
+  function toggleWishlist(p){
+    setWishlist(prev=>{
+      const exists=prev.some(w=>w.id===p.id);
+      const updated=exists?prev.filter(w=>w.id!==p.id):[p,...prev];
+      localStorage.setItem("advantage_wishlist",JSON.stringify(updated));
+      return updated;
+    });
+  }
+
+  function addRecentlyViewed(p){
+    setRecentlyViewed(prev=>{
+      const filtered=prev.filter(r=>r.id!==p.id);
+      const updated=[p,...filtered].slice(0,6);
+      localStorage.setItem("advantage_recent",JSON.stringify(updated));
+      return updated;
+    });
+  }
   const[mobileMenuOpen,setMobileMenuOpen]=useState(false);
   const[compareList,setCompareList]=useState([]);
   const[compareOpen,setCompareOpen]=useState(false);
@@ -1707,7 +1752,7 @@ export default function App(){
             </div>
           ):(
             <div className="product-grid">
-              {displayed.map((p,i)=><ProductCard key={p.id} p={p} onQuote={setModal} onView={setSelectedProduct} onCompare={handleCompare} compareList={compareList} delay={i*.04}/>)}
+              {displayed.map((p,i)=><ProductCard key={p.id} p={p} onQuote={setModal} onView={p=>{setSelectedProduct(p);addRecentlyViewed(p);}} onCompare={handleCompare} onAddToCart={()=>showToast("Contact us to purchase — call 9435070738")} compareList={compareList} wishlist={wishlist} onWishlist={toggleWishlist} delay={i*.04}/>)}
             </div>
           )}
         </div>
@@ -1800,40 +1845,17 @@ export default function App(){
       </div>
 
       {/* GOOGLE MAPS */}
-<div style={{ width: "100%", position: "relative" }}>
-  <iframe
-    title="Advantage Silchar Location"
-    src="https://maps.google.com/maps?q=24.8177744,92.79945&output=embed&z=17"
-    width="100%"
-    height="320"
-    style={{ border: 0, display: "block" }}
-    allowFullScreen
-    loading="lazy"
-    referrerPolicy="no-referrer-when-downgrade"
-  />
-  <a
-    href="https://www.google.com/maps/place/EPSON+AUTHORISED+SERVICE+CENTRE+-+Advantage/@24.8177792,92.7945791,17z/data=!3m1!4b1!4m6!3m5!1s0x374e4b0c5d7d4ed9:0xd45e483c48359750!8m2!3d24.8177744!4d92.79945!16s%2Fg%2F11fsw03y6g"
-    target="_blank"
-    rel="noreferrer"
-    style={{
-      position: "absolute",
-      bottom: 16,
-      right: 16,
-      background: NAVY,
-      color: "#fff",
-      padding: "10px 20px",
-      fontSize: 13,
-      fontWeight: 700,
-      textDecoration: "none",
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      boxShadow: "0 2px 8px rgba(0,0,0,.3)"
-    }}
-  >
-    📍 Get Directions
-  </a>
-</div>
+      <div style={{width:"100%",position:"relative"}}>
+        <iframe
+          title="Advantage Silchar Location"
+          src="https://maps.google.com/maps?q=Anand+Arcade+Civil+Hospital+Road+Silchar+Assam+788001&output=embed&z=17"
+          width="100%" height="320" style={{border:0,display:"block"}} allowFullScreen loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"/>
+        <a href="https://www.google.com/maps/search/Anand+Arcade+Opposite+Civil+Hospital+Silchar+Assam+788001" target="_blank" rel="noreferrer"
+          style={{position:"absolute",bottom:16,right:16,background:NAVY,color:"#fff",padding:"10px 20px",fontSize:13,fontWeight:700,textDecoration:"none",display:"flex",alignItems:"center",gap:6,boxShadow:"0 2px 8px rgba(0,0,0,.3)"}}>
+          📍 Get Directions
+        </a>
+      </div>
 
       {/* BULK / INSTITUTIONAL QUOTE */}
       <div style={{background:"#0B1F5E",borderTop:"3px solid "+RED}}>
