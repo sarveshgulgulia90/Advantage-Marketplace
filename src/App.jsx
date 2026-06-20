@@ -1569,9 +1569,12 @@ export default function App(){
                   onKeyDown={e=>{if(e.key==="Escape"){setSearchOpen(false);setSearchQuery("");}if(e.key==="Enter"&&searchQuery.trim())scroll("products-section");}}/>
                 {searchQuery&&<button className="search-clear" onClick={()=>setSearchQuery("")}>×</button>}
               </div>
-              <button className="nav-icon-btn" onClick={()=>{if(searchOpen&&!searchQuery)setSearchOpen(false);else{setSearchOpen(true);setActiveMenu(null);}}} style={{color:searchOpen?NAVY:"#333"}}></button>
+              <button className="nav-icon-btn" onClick={()=>{if(searchOpen&&!searchQuery)setSearchOpen(false);else{setSearchOpen(true);setActiveMenu(null);}}} style={{color:searchOpen?NAVY:"#333",fontSize:12,fontWeight:600}}>Search</button>
             </div>
-            <button className="nav-icon-btn" onClick={()=>window.open("https://wa.me/919435070738","_blank")}></button>
+            <button className="nav-icon-btn" onClick={()=>window.open("https://wa.me/919435070738","_blank")} style={{fontSize:12,fontWeight:600}}>WhatsApp</button>
+            <button className="nav-icon-btn" onClick={()=>setWishlistOpen(true)} style={{fontSize:12,fontWeight:600,position:"relative"}}>
+              Wishlist{wishlist.length>0&&<span style={{position:"absolute",top:-4,right:-6,background:RED,color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{wishlist.length}</span>}
+            </button>
             <button onClick={()=>{setPcBuilderOpen(true);setActiveMenu(null);}}
               style={{background:"none",border:"1.5px solid "+NAVY,color:NAVY,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",fontFamily:"inherit",transition:"all .15s"}}
               onMouseEnter={e=>{e.currentTarget.style.background=NAVY;e.currentTarget.style.color="#fff";}}
@@ -1857,7 +1860,34 @@ export default function App(){
         </a>
       </div>
 
-      {/* BULK / INSTITUTIONAL QUOTE */}
+      {/* RECENTLY VIEWED */}
+      {recentlyViewed.length>0&&(
+        <div style={{borderTop:"1px solid #dde2f0",borderBottom:"1px solid #dde2f0"}}>
+          <div className="section" style={{paddingTop:40,paddingBottom:40}}>
+            <div className="section-top" style={{marginBottom:20}}>
+              <h2 className="section-title">Recently Viewed</h2>
+              <span style={{fontSize:12,fontWeight:600,color:"#aaa",cursor:"pointer"}} onClick={()=>{localStorage.removeItem("advantage_recent");setRecentlyViewed([]);}}>Clear</span>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:"1px",background:"#dde2f0",border:"1px solid #dde2f0"}}>
+              {recentlyViewed.map((p,i)=>(
+                <div key={p.id} onClick={()=>{setSelectedProduct(p);addRecentlyViewed(p);window.scrollTo({top:0});}}
+                  style={{background:"#fff",padding:"14px 12px",cursor:"pointer",transition:"background .15s"}}
+                  onMouseEnter={e=>e.currentTarget.style.background="#f5f7fa"}
+                  onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
+                  <div style={{height:70,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:8,overflow:"hidden"}}>
+                    {p.image?<img src={p.image} alt={p.name} style={{maxHeight:70,maxWidth:"100%",objectFit:"contain"}}/>:<span style={{fontSize:36}}>{p.icon}</span>}
+                  </div>
+                  <div style={{fontSize:10,color:RED,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",marginBottom:3}}>{p.cat}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:NAVY,lineHeight:1.3,marginBottom:4}}>{p.name}</div>
+                  <div style={{fontSize:12,fontWeight:700,color:NAVY}}>{p.price}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BULK QUOTE */}
       <div style={{background:"#0B1F5E",borderTop:"3px solid "+RED}}>
         <div style={{maxWidth:1340,margin:"0 auto",padding:"48px 32px",display:"grid",gridTemplateColumns:"1fr auto",gap:32,alignItems:"center"}}>
           <div>
@@ -1913,6 +1943,58 @@ export default function App(){
       <CompareBar list={compareList} onRemove={id=>setCompareList(l=>l.filter(p=>p.id!==id))} onClear={()=>setCompareList([])} onCompare={()=>setCompareOpen(true)}/>
 
       {/* MODALS */}
+      {/* WISHLIST DRAWER */}
+      {wishlistOpen&&(
+        <>
+          <div onClick={()=>setWishlistOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1099}}/>
+          <div style={{position:"fixed",top:0,right:0,height:"100vh",width:360,maxWidth:"85%",background:"#fff",zIndex:1100,display:"flex",flexDirection:"column",boxShadow:"-2px 0 16px rgba(0,0,0,.1)"}}>
+            <div style={{padding:"18px 24px",borderBottom:"1px solid #e8e8e8",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+              <div style={{fontWeight:700,fontSize:17,color:NAVY}}>Wishlist <span style={{fontSize:13,fontWeight:400,color:"#aaa"}}>({wishlist.length})</span></div>
+              <button onClick={()=>setWishlistOpen(false)} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#aaa",lineHeight:1}}>×</button>
+            </div>
+            {wishlist.length===0?(
+              <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:"#aaa",gap:12}}>
+                <div style={{fontSize:13}}>No items in wishlist yet.</div>
+                <button onClick={()=>setWishlistOpen(false)} style={{background:NAVY,color:"#fff",border:"none",padding:"10px 24px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Browse Products</button>
+              </div>
+            ):(
+              <>
+                <div style={{flex:1,overflowY:"auto",padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
+                  {wishlist.map(p=>(
+                    <div key={p.id} style={{background:"#f5f7fa",border:"1px solid #e8e8e8",padding:"12px 14px",display:"flex",gap:12,alignItems:"center"}}>
+                      <div style={{width:52,height:52,background:"#fff",border:"1px solid #e8e8e8",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
+                        {p.image?<img src={p.image} alt="" style={{width:"100%",height:"100%",objectFit:"contain",padding:4}}/>:<span style={{fontSize:24}}>{p.icon}</span>}
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:600,fontSize:13,color:NAVY,marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
+                        <div style={{fontSize:11,color:"#888",marginBottom:4}}>{p.cat}</div>
+                        <div style={{fontWeight:700,fontSize:14,color:NAVY}}>{p.price}</div>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:6,flexShrink:0}}>
+                        <button onClick={()=>{setSelectedProduct(p);addRecentlyViewed(p);setWishlistOpen(false);window.scrollTo({top:0});}}
+                          style={{background:NAVY,color:"#fff",border:"none",padding:"5px 10px",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em"}}>View</button>
+                        <button onClick={()=>setModal(p)}
+                          style={{background:"#fff",color:NAVY,border:"1px solid "+NAVY,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em"}}>Enquire</button>
+                        <button onClick={()=>toggleWishlist(p)}
+                          style={{background:"none",border:"none",color:RED,fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit",padding:"2px 0"}}>Remove</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{padding:"14px 16px",borderTop:"1px solid #e8e8e8",flexShrink:0}}>
+                  <button onClick={()=>{setModal("contact");setWishlistOpen(false);}}
+                    style={{width:"100%",background:RED,color:"#fff",border:"none",padding:"12px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em",textTransform:"uppercase",marginBottom:8}}>
+                    Enquire for All Wishlist Items
+                  </button>
+                  <button onClick={()=>{localStorage.removeItem("advantage_wishlist");setWishlist([]);}}
+                    style={{width:"100%",background:"none",border:"none",color:"#aaa",fontSize:11,cursor:"pointer",fontFamily:"inherit",padding:"4px 0"}}>Clear wishlist</button>
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
+
       {compareOpen&&<CompareModal list={compareList} onClose={()=>setCompareOpen(false)} onQuote={setModal}/>}
       {modal&&<QuoteModal product={modal} onClose={()=>setModal(null)}/>}
       {pcBuilderOpen&&<PCBuilder onClose={()=>setPcBuilderOpen(false)} onEnquire={setModal}/>}
