@@ -435,6 +435,18 @@ function InvoiceModal({inq,onClose}){
           {/* Actions */}
           <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:16,borderTop:"1px solid "+BORDER}}>
             <button onClick={onClose} style={{background:"#fff",border:"1px solid "+BORDER,color:"#666",padding:"10px 20px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+            <a href={"https://wa.me/91"+inq.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent(
+              "Hi "+inq.name+", please find your invoice from Advantage Silchar.\n\n"+
+              "Invoice No: "+invNo+"\nDate: "+date+"\n\n"+
+              items.filter(it=>it.desc).map(it=>"- "+it.desc+" x"+it.qty+" = Rs."+parseFloat(it.amount||0).toLocaleString()).join("\n")+
+              "\n\nSubtotal: Rs."+subtotal.toLocaleString()+
+              (gst?"\nGST (18%): Rs."+gstAmt.toFixed(2):"")+
+              "\nTotal: Rs."+total.toLocaleString()+
+              "\n\nFor the full invoice PDF, visit us or call 9435070738.\nAdvantage Silchar, Anand Arcade, Opp. Civil Hospital."
+            )} target="_blank" rel="noreferrer"
+              style={{background:"#25D366",color:"#fff",padding:"10px 20px",fontSize:12,fontWeight:600,cursor:"pointer",textDecoration:"none",display:"flex",alignItems:"center",gap:6,fontFamily:"inherit"}}>
+              Send via WhatsApp
+            </a>
             <button onClick={printInvoice}
               style={{background:NAVY,color:"#fff",border:"none",padding:"10px 28px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em",transition:"background .15s"}}
               onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
