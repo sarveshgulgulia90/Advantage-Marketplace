@@ -220,6 +220,233 @@ function SeedBanner({products}){
   );
 }
 
+/* ─── Invoice Modal ──────────────────────────────────────────────── */
+function InvoiceModal({inq,onClose}){
+  const NAVY="#0B1F5E",RED="#CC1A1A",BORDER="#e2e4ea";
+  const[items,setItems]=useState([
+    {desc:inq.product||"",qty:1,rate:"",amount:""}
+  ]);
+  const[invNo]=useState("INV-"+Date.now().toString().slice(-6));
+  const[date]=useState(new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"}));
+  const[notes,setNotes]=useState("Thank you for your business. Payment due on receipt.");
+  const[gst,setGst]=useState(false);
+
+  function updateItem(i,field,val){
+    setItems(prev=>{
+      const updated=[...prev];
+      updated[i]={...updated[i],[field]:val};
+      if(field==="qty"||field==="rate"){
+        const qty=parseFloat(updated[i].qty)||0;
+        const rate=parseFloat(updated[i].rate)||0;
+        updated[i].amount=(qty*rate).toFixed(2);
+      }
+      return updated;
+    });
+  }
+
+  function addItem(){setItems(prev=>[...prev,{desc:"",qty:1,rate:"",amount:""}]);}
+  function removeItem(i){setItems(prev=>prev.filter((_,idx)=>idx!==i));}
+
+  const subtotal=items.reduce((s,it)=>s+(parseFloat(it.amount)||0),0);
+  const gstAmt=gst?subtotal*0.18:0;
+  const total=subtotal+gstAmt;
+
+  function printInvoice(){
+    const rows=items.map(it=>
+      "<tr><td style='padding:10px 14px;border-bottom:1px solid #eee;'>"+it.desc+"</td>"+
+      "<td style='padding:10px 14px;border-bottom:1px solid #eee;text-align:center;'>"+it.qty+"</td>"+
+      "<td style='padding:10px 14px;border-bottom:1px solid #eee;text-align:right;'>Rs."+parseFloat(it.rate||0).toLocaleString()+"</td>"+
+      "<td style='padding:10px 14px;border-bottom:1px solid #eee;text-align:right;font-weight:600;'>Rs."+parseFloat(it.amount||0).toLocaleString()+"</td></tr>"
+    ).join("");
+
+    const html=`<!DOCTYPE html><html><head><title>Invoice ${invNo}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;}
+      body{font-family:Arial,sans-serif;padding:40px;color:#111;max-width:760px;margin:0 auto;}
+      .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #0B1F5E;}
+      .logo{font-size:22px;font-weight:900;color:#0B1F5E;letter-spacing:-.01em;}
+      .logo span{color:#CC1A1A;}
+      .store-info{font-size:11px;color:#666;margin-top:6px;line-height:1.7;}
+      .inv-meta{text-align:right;}
+      .inv-title{font-size:28px;font-weight:900;color:#0B1F5E;letter-spacing:-.01em;}
+      .inv-no{font-size:13px;color:#888;margin-top:4px;}
+      .inv-date{font-size:13px;color:#888;}
+      .bill-to{background:#f5f7fa;border:1px solid #e2e4ea;padding:16px 20px;margin-bottom:24px;}
+      .bill-to-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:6px;}
+      .bill-to-name{font-size:16px;font-weight:700;color:#0B1F5E;}
+      .bill-to-info{font-size:12px;color:#666;margin-top:3px;}
+      table{width:100%;border-collapse:collapse;margin-bottom:0;}
+      thead{background:#0B1F5E;}
+      thead td{padding:10px 14px;font-size:10px;font-weight:700;color:#fff;letter-spacing:.06em;text-transform:uppercase;}
+      .totals{margin-left:auto;width:280px;margin-top:0;}
+      .totals table{width:100%;}
+      .totals td{padding:8px 14px;font-size:13px;border-bottom:1px solid #e2e4ea;}
+      .totals td:last-child{text-align:right;font-weight:600;}
+      .total-row td{background:#0B1F5E;color:#fff;font-weight:700;font-size:15px;border:none;padding:12px 14px;}
+      .total-row td:last-child{text-align:right;}
+      .notes{margin-top:28px;padding:14px 18px;background:#f5f7fa;border:1px solid #e2e4ea;font-size:12px;color:#555;line-height:1.7;}
+      .footer{margin-top:32px;text-align:center;font-size:11px;color:#aaa;border-top:1px solid #e2e4ea;padding-top:16px;}
+      @media print{button{display:none!important;}body{padding:20px;}}
+    </style></head>
+    <body>
+      <div class="header">
+        <div>
+          <div class="logo">AD<span>V</span>ANTAGE <span style="font-size:14px;font-weight:700;color:#888;">SILCHAR</span></div>
+          <div class="store-info">
+            Anand Arcade, Opposite Civil Hospital, Hospital Road<br/>
+            Silchar – 788001, Assam, India<br/>
+            Phone: 9435070738 &nbsp;|&nbsp; Email: advantage.it@gmail.com
+          </div>
+        </div>
+        <div class="inv-meta">
+          <div class="inv-title">INVOICE</div>
+          <div class="inv-no">${invNo}</div>
+          <div class="inv-date">${date}</div>
+        </div>
+      </div>
+
+      <div class="bill-to">
+        <div class="bill-to-label">Bill To</div>
+        <div class="bill-to-name">${inq.name}</div>
+        <div class="bill-to-info">Phone: ${inq.phone}${inq.email?" &nbsp;|&nbsp; Email: "+inq.email:""}</div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <td style="width:50%">Description</td>
+            <td style="width:10%;text-align:center;">Qty</td>
+            <td style="width:20%;text-align:right;">Rate</td>
+            <td style="width:20%;text-align:right;">Amount</td>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+      <div class="totals">
+        <table>
+          <tr><td>Subtotal</td><td>Rs.${subtotal.toLocaleString()}</td></tr>
+          ${gst?"<tr><td>GST (18%)</td><td>Rs."+gstAmt.toFixed(2)+"</td></tr>":""}
+          <tr class="total-row"><td>Total</td><td>Rs.${total.toLocaleString()}</td></tr>
+        </table>
+      </div>
+
+      ${notes?`<div class="notes"><strong>Notes:</strong> ${notes}</div>`:""}
+
+      <div class="footer">
+        Advantage Silchar — Est. 1995 &nbsp;|&nbsp; Silchar's trusted computer store &nbsp;|&nbsp; Mon–Sat, 10AM–8PM
+      </div>
+      <br/><button onclick="window.print()" style="background:#0B1F5E;color:#fff;border:none;padding:10px 28px;font-size:13px;cursor:pointer;font-family:Arial;margin-top:8px;">Print / Save as PDF</button>
+    </body></html>`;
+
+    const w=window.open("","_blank");
+    w.document.write(html);
+    w.document.close();
+    setTimeout(()=>w.print(),600);
+  }
+
+  const inp={border:"1px solid "+BORDER,padding:"7px 10px",fontSize:12,fontFamily:"inherit",outline:"none",width:"100%",color:"#111",background:"#fff"};
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:3000,display:"flex",alignItems:"flex-start",justifyContent:"center",overflowY:"auto",padding:"20px 0"}}>
+      <div style={{background:"#fff",width:"100%",maxWidth:760,margin:"0 auto"}}>
+
+        {/* Header */}
+        <div style={{background:NAVY,padding:"18px 24px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontWeight:800,fontSize:16,color:"#fff",letterSpacing:".02em"}}>Invoice Generator</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,.5)",marginTop:2}}>{invNo} &nbsp;·&nbsp; {date}</div>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"1px solid rgba(255,255,255,.2)",color:"rgba(255,255,255,.7)",padding:"6px 14px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Close</button>
+        </div>
+
+        <div style={{padding:"24px"}}>
+
+          {/* Bill To */}
+          <div style={{background:"#f5f7fa",border:"1px solid "+BORDER,padding:"14px 18px",marginBottom:20}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#888",marginBottom:6}}>Bill To</div>
+            <div style={{fontWeight:700,fontSize:15,color:NAVY}}>{inq.name}</div>
+            <div style={{fontSize:12,color:"#666",marginTop:2}}>{inq.phone}{inq.email&&" · "+inq.email}</div>
+          </div>
+
+          {/* Line Items */}
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#888",marginBottom:10}}>Items</div>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{background:NAVY}}>
+                  {["Description","Qty","Rate (Rs.)","Amount (Rs.)",""].map(h=>(
+                    <td key={h} style={{padding:"8px 12px",fontSize:10,fontWeight:700,color:"#fff",letterSpacing:".06em",textTransform:"uppercase",textAlign:h==="Qty"||h==="Rate (Rs.)"||h==="Amount (Rs.)"?"right":"left"}}>{h}</td>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((it,i)=>(
+                  <tr key={i} style={{borderBottom:"1px solid "+BORDER}}>
+                    <td style={{padding:"8px 6px",width:"44%"}}>
+                      <input value={it.desc} onChange={e=>updateItem(i,"desc",e.target.value)} placeholder="Product / Service description" style={inp} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+                    </td>
+                    <td style={{padding:"8px 6px",width:"10%"}}>
+                      <input type="number" value={it.qty} onChange={e=>updateItem(i,"qty",e.target.value)} style={{...inp,textAlign:"right"}} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+                    </td>
+                    <td style={{padding:"8px 6px",width:"18%"}}>
+                      <input type="number" value={it.rate} onChange={e=>updateItem(i,"rate",e.target.value)} placeholder="0" style={{...inp,textAlign:"right"}} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+                    </td>
+                    <td style={{padding:"8px 6px",width:"18%"}}>
+                      <input value={it.amount?"Rs."+parseFloat(it.amount).toLocaleString():""} readOnly style={{...inp,background:"#f5f7fa",textAlign:"right",color:NAVY,fontWeight:600,cursor:"default"}}/>
+                    </td>
+                    <td style={{padding:"8px 6px",width:"10%",textAlign:"center"}}>
+                      {items.length>1&&<button onClick={()=>removeItem(i)} style={{background:"none",border:"none",color:RED,fontSize:16,cursor:"pointer",fontWeight:700,lineHeight:1}}>×</button>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button onClick={addItem} style={{marginTop:10,background:"#fff",border:"1px solid "+BORDER,color:NAVY,padding:"7px 16px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>+ Add Line Item</button>
+          </div>
+
+          {/* Totals */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:20,marginBottom:16}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#888",marginBottom:6}}>Notes</div>
+              <textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3} style={{...inp,resize:"vertical",padding:"8px 10px",fontSize:12}}
+                onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+              <label style={{display:"flex",alignItems:"center",gap:6,marginTop:10,cursor:"pointer",fontSize:12,fontWeight:500,color:NAVY}}>
+                <input type="checkbox" checked={gst} onChange={e=>setGst(e.target.checked)} style={{accentColor:NAVY,width:14,height:14}}/>
+                Apply GST (18%)
+              </label>
+            </div>
+            <div style={{minWidth:240,background:"#f5f7fa",border:"1px solid "+BORDER,padding:"14px 18px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:13,padding:"6px 0",borderBottom:"1px solid "+BORDER}}>
+                <span style={{color:"#555"}}>Subtotal</span>
+                <span style={{fontWeight:600,color:NAVY}}>Rs.{subtotal.toLocaleString()}</span>
+              </div>
+              {gst&&<div style={{display:"flex",justifyContent:"space-between",fontSize:13,padding:"6px 0",borderBottom:"1px solid "+BORDER}}>
+                <span style={{color:"#555"}}>GST 18%</span>
+                <span style={{fontWeight:600,color:NAVY}}>Rs.{gstAmt.toFixed(2)}</span>
+              </div>}
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:16,fontWeight:800,padding:"10px 0",color:NAVY}}>
+                <span>Total</span>
+                <span>Rs.{total.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:16,borderTop:"1px solid "+BORDER}}>
+            <button onClick={onClose} style={{background:"#fff",border:"1px solid "+BORDER,color:"#666",padding:"10px 20px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+            <button onClick={printInvoice}
+              style={{background:NAVY,color:"#fff",border:"none",padding:"10px 28px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em",transition:"background .15s"}}
+              onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
+              Print / Save PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    MAIN ADMIN
 ═══════════════════════════════════════════════════════════════════ */
@@ -397,6 +624,12 @@ export default function Admin({defaultProducts,onExit}){
       });
     }catch(e){showToast(e.message,"error");}
     setAnalyticsLoading(false);
+  }
+
+  const[invoiceData,setInvoiceData]=useState(null);
+
+  function generateInvoice(inq){
+    setInvoiceData(inq);
   }
 
   function saveBanner(){localStorage.setItem("advantage_banner",bannerText);setBannerSaved(true);setTimeout(()=>setBannerSaved(false),2000);showToast("Banner saved. Refresh website to see it.");}
@@ -721,12 +954,16 @@ export default function Admin({defaultProducts,onExit}){
                     <div style={{fontSize:13,color:"#444",lineHeight:1.6,whiteSpace:"pre-line"}}>{inq.message}</div>
                     <div style={{fontSize:11,color:"#bbb",marginTop:6}}>{new Date(inq.createdAt).toLocaleString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
                   </div>
-                  <div style={{display:"flex",gap:6,flexShrink:0,flexDirection:"column",minWidth:120}}>
+                  <div style={{display:"flex",gap:6,flexShrink:0,flexDirection:"column",minWidth:130}}>
                     <a href={"https://wa.me/91"+inq.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("Hi "+inq.name+", regarding your enquiry about "+inq.product+"...")}
                       target="_blank" rel="noreferrer"
                       style={{background:"#25D366",color:"#fff",padding:"7px 12px",fontSize:11,fontWeight:600,cursor:"pointer",textDecoration:"none",textAlign:"center",display:"block"}}>
                       WhatsApp
                     </a>
+                    <button onClick={()=>generateInvoice(inq)}
+                      style={{background:NAVY,color:"#fff",border:"none",padding:"7px 12px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",letterSpacing:".03em"}}>
+                      Generate Invoice
+                    </button>
                     {!inq.read&&(
                       <button onClick={()=>markRead(inq._id||inq.id)}
                         style={{background:"#fff",color:NAVY,border:"1px solid "+NAVY,padding:"6px 12px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
@@ -956,6 +1193,9 @@ export default function Admin({defaultProducts,onExit}){
         )}
 
       </div>
+
+      {/* Invoice Modal */}
+      {invoiceData&&<InvoiceModal inq={invoiceData} onClose={()=>setInvoiceData(null)}/>}
 
       {/* Delete Modal */}
       {delConfirm&&(
