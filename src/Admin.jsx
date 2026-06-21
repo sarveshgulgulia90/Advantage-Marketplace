@@ -7,7 +7,7 @@ const BORDER = "#e2e4ea";
 
 const API  = import.meta.env.VITE_API_URL    || "http://localhost:5000/api";
 const BTKN = import.meta.env.VITE_ADMIN_TOKEN || "advantage_admin_secret_2025";
-const ADMIN_PASSWORD = "advantage1995";
+const ADMIN_PASSWORD = "advantage";
 const STORAGE_KEY = "advantage_products";
 
 const CATS = ["Laptops","Desktops","Printers","Accessories","Security & CCTV"];
@@ -366,7 +366,7 @@ function InvoiceModal({inq,onClose}){
       <div class="inv-meta">
         Invoice No: <strong>${invNo}</strong><br/>
         Date: <strong>${date}</strong><br/>
-        ${gst?`<br/>Supply Type: <strong>Intra-State</strong>`:""}
+        ${gst?"<br/>Supply Type: <strong>Intra-State</strong>":""}
       </div>
     </div>
   </div>
@@ -378,7 +378,7 @@ function InvoiceModal({inq,onClose}){
       <div class="box-val">${inq.name}</div>
       <div class="box-sub">
         Phone: ${inq.phone}<br/>
-        ${inq.email?`Email: ${inq.email}<br/>`:""}
+        ${inq.email?"Email: "+inq.email+"<br/>":""}
         Silchar, Assam
       </div>
     </div>
@@ -408,21 +408,7 @@ function InvoiceModal({inq,onClose}){
       <!-- Empty rows for spacing -->
       ${items.length<5?Array(5-items.length).fill('<tr><td style="padding:8px 12px;border:1px solid #ddd;">&nbsp;</td><td style="border:1px solid #ddd;"></td><td style="border:1px solid #ddd;"></td><td style="border:1px solid #ddd;"></td><td style="border:1px solid #ddd;"></td><td style="border:1px solid #ddd;"></td></tr>').join(""):""}
     </tbody>
-    ${gst?`
-    <tfoot>
-      <tr style="background:#f5f7fa;">
-        <td colspan="5" style="padding:8px 12px;border:1px solid #ddd;font-weight:600;text-align:right;">Taxable Amount</td>
-        <td style="padding:8px 12px;border:1px solid #ddd;text-align:right;font-weight:600;">Rs.${subtotal.toLocaleString()}</td>
-      </tr>
-      <tr style="background:#f5f7fa;">
-        <td colspan="5" style="padding:8px 12px;border:1px solid #ddd;text-align:right;">CGST @ 9%</td>
-        <td style="padding:8px 12px;border:1px solid #ddd;text-align:right;">Rs.${cgst}</td>
-      </tr>
-      <tr style="background:#f5f7fa;">
-        <td colspan="5" style="padding:8px 12px;border:1px solid #ddd;text-align:right;">SGST @ 9%</td>
-        <td style="padding:8px 12px;border:1px solid #ddd;text-align:right;">Rs.${sgst}</td>
-      </tr>
-    </tfoot>`:""}
+${gst?"<tfoot><tr style='background:#f5f7fa;'><td colspan='5' style='padding:8px 12px;border:1px solid #ddd;font-weight:600;text-align:right;'>Taxable Amount</td><td style='padding:8px 12px;border:1px solid #ddd;text-align:right;font-weight:600;'>Rs."+subtotal.toLocaleString()+"</td></tr><tr style='background:#f5f7fa;'><td colspan='5' style='padding:8px 12px;border:1px solid #ddd;text-align:right;'>CGST @ 9%</td><td style='padding:8px 12px;border:1px solid #ddd;text-align:right;'>Rs."+cgst+"</td></tr><tr style='background:#f5f7fa;'><td colspan='5' style='padding:8px 12px;border:1px solid #ddd;text-align:right;'>SGST @ 9%</td><td style='padding:8px 12px;border:1px solid #ddd;text-align:right;'>Rs."+sgst+"</td></tr></tfoot>":""}
   </table>
 
   <!-- Total + Amount in Words -->
@@ -430,12 +416,12 @@ function InvoiceModal({inq,onClose}){
     <div class="amount-words">
       <div class="aw-label">Amount in Words</div>
       <div class="aw-val">${totalWords}</div>
-      ${notes?`<div style="margin-top:10px;font-size:11px;color:#555;"><strong>Notes:</strong> ${notes}</div>`:""}
+      ${notes?"<div style='margin-top:10px;font-size:11px;color:#555;'><strong>Notes:</strong> "+notes+"</div>":""}
     </div>
     <div class="totals-table">
       <table>
         <tr><td>Sub Total</td><td>Rs.${subtotal.toLocaleString()}</td></tr>
-        ${gst?`<tr><td>CGST (9%)</td><td>Rs.${cgst}</td></tr><tr><td>SGST (9%)</td><td>Rs.${sgst}</td></tr>`:""}
+        ${gst?"<tr><td>CGST (9%)</td><td>Rs."+cgst+"</td></tr><tr><td>SGST (9%)</td><td>Rs."+sgst+"</td></tr>":""}
         <tr class="grand-total"><td colspan="2" style="padding:10px 14px;"><table style="width:100%;border:none;"><tr><td style="padding:0;border:none;color:#fff;font-weight:900;font-size:14px;">GRAND TOTAL</td><td style="padding:0;border:none;color:#fff;font-weight:900;font-size:14px;text-align:right;">Rs.${total.toLocaleString()}</td></tr></table></td></tr>
       </table>
     </div>
@@ -473,92 +459,6 @@ function InvoiceModal({inq,onClose}){
 <button onclick="window.print()" style="display:block;margin:16px auto;background:#0B1F5E;color:#fff;border:none;padding:11px 32px;font-size:13px;cursor:pointer;font-family:Arial;font-weight:700;">Print / Save as PDF</button>
 </body>
 </html>`;
-
-    const w=window.open("","_blank");
-    w.document.write(html);
-    w.document.close();
-    setTimeout(()=>w.print(),600);
-  }
-
-    const html=`<!DOCTYPE html><html><head><title>Invoice ${invNo}</title>
-    <style>
-      *{box-sizing:border-box;margin:0;padding:0;}
-      body{font-family:Arial,sans-serif;padding:40px;color:#111;max-width:760px;margin:0 auto;}
-      .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #0B1F5E;}
-      .logo{font-size:22px;font-weight:900;color:#0B1F5E;letter-spacing:-.01em;}
-      .logo span{color:#CC1A1A;}
-      .store-info{font-size:11px;color:#666;margin-top:6px;line-height:1.7;}
-      .inv-meta{text-align:right;}
-      .inv-title{font-size:28px;font-weight:900;color:#0B1F5E;letter-spacing:-.01em;}
-      .inv-no{font-size:13px;color:#888;margin-top:4px;}
-      .inv-date{font-size:13px;color:#888;}
-      .bill-to{background:#f5f7fa;border:1px solid #e2e4ea;padding:16px 20px;margin-bottom:24px;}
-      .bill-to-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:6px;}
-      .bill-to-name{font-size:16px;font-weight:700;color:#0B1F5E;}
-      .bill-to-info{font-size:12px;color:#666;margin-top:3px;}
-      table{width:100%;border-collapse:collapse;margin-bottom:0;}
-      thead{background:#0B1F5E;}
-      thead td{padding:10px 14px;font-size:10px;font-weight:700;color:#fff;letter-spacing:.06em;text-transform:uppercase;}
-      .totals{margin-left:auto;width:280px;margin-top:0;}
-      .totals table{width:100%;}
-      .totals td{padding:8px 14px;font-size:13px;border-bottom:1px solid #e2e4ea;}
-      .totals td:last-child{text-align:right;font-weight:600;}
-      .total-row td{background:#0B1F5E;color:#fff;font-weight:700;font-size:15px;border:none;padding:12px 14px;}
-      .total-row td:last-child{text-align:right;}
-      .notes{margin-top:28px;padding:14px 18px;background:#f5f7fa;border:1px solid #e2e4ea;font-size:12px;color:#555;line-height:1.7;}
-      .footer{margin-top:32px;text-align:center;font-size:11px;color:#aaa;border-top:1px solid #e2e4ea;padding-top:16px;}
-      @media print{button{display:none!important;}body{padding:20px;}}
-    </style></head>
-    <body>
-      <div class="header">
-        <div>
-          <div class="logo">AD<span>V</span>ANTAGE <span style="font-size:14px;font-weight:700;color:#888;">SILCHAR</span></div>
-          <div class="store-info">
-            Anand Arcade, Opposite Civil Hospital, Hospital Road<br/>
-            Silchar – 788001, Assam, India<br/>
-            Phone: 9435070738 &nbsp;|&nbsp; Email: advantage.it@gmail.com
-          </div>
-        </div>
-        <div class="inv-meta">
-          <div class="inv-title">INVOICE</div>
-          <div class="inv-no">${invNo}</div>
-          <div class="inv-date">${date}</div>
-        </div>
-      </div>
-
-      <div class="bill-to">
-        <div class="bill-to-label">Bill To</div>
-        <div class="bill-to-name">${inq.name}</div>
-        <div class="bill-to-info">Phone: ${inq.phone}${inq.email?" &nbsp;|&nbsp; Email: "+inq.email:""}</div>
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <td style="width:50%">Description</td>
-            <td style="width:10%;text-align:center;">Qty</td>
-            <td style="width:20%;text-align:right;">Rate</td>
-            <td style="width:20%;text-align:right;">Amount</td>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-
-      <div class="totals">
-        <table>
-          <tr><td>Subtotal</td><td>Rs.${subtotal.toLocaleString()}</td></tr>
-          ${gst?"<tr><td>GST (18%)</td><td>Rs."+gstAmt.toFixed(2)+"</td></tr>":""}
-          <tr class="total-row"><td>Total</td><td>Rs.${total.toLocaleString()}</td></tr>
-        </table>
-      </div>
-
-      ${notes?`<div class="notes"><strong>Notes:</strong> ${notes}</div>`:""}
-
-      <div class="footer">
-        Advantage Silchar — Est. 1995 &nbsp;|&nbsp; Silchar's trusted computer store &nbsp;|&nbsp; Mon–Sat, 10AM–8PM
-      </div>
-      <br/><button onclick="window.print()" style="background:#0B1F5E;color:#fff;border:none;padding:10px 28px;font-size:13px;cursor:pointer;font-family:Arial;margin-top:8px;">Print / Save as PDF</button>
-    </body></html>`;
 
     const w=window.open("","_blank");
     w.document.write(html);
