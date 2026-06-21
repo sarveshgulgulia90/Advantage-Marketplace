@@ -112,6 +112,7 @@ app.use("/api/products",   require("./routes/products"));
 app.use("/api/inquiries",  require("./routes/inquiries"));
 app.use("/api/ai",         require("./routes/ai"));
 app.use("/api/components", require("./routes/components"));
+app.use("/api/email",      require("./routes/email"));
 
 try { app.use("/api/auth",   require("./routes/auth"));   } catch(e){ console.warn("auth skipped:", e.message); }
 try { app.use("/api/orders", require("./routes/orders")); } catch(e){ console.warn("orders skipped:", e.message); }

@@ -223,13 +223,32 @@ function SeedBanner({products}){
 /* ─── Invoice Modal ──────────────────────────────────────────────── */
 function InvoiceModal({inq,onClose}){
   const NAVY="#0B1F5E",RED="#CC1A1A",BORDER="#e2e4ea";
-  const[items,setItems]=useState([
-    {desc:inq.product||"",qty:1,rate:"",amount:""}
-  ]);
+  const API=import.meta.env.VITE_API_URL||"http://localhost:5000/api";
+  const BTKN=import.meta.env.VITE_ADMIN_TOKEN||"advantage_admin_secret_2025";
+  const[items,setItems]=useState([{desc:inq.product||"",qty:1,rate:"",amount:""}]);
   const[invNo]=useState("INV-"+Date.now().toString().slice(-6));
   const[date]=useState(new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"}));
   const[notes,setNotes]=useState("Thank you for your business. Payment due on receipt.");
   const[gst,setGst]=useState(false);
+  const[emailTo,setEmailTo]=useState(inq.email||"");
+  const[emailStatus,setEmailStatus]=useState("");
+  const[emailSending,setEmailSending]=useState(false);
+
+  async function sendEmail(){
+    if(!emailTo){setEmailStatus("Enter customer email first");return;}
+    setEmailSending(true);setEmailStatus("");
+    try{
+      const res=await fetch(API+"/email/invoice",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-admin-token":BTKN},
+        body:JSON.stringify({to:emailTo,customerName:inq.name,phone:inq.phone,invNo,date,items,subtotal,gstAmt,total,gst,notes})
+      });
+      const d=await res.json();
+      if(!res.ok)throw new Error(d.error||"Failed");
+      setEmailStatus("Sent to "+emailTo);
+    }catch(e){setEmailStatus("Error: "+e.message);}
+    setEmailSending(false);
+  }
 
   function updateItem(i,field,val){
     setItems(prev=>{
@@ -252,12 +271,214 @@ function InvoiceModal({inq,onClose}){
   const total=subtotal+gstAmt;
 
   function printInvoice(){
-    const rows=items.map(it=>
-      "<tr><td style='padding:10px 14px;border-bottom:1px solid #eee;'>"+it.desc+"</td>"+
-      "<td style='padding:10px 14px;border-bottom:1px solid #eee;text-align:center;'>"+it.qty+"</td>"+
-      "<td style='padding:10px 14px;border-bottom:1px solid #eee;text-align:right;'>Rs."+parseFloat(it.rate||0).toLocaleString()+"</td>"+
-      "<td style='padding:10px 14px;border-bottom:1px solid #eee;text-align:right;font-weight:600;'>Rs."+parseFloat(it.amount||0).toLocaleString()+"</td></tr>"
+    const rows=items.map((it,i)=>`
+      <tr>
+        <td style="padding:8px 12px;border:1px solid #ddd;text-align:center;">${i+1}</td>
+        <td style="padding:8px 12px;border:1px solid #ddd;">${it.desc}</td>
+        <td style="padding:8px 12px;border:1px solid #ddd;text-align:center;">${it.qty}</td>
+        <td style="padding:8px 12px;border:1px solid #ddd;text-align:center;">Nos</td>
+        <td style="padding:8px 12px;border:1px solid #ddd;text-align:right;">Rs.${parseFloat(it.rate||0).toLocaleString()}</td>
+        <td style="padding:8px 12px;border:1px solid #ddd;text-align:right;font-weight:600;">Rs.${parseFloat(it.amount||0).toLocaleString()}</td>
+      </tr>`
     ).join("");
+
+    const cgst=gst?(subtotal*0.09).toFixed(2):"0";
+    const sgst=gst?(subtotal*0.09).toFixed(2):"0";
+
+    // Amount in words
+    function toWords(n){
+      const ones=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+      const tens=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+      if(n===0)return"Zero";
+      if(n<20)return ones[n];
+      if(n<100)return tens[Math.floor(n/10)]+(n%10?" "+ones[n%10]:"");
+      if(n<1000)return ones[Math.floor(n/100)]+" Hundred"+(n%100?" "+toWords(n%100):"");
+      if(n<100000)return toWords(Math.floor(n/1000))+" Thousand"+(n%1000?" "+toWords(n%1000):"");
+      if(n<10000000)return toWords(Math.floor(n/100000))+" Lakh"+(n%100000?" "+toWords(n%100000):"");
+      return toWords(Math.floor(n/10000000))+" Crore"+(n%10000000?" "+toWords(n%10000000):"");
+    }
+    const totalWords=toWords(Math.floor(total))+" Rupees Only";
+
+    const html=`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>Invoice ${invNo}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Arial,sans-serif;font-size:12px;color:#111;background:#fff;}
+  .page{max-width:800px;margin:0 auto;padding:20px;border:2px solid #0B1F5E;}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0B1F5E;padding-bottom:14px;margin-bottom:14px;}
+  .company-name{font-size:24px;font-weight:900;color:#0B1F5E;letter-spacing:-.01em;}
+  .company-name span{color:#CC1A1A;}
+  .company-info{font-size:11px;color:#444;margin-top:5px;line-height:1.7;}
+  .inv-label{font-size:18px;font-weight:900;color:#CC1A1A;letter-spacing:.08em;text-align:right;}
+  .inv-meta{text-align:right;font-size:11px;color:#555;margin-top:4px;line-height:1.8;}
+  .inv-meta strong{color:#111;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #ddd;margin-bottom:14px;}
+  .box{padding:10px 14px;}
+  .box-label{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;margin-bottom:4px;}
+  .box-val{font-size:13px;font-weight:700;color:#0B1F5E;}
+  .box-sub{font-size:11px;color:#555;margin-top:2px;line-height:1.6;}
+  .box-right{border-left:1px solid #ddd;}
+  table.items{width:100%;border-collapse:collapse;margin-bottom:0;}
+  table.items th{background:#0B1F5E;color:#fff;padding:8px 12px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;border:1px solid #0B1F5E;}
+  table.items td{padding:8px 12px;border:1px solid #ddd;font-size:12px;}
+  .totals-section{display:flex;justify-content:space-between;border:1px solid #ddd;border-top:none;}
+  .amount-words{padding:10px 14px;flex:1;border-right:1px solid #ddd;}
+  .amount-words .aw-label{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;margin-bottom:4px;}
+  .amount-words .aw-val{font-size:12px;font-weight:700;color:#0B1F5E;}
+  .totals-table{width:260px;flex-shrink:0;}
+  .totals-table table{width:100%;border-collapse:collapse;}
+  .totals-table td{padding:7px 14px;border-bottom:1px solid #ddd;font-size:12px;}
+  .totals-table td:last-child{text-align:right;font-weight:600;}
+  .grand-total td{background:#0B1F5E!important;color:#fff!important;font-weight:900!important;font-size:14px!important;border:none!important;}
+  .footer-box{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;border:1px solid #ddd;}
+  .terms{padding:10px 14px;border-right:1px solid #ddd;}
+  .terms .t-label{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;margin-bottom:6px;}
+  .terms ul{padding-left:14px;font-size:11px;color:#555;line-height:1.8;}
+  .sign-box{padding:10px 14px;display:flex;flex-direction:column;justify-content:space-between;}
+  .sign-box .s-label{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;}
+  .sign-box .s-name{font-size:12px;font-weight:700;color:#0B1F5E;margin-top:4px;}
+  .sign-line{border-top:1px solid #333;margin-top:32px;padding-top:4px;font-size:10px;color:#888;}
+  @media print{
+    body{padding:0;}
+    .page{border:2px solid #0B1F5E;max-width:100%;}
+    button{display:none!important;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="company-name">AD<span>V</span>ANTAGE <span style="font-size:15px;font-weight:700;color:#666;">SILCHAR</span></div>
+      <div class="company-info">
+        Anand Arcade, Opposite Civil Hospital, Hospital Road, Silchar – 788001, Assam<br/>
+        Phone: 03842-230952 / 9435070738 &nbsp;|&nbsp; Email: advantage.it@gmail.com<br/>
+        ${gst?'GSTIN: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (Enter GSTIN)':''}
+      </div>
+    </div>
+    <div>
+      <div class="inv-label">${gst?"TAX INVOICE":"INVOICE"}</div>
+      <div class="inv-meta">
+        Invoice No: <strong>${invNo}</strong><br/>
+        Date: <strong>${date}</strong><br/>
+        ${gst?`<br/>Supply Type: <strong>Intra-State</strong>`:""}
+      </div>
+    </div>
+  </div>
+
+  <!-- Bill To / Ship To -->
+  <div class="two-col">
+    <div class="box">
+      <div class="box-label">Bill To</div>
+      <div class="box-val">${inq.name}</div>
+      <div class="box-sub">
+        Phone: ${inq.phone}<br/>
+        ${inq.email?`Email: ${inq.email}<br/>`:""}
+        Silchar, Assam
+      </div>
+    </div>
+    <div class="box box-right">
+      <div class="box-label">Payment Details</div>
+      <div class="box-sub">
+        Payment Mode: Cash / UPI / Card<br/>
+        Payment Status: <strong style="color:#16a34a;">Due on Receipt</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Items Table -->
+  <table class="items">
+    <thead>
+      <tr>
+        <th style="width:5%;">#</th>
+        <th style="width:40%;text-align:left;">Description of Goods / Services</th>
+        <th style="width:8%;">Qty</th>
+        <th style="width:8%;">Unit</th>
+        <th style="width:18%;text-align:right;">Rate (Rs.)</th>
+        <th style="width:18%;text-align:right;">Amount (Rs.)</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+      <!-- Empty rows for spacing -->
+      ${items.length<5?Array(5-items.length).fill('<tr><td style="padding:8px 12px;border:1px solid #ddd;">&nbsp;</td><td style="border:1px solid #ddd;"></td><td style="border:1px solid #ddd;"></td><td style="border:1px solid #ddd;"></td><td style="border:1px solid #ddd;"></td><td style="border:1px solid #ddd;"></td></tr>').join(""):""}
+    </tbody>
+    ${gst?`
+    <tfoot>
+      <tr style="background:#f5f7fa;">
+        <td colspan="5" style="padding:8px 12px;border:1px solid #ddd;font-weight:600;text-align:right;">Taxable Amount</td>
+        <td style="padding:8px 12px;border:1px solid #ddd;text-align:right;font-weight:600;">Rs.${subtotal.toLocaleString()}</td>
+      </tr>
+      <tr style="background:#f5f7fa;">
+        <td colspan="5" style="padding:8px 12px;border:1px solid #ddd;text-align:right;">CGST @ 9%</td>
+        <td style="padding:8px 12px;border:1px solid #ddd;text-align:right;">Rs.${cgst}</td>
+      </tr>
+      <tr style="background:#f5f7fa;">
+        <td colspan="5" style="padding:8px 12px;border:1px solid #ddd;text-align:right;">SGST @ 9%</td>
+        <td style="padding:8px 12px;border:1px solid #ddd;text-align:right;">Rs.${sgst}</td>
+      </tr>
+    </tfoot>`:""}
+  </table>
+
+  <!-- Total + Amount in Words -->
+  <div class="totals-section">
+    <div class="amount-words">
+      <div class="aw-label">Amount in Words</div>
+      <div class="aw-val">${totalWords}</div>
+      ${notes?`<div style="margin-top:10px;font-size:11px;color:#555;"><strong>Notes:</strong> ${notes}</div>`:""}
+    </div>
+    <div class="totals-table">
+      <table>
+        <tr><td>Sub Total</td><td>Rs.${subtotal.toLocaleString()}</td></tr>
+        ${gst?`<tr><td>CGST (9%)</td><td>Rs.${cgst}</td></tr><tr><td>SGST (9%)</td><td>Rs.${sgst}</td></tr>`:""}
+        <tr class="grand-total"><td colspan="2" style="padding:10px 14px;"><table style="width:100%;border:none;"><tr><td style="padding:0;border:none;color:#fff;font-weight:900;font-size:14px;">GRAND TOTAL</td><td style="padding:0;border:none;color:#fff;font-weight:900;font-size:14px;text-align:right;">Rs.${total.toLocaleString()}</td></tr></table></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Terms + Signature -->
+  <div class="footer-box">
+    <div class="terms">
+      <div class="t-label">Terms & Conditions</div>
+      <ul>
+        <li>All disputes subject to Silchar jurisdiction only.</li>
+        <li>Goods once sold will not be taken back.</li>
+        <li>Warranty as per manufacturer's terms.</li>
+        <li>Payment due on receipt of invoice.</li>
+      </ul>
+    </div>
+    <div class="sign-box">
+      <div>
+        <div class="s-label">For Advantage Silchar</div>
+        <div class="sign-line">Authorised Signature</div>
+      </div>
+      <div>
+        <div class="s-label">Customer Acknowledgement</div>
+        <div class="sign-line">Received in good condition</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:12px;font-size:10px;color:#aaa;">
+    This is a computer-generated invoice. Thank you for shopping at Advantage Silchar.
+  </div>
+
+</div>
+<br/>
+<button onclick="window.print()" style="display:block;margin:16px auto;background:#0B1F5E;color:#fff;border:none;padding:11px 32px;font-size:13px;cursor:pointer;font-family:Arial;font-weight:700;">Print / Save as PDF</button>
+</body>
+</html>`;
+
+    const w=window.open("","_blank");
+    w.document.write(html);
+    w.document.close();
+    setTimeout(()=>w.print(),600);
+  }
 
     const html=`<!DOCTYPE html><html><head><title>Invoice ${invNo}</title>
     <style>
@@ -432,21 +653,36 @@ function InvoiceModal({inq,onClose}){
             </div>
           </div>
 
+          {/* Send Options */}
+          <div style={{background:"#f5f7fa",border:"1px solid "+BORDER,padding:"16px 20px",marginBottom:16}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#888",marginBottom:12}}>Send to Customer</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:10,alignItems:"center",marginBottom:8}}>
+              <input value={emailTo} onChange={e=>setEmailTo(e.target.value)} placeholder="Customer email address"
+                style={{...inp,fontSize:12}} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+              <button onClick={sendEmail} disabled={emailSending||!emailTo}
+                style={{background:emailTo&&!emailSending?NAVY:"#ccc",color:"#fff",border:"none",padding:"8px 16px",fontSize:11,fontWeight:700,cursor:emailTo?"pointer":"not-allowed",fontFamily:"inherit",whiteSpace:"nowrap",transition:"background .15s"}}
+                onMouseEnter={e=>{if(emailTo&&!emailSending)e.target.style.background=RED;}} onMouseLeave={e=>e.target.style.background=emailTo?NAVY:"#ccc"}>
+                {emailSending?"Sending...":"Send Email"}
+              </button>
+              <a href={"https://wa.me/91"+inq.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent(
+                "Hi "+inq.name+", please find your invoice from Advantage Silchar.\n\n"+
+                "Invoice No: "+invNo+"\nDate: "+date+"\n\n"+
+                items.filter(it=>it.desc).map(it=>"- "+it.desc+" x"+it.qty+" = Rs."+parseFloat(it.amount||0).toLocaleString()).join("\n")+
+                "\n\nSubtotal: Rs."+subtotal.toLocaleString()+
+                (gst?"\nGST (18%): Rs."+gstAmt.toFixed(2):"")+
+                "\nTotal: Rs."+total.toLocaleString()+
+                "\n\nThank you for choosing Advantage Silchar!\nAnand Arcade, Opp. Civil Hospital, Silchar. Call: 9435070738"
+              )} target="_blank" rel="noreferrer"
+                style={{background:"#25D366",color:"#fff",padding:"8px 16px",fontSize:11,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",display:"block",textAlign:"center"}}>
+                WhatsApp
+              </a>
+            </div>
+            {emailStatus&&<div style={{fontSize:11,color:emailStatus.startsWith("Error")?"#dc2626":"#16a34a",fontWeight:600}}>{emailStatus}</div>}
+          </div>
+
           {/* Actions */}
           <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:16,borderTop:"1px solid "+BORDER}}>
-            <button onClick={onClose} style={{background:"#fff",border:"1px solid "+BORDER,color:"#666",padding:"10px 20px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
-            <a href={"https://wa.me/91"+inq.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent(
-              "Hi "+inq.name+", please find your invoice from Advantage Silchar.\n\n"+
-              "Invoice No: "+invNo+"\nDate: "+date+"\n\n"+
-              items.filter(it=>it.desc).map(it=>"- "+it.desc+" x"+it.qty+" = Rs."+parseFloat(it.amount||0).toLocaleString()).join("\n")+
-              "\n\nSubtotal: Rs."+subtotal.toLocaleString()+
-              (gst?"\nGST (18%): Rs."+gstAmt.toFixed(2):"")+
-              "\nTotal: Rs."+total.toLocaleString()+
-              "\n\nFor the full invoice PDF, visit us or call 9435070738.\nAdvantage Silchar, Anand Arcade, Opp. Civil Hospital."
-            )} target="_blank" rel="noreferrer"
-              style={{background:"#25D366",color:"#fff",padding:"10px 20px",fontSize:12,fontWeight:600,cursor:"pointer",textDecoration:"none",display:"flex",alignItems:"center",gap:6,fontFamily:"inherit"}}>
-              Send via WhatsApp
-            </a>
+            <button onClick={onClose} style={{background:"#fff",border:"1px solid "+BORDER,color:"#666",padding:"10px 20px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Close</button>
             <button onClick={printInvoice}
               style={{background:NAVY,color:"#fff",border:"none",padding:"10px 28px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em",transition:"background .15s"}}
               onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
