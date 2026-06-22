@@ -657,53 +657,63 @@ export default function Admin({defaultProducts,onExit}){
   async function deletePcPart(cat,cid){
     try{await fetch(API+"/components/"+cat+"/"+cid,{method:"DELETE",headers:{"x-admin-token":BTKN}});loadPcPrices();}catch{}
   }
-  async function addPcPart(cat,cid,name,price){
+  async function addPcPart(cat,cid,name,price,specs){
     if(!cat||!cid||!name||!price)return false;
     try{
-      const res=await fetch(API+"/components/"+cat+"/"+cid,{method:"PUT",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify({price:Number(price),inStock:true,name,category:cat,componentId:cid})});
+      const res=await fetch(API+"/components/"+cat+"/"+cid,{method:"PUT",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify({price:Number(price),inStock:true,name,category:cat,componentId:cid,specs:specs||{}})});
       if(res.ok){loadPcPrices();return true;}
     }catch{}
     return false;
   }
   async function seedPcPrices(){
     const defaults=[
-      {category:"CPU",componentId:"i3-12100",name:"Intel Core i3-12100",price:8500,inStock:true},
-      {category:"CPU",componentId:"i5-12400",name:"Intel Core i5-12400",price:13000,inStock:true},
-      {category:"CPU",componentId:"i5-13600k",name:"Intel Core i5-13600K",price:21000,inStock:true},
-      {category:"CPU",componentId:"i7-12700",name:"Intel Core i7-12700",price:26000,inStock:true},
-      {category:"CPU",componentId:"r5-5600",name:"AMD Ryzen 5 5600",price:11500,inStock:true},
-      {category:"CPU",componentId:"r7-7700x",name:"AMD Ryzen 7 7700X",price:28000,inStock:true},
-      {category:"Motherboard",componentId:"h610m",name:"MSI H610M Pro-S",price:6500,inStock:true},
-      {category:"Motherboard",componentId:"b660m",name:"MSI B660M Pro-A",price:9500,inStock:true},
-      {category:"Motherboard",componentId:"b550m",name:"MSI B550M Pro-VDH",price:8500,inStock:true},
-      {category:"Motherboard",componentId:"b650m",name:"MSI B650M Pro-A",price:12500,inStock:true},
-      {category:"RAM",componentId:"8d4",name:"8GB DDR4 3200MHz",price:2200,inStock:true},
-      {category:"RAM",componentId:"16d4",name:"16GB DDR4 3200MHz",price:3800,inStock:true},
-      {category:"RAM",componentId:"32d4",name:"32GB DDR4 3200MHz",price:7500,inStock:true},
-      {category:"RAM",componentId:"16d5",name:"16GB DDR5 4800MHz",price:5500,inStock:true},
-      {category:"Storage",componentId:"256ssd",name:"256GB NVMe SSD",price:2500,inStock:true},
-      {category:"Storage",componentId:"512ssd",name:"512GB NVMe SSD",price:3500,inStock:true},
-      {category:"Storage",componentId:"1tssd",name:"1TB NVMe SSD",price:6500,inStock:true},
-      {category:"Storage",componentId:"1thdd",name:"1TB HDD 7200RPM",price:3200,inStock:true},
-      {category:"GPU",componentId:"1650",name:"NVIDIA GTX 1650 4GB",price:14000,inStock:true},
-      {category:"GPU",componentId:"3060",name:"NVIDIA RTX 3060 12GB",price:25000,inStock:true},
-      {category:"GPU",componentId:"4060",name:"NVIDIA RTX 4060 8GB",price:32000,inStock:true},
-      {category:"GPU",componentId:"rx6600",name:"AMD RX 6600 8GB",price:22000,inStock:true},
-      {category:"Cabinet",componentId:"basic",name:"Basic ATX Cabinet",price:2500,inStock:true},
-      {category:"Cabinet",componentId:"mid",name:"Mid Tower ATX",price:4500,inStock:true},
-      {category:"Cabinet",componentId:"midglass",name:"Mid Tower with Glass",price:5500,inStock:true},
-      {category:"PSU",componentId:"450w",name:"450W 80+ Standard",price:3000,inStock:true},
-      {category:"PSU",componentId:"550wb",name:"550W 80+ Bronze",price:4500,inStock:true},
-      {category:"PSU",componentId:"650wg",name:"650W 80+ Gold",price:6500,inStock:true},
-      {category:"Cooler",componentId:"stock",name:"Stock Cooler (Included)",price:0,inStock:true},
-      {category:"Cooler",componentId:"hm212",name:"Cooler Master Hyper 212",price:2500,inStock:true},
-      {category:"Cooler",componentId:"aio240",name:"240mm AIO Liquid Cooler",price:6000,inStock:true},
+      // CPUs
+      {category:"CPU",componentId:"i3-12100",name:"Intel Core i3-12100",price:8500,inStock:true,specs:{socket:"LGA1700",tdp:60,brand:"Intel",hasIGPU:true}},
+      {category:"CPU",componentId:"i5-12400",name:"Intel Core i5-12400",price:13000,inStock:true,specs:{socket:"LGA1700",tdp:65,brand:"Intel",hasIGPU:true}},
+      {category:"CPU",componentId:"i5-13600k",name:"Intel Core i5-13600K",price:21000,inStock:true,specs:{socket:"LGA1700",tdp:125,brand:"Intel",hasIGPU:true}},
+      {category:"CPU",componentId:"i7-12700",name:"Intel Core i7-12700",price:26000,inStock:true,specs:{socket:"LGA1700",tdp:65,brand:"Intel",hasIGPU:true}},
+      {category:"CPU",componentId:"r5-5600",name:"AMD Ryzen 5 5600",price:11500,inStock:true,specs:{socket:"AM4",tdp:65,brand:"AMD",hasIGPU:false}},
+      {category:"CPU",componentId:"r7-7700x",name:"AMD Ryzen 7 7700X",price:28000,inStock:true,specs:{socket:"AM5",tdp:105,brand:"AMD",hasIGPU:false}},
+      // Motherboards
+      {category:"Motherboard",componentId:"h610m",name:"MSI H610M Pro-S",price:6500,inStock:true,specs:{socket:"LGA1700",ramType:"DDR4",maxRam:64}},
+      {category:"Motherboard",componentId:"b660m",name:"MSI B660M Pro-A",price:9500,inStock:true,specs:{socket:"LGA1700",ramType:"DDR4",maxRam:128}},
+      {category:"Motherboard",componentId:"b550m",name:"MSI B550M Pro-VDH",price:8500,inStock:true,specs:{socket:"AM4",ramType:"DDR4",maxRam:128}},
+      {category:"Motherboard",componentId:"b650m",name:"MSI B650M Pro-A",price:12500,inStock:true,specs:{socket:"AM5",ramType:"DDR5",maxRam:192}},
+      // RAM
+      {category:"RAM",componentId:"8d4",name:"8GB DDR4 3200MHz",price:2200,inStock:true,specs:{type:"DDR4",size:8}},
+      {category:"RAM",componentId:"16d4",name:"16GB DDR4 3200MHz",price:3800,inStock:true,specs:{type:"DDR4",size:16}},
+      {category:"RAM",componentId:"32d4",name:"32GB DDR4 3200MHz",price:7500,inStock:true,specs:{type:"DDR4",size:32}},
+      {category:"RAM",componentId:"16d5",name:"16GB DDR5 4800MHz",price:5500,inStock:true,specs:{type:"DDR5",size:16}},
+      {category:"RAM",componentId:"32d5",name:"32GB DDR5 4800MHz",price:10000,inStock:true,specs:{type:"DDR5",size:32}},
+      // Storage
+      {category:"Storage",componentId:"256ssd",name:"256GB NVMe SSD",price:2500,inStock:true,specs:{type:"NVMe",size:256}},
+      {category:"Storage",componentId:"512ssd",name:"512GB NVMe SSD",price:3500,inStock:true,specs:{type:"NVMe",size:512}},
+      {category:"Storage",componentId:"1tssd",name:"1TB NVMe SSD",price:6500,inStock:true,specs:{type:"NVMe",size:1024}},
+      {category:"Storage",componentId:"1thdd",name:"1TB HDD 7200RPM",price:3200,inStock:true,specs:{type:"HDD",size:1024}},
+      // GPU
+      {category:"GPU",componentId:"none",name:"No GPU (Integrated Graphics)",price:0,inStock:true,specs:{vram:0}},
+      {category:"GPU",componentId:"1650",name:"NVIDIA GTX 1650 4GB",price:14000,inStock:true,specs:{vram:4,brand:"NVIDIA"}},
+      {category:"GPU",componentId:"3060",name:"NVIDIA RTX 3060 12GB",price:25000,inStock:true,specs:{vram:12,brand:"NVIDIA"}},
+      {category:"GPU",componentId:"4060",name:"NVIDIA RTX 4060 8GB",price:32000,inStock:true,specs:{vram:8,brand:"NVIDIA"}},
+      {category:"GPU",componentId:"rx6600",name:"AMD RX 6600 8GB",price:22000,inStock:true,specs:{vram:8,brand:"AMD"}},
+      // Cabinet
+      {category:"Cabinet",componentId:"basic",name:"Basic ATX Cabinet",price:2500,inStock:true,specs:{formFactor:"ATX"}},
+      {category:"Cabinet",componentId:"mid",name:"Mid Tower ATX",price:4500,inStock:true,specs:{formFactor:"ATX"}},
+      {category:"Cabinet",componentId:"midglass",name:"Mid Tower with Glass",price:5500,inStock:true,specs:{formFactor:"ATX"}},
+      // PSU
+      {category:"PSU",componentId:"450w",name:"450W 80+ Standard",price:3000,inStock:true,specs:{wattage:450,rating:"Standard"}},
+      {category:"PSU",componentId:"550wb",name:"550W 80+ Bronze",price:4500,inStock:true,specs:{wattage:550,rating:"Bronze"}},
+      {category:"PSU",componentId:"650wg",name:"650W 80+ Gold",price:6500,inStock:true,specs:{wattage:650,rating:"Gold"}},
+      {category:"PSU",componentId:"750wg",name:"750W 80+ Gold",price:8000,inStock:true,specs:{wattage:750,rating:"Gold"}},
+      // Cooler
+      {category:"Cooler",componentId:"stock",name:"Stock Cooler (Included)",price:0,inStock:true,specs:{type:"Air"}},
+      {category:"Cooler",componentId:"hm212",name:"Cooler Master Hyper 212",price:2500,inStock:true,specs:{type:"Air"}},
+      {category:"Cooler",componentId:"aio240",name:"240mm AIO Liquid Cooler",price:6000,inStock:true,specs:{type:"Liquid"}},
     ];
     try{
       const res=await fetch(API+"/components/seed",{method:"POST",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify(defaults)});
       const d=await res.json();showToast(d.message||"Seeded");loadPcPrices();
     }catch{showToast("Seed failed","error");}
-  }
 
   /* Service Jobs */
   async function loadServiceJobs(){
@@ -1367,4 +1377,6 @@ export default function Admin({defaultProducts,onExit}){
       )}
     </div>
   );
+}
+
 }
