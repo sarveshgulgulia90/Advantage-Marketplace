@@ -196,9 +196,20 @@ function QuoteModal({product,onClose}){
 // ─── PRODUCT CARD ──────────────────────────────────────────────────
 function ProductCard({p,onQuote,onView,onCompare,onAddToCart,compareList=[],wishlist=[],onWishlist,delay}){
   const[hov,setHov]=useState(false);
+  const[rating,setRating]=useState(null);
+  const API=import.meta.env.VITE_API_URL||"http://localhost:5000/api";
   const inCmp=compareList.some(c=>c.id===p.id);
   const inWish=wishlist.some(w=>w.id===p.id);
   const outOfStock=p.inStock===false;
+
+  useEffect(()=>{
+    let cancelled=false;
+    fetch(API+"/reviews/"+encodeURIComponent(p.name))
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{ if(d&&!cancelled) setRating({avg:d.avg,count:d.count}); })
+      .catch(()=>{});
+    return()=>{cancelled=true;};
+  },[p.name]);
   return(
     <Fade delay={delay}>
       <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
@@ -230,7 +241,17 @@ function ProductCard({p,onQuote,onView,onCompare,onAddToCart,compareList=[],wish
         {/* Info */}
         <div style={{padding:"14px 16px 18px",flex:1,display:"flex",flexDirection:"column"}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:RED,marginBottom:4}}>{p.cat}</div>
-          <div style={{fontWeight:700,fontSize:16,color:NAVY,marginBottom:5,lineHeight:1.2,cursor:"pointer",flex:1}} onClick={()=>onView(p)}>{p.name}</div>
+          <div style={{fontWeight:700,fontSize:16,color:NAVY,marginBottom:4,lineHeight:1.2,cursor:"pointer",flex:1}} onClick={()=>onView(p)}>{p.name}</div>
+          {rating&&rating.count>0&&(
+            <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:6}}>
+              <div style={{display:"flex",gap:1}}>
+                {[1,2,3,4,5].map(n=>(
+                  <span key={n} style={{fontSize:11,color:rating.avg>=n?"#f59e0b":"#ddd",lineHeight:1}}>★</span>
+                ))}
+              </div>
+              <span style={{fontSize:11,color:"#888"}}>{rating.avg} ({rating.count})</span>
+            </div>
+          )}
           <div style={{fontSize:11,color:"#888",lineHeight:1.55,marginBottom:10}}>{p.spec}</div>
           <div style={{fontWeight:800,fontSize:19,color:NAVY,marginBottom:12}}>{p.price}</div>
           <div style={{display:"flex",gap:6}}>
@@ -1056,6 +1077,191 @@ function CompareModal({list,onClose,onQuote}){
   );
 }
 
+// ─── STAR RATING ───────────────────────────────────────────────────
+function Stars({rating, size=16, interactive=false, onRate}){
+  const[hov,setHov]=useState(0);
+  return(
+    <div style={{display:"flex",gap:2}}>
+      {[1,2,3,4,5].map(n=>(
+        <span key={n}
+          onClick={()=>interactive&&onRate&&onRate(n)}
+          onMouseEnter={()=>interactive&&setHov(n)}
+          onMouseLeave={()=>interactive&&setHov(0)}
+          style={{fontSize:size,cursor:interactive?"pointer":"default",color:(hov||rating)>=n?"#f59e0b":"#ddd",lineHeight:1,transition:"color .1s"}}>
+          ★
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ─── REVIEWS SECTION ───────────────────────────────────────────────
+function ReviewsSection({productName}){
+  const[reviews,setReviews]=useState([]);
+  const[avg,setAvg]=useState(0);
+  const[count,setCount]=useState(0);
+  const[loading,setLoading]=useState(true);
+  const[showForm,setShowForm]=useState(false);
+  const[form,setForm]=useState({name:"",rating:0,comment:""});
+  const[submitting,setSubmitting]=useState(false);
+  const[submitted,setSubmitted]=useState(false);
+  const[error,setError]=useState("");
+  const API=import.meta.env.VITE_API_URL||"http://localhost:5000/api";
+
+  useEffect(()=>{ loadReviews(); },[productName]);
+
+  async function loadReviews(){
+    setLoading(true);
+    try{
+      const res=await fetch(API+"/reviews/"+encodeURIComponent(productName));
+      if(res.ok){ const d=await res.json(); setReviews(d.reviews||[]); setAvg(d.avg||0); setCount(d.count||0); }
+    }catch{}
+    setLoading(false);
+  }
+
+  async function submitReview(){
+    if(!form.name||!form.rating){ setError("Please enter your name and a star rating"); return; }
+    setSubmitting(true); setError("");
+    try{
+      const res=await fetch(API+"/reviews",{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({productName,name:form.name,rating:form.rating,comment:form.comment})
+      });
+      if(!res.ok) throw new Error("Failed");
+      setSubmitted(true); setShowForm(false); setForm({name:"",rating:0,comment:""});
+      loadReviews();
+    }catch{ setError("Could not submit review. Please try again."); }
+    setSubmitting(false);
+  }
+
+  const inp={border:"1px solid #dde2f0",padding:"10px 12px",fontSize:14,fontFamily:"inherit",outline:"none",width:"100%",color:"#111",transition:"border-color .15s"};
+  const DIST=[5,4,3,2,1];
+
+  return(
+    <div style={{marginTop:48,borderTop:"2px solid #dde2f0",paddingTop:40}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:28,flexWrap:"wrap",gap:12}}>
+        <h2 style={{fontSize:22,fontWeight:800,color:NAVY,letterSpacing:"-.01em"}}>Customer Reviews</h2>
+        {!showForm&&!submitted&&(
+          <button onClick={()=>setShowForm(true)}
+            style={{background:NAVY,color:"#fff",border:"none",padding:"10px 24px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em",transition:"background .15s"}}
+            onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
+            Write a Review
+          </button>
+        )}
+      </div>
+
+      {/* Rating summary */}
+      {count>0&&(
+        <div style={{display:"flex",gap:32,alignItems:"center",background:"#f5f7fa",border:"1px solid #dde2f0",padding:"20px 24px",marginBottom:24,flexWrap:"wrap"}}>
+          <div style={{textAlign:"center",flexShrink:0}}>
+            <div style={{fontSize:52,fontWeight:800,color:NAVY,lineHeight:1}}>{avg}</div>
+            <Stars rating={avg} size={20}/>
+            <div style={{fontSize:12,color:"#888",marginTop:4}}>{count} review{count!==1?"s":""}</div>
+          </div>
+          <div style={{flex:1,minWidth:180}}>
+            {DIST.map(star=>{
+              const c=reviews.filter(r=>r.rating===star).length;
+              const pct=count>0?Math.round(c/count*100):0;
+              return(
+                <div key={star} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                  <span style={{fontSize:11,fontWeight:600,color:"#555",minWidth:12}}>{star}</span>
+                  <span style={{color:"#f59e0b",fontSize:12}}>★</span>
+                  <div style={{flex:1,background:"#e8e8e8",height:6,borderRadius:3,overflow:"hidden"}}>
+                    <div style={{background:star>=4?"#f59e0b":star===3?"#fb923c":RED,height:"100%",width:pct+"%",transition:"width .4s ease",borderRadius:3}}/>
+                  </div>
+                  <span style={{fontSize:11,color:"#aaa",minWidth:24}}>{c}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Review form */}
+      {showForm&&(
+        <div style={{background:"#fff",border:"1px solid #dde2f0",padding:"24px",marginBottom:24}}>
+          <div style={{fontWeight:700,fontSize:16,color:NAVY,marginBottom:16}}>Your Review</div>
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:8,textTransform:"uppercase",letterSpacing:".06em"}}>Rating *</div>
+            <Stars rating={form.rating} size={32} interactive onRate={r=>setForm(f=>({...f,rating:r}))}/>
+            <div style={{fontSize:11,color:"#aaa",marginTop:4}}>
+              {["","Poor","Fair","Good","Very Good","Excellent"][form.rating]||"Click to rate"}
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+            <div>
+              <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Your Name *</div>
+              <input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="Enter your name" style={inp}
+                onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#dde2f0"}/>
+            </div>
+            <div style={{display:"flex",alignItems:"flex-end"}}>
+              <div style={{fontSize:11,color:"#888",lineHeight:1.5}}>Your review helps other customers make better decisions.</div>
+            </div>
+          </div>
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>Comment (optional)</div>
+            <textarea value={form.comment} onChange={e=>setForm(f=>({...f,comment:e.target.value}))} rows={3}
+              placeholder="Share your experience with this product..."
+              style={{...inp,resize:"vertical"}} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#dde2f0"}/>
+          </div>
+          {error&&<div style={{background:"#fff0f0",border:"1px solid #fecaca",padding:"9px 12px",fontSize:12,color:"#dc2626",marginBottom:12}}>{error}</div>}
+          <div style={{display:"flex",gap:10}}>
+            <button onClick={submitReview} disabled={submitting}
+              style={{background:NAVY,color:"#fff",border:"none",padding:"11px 28px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"background .15s"}}
+              onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
+              {submitting?"Submitting...":"Submit Review"}
+            </button>
+            <button onClick={()=>{setShowForm(false);setError("");}}
+              style={{background:"#fff",color:"#666",border:"1px solid #dde2f0",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {submitted&&(
+        <div style={{background:"#f0fdf4",border:"1px solid #86efac",padding:"14px 18px",marginBottom:24,fontSize:13,color:"#15803d",fontWeight:600}}>
+          Thank you for your review! It has been submitted successfully.
+        </div>
+      )}
+
+      {/* Review list */}
+      {loading&&<div style={{textAlign:"center",padding:32,color:"#aaa",fontSize:13}}>Loading reviews...</div>}
+      {!loading&&reviews.length===0&&(
+        <div style={{textAlign:"center",padding:"36px 20px",background:"#f5f7fa",border:"1px solid #dde2f0"}}>
+          <div style={{fontSize:13,color:"#888",marginBottom:12}}>No reviews yet. Be the first to review this product.</div>
+          {!showForm&&!submitted&&(
+            <button onClick={()=>setShowForm(true)}
+              style={{background:"none",color:NAVY,border:"1.5px solid "+NAVY,padding:"9px 24px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+              Write a Review
+            </button>
+          )}
+        </div>
+      )}
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        {reviews.map(r=>(
+          <div key={r._id} style={{background:"#fff",border:"1px solid #e8e8e8",padding:"18px 20px"}}>
+            <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}>
+              <div>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+                  <Stars rating={r.rating} size={14}/>
+                  <span style={{fontSize:13,fontWeight:700,color:NAVY}}>{r.name}</span>
+                  {r.verified&&<span style={{fontSize:10,fontWeight:700,color:"#16a34a",background:"#f0fdf4",border:"1px solid #86efac",padding:"1px 7px",letterSpacing:".04em"}}>Verified Purchase</span>}
+                </div>
+                <div style={{fontSize:11,color:"#aaa"}}>{new Date(r.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"})}</div>
+              </div>
+              <div style={{background:r.rating>=4?"#fffbeb":r.rating>=3?"#fff7ed":"#fff0f0",border:"1px solid "+(r.rating>=4?"#fde047":r.rating>=3?"#fdba74":"#fecaca"),padding:"3px 10px",fontSize:13,fontWeight:800,color:r.rating>=4?"#854d0e":r.rating>=3?"#c2410c":RED}}>
+                {r.rating}/5
+              </div>
+            </div>
+            {r.comment&&<div style={{fontSize:13,color:"#444",lineHeight:1.7}}>{r.comment}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── PRODUCT PAGE ──────────────────────────────────────────────────
 function ProductPage({p,onBack,onQuote,onViewRelated}){
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[p.id]);
@@ -1206,6 +1412,9 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
             </tbody>
           </table>
         </div>
+
+        {/* REVIEWS */}
+        <ReviewsSection productName={p.name}/>
 
         {related.length>0&&(
           <div style={{marginTop:56,borderTop:"2px solid #dde2f0",paddingTop:40}}>
