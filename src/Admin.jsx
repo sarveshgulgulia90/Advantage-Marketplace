@@ -714,6 +714,7 @@ export default function Admin({defaultProducts,onExit}){
       const res=await fetch(API+"/components/seed",{method:"POST",headers:{"Content-Type":"application/json","x-admin-token":BTKN},body:JSON.stringify(defaults)});
       const d=await res.json();showToast(d.message||"Seeded");loadPcPrices();
     }catch{showToast("Seed failed","error");}
+  }
 
   /* Service Jobs */
   async function loadServiceJobs(){
@@ -1377,6 +1378,4 @@ export default function Admin({defaultProducts,onExit}){
       )}
     </div>
   );
-}
-
 }
