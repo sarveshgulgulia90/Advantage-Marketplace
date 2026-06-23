@@ -15,7 +15,7 @@ router.post("/invoice", adminAuth, async (req, res) => {
     return res.status(500).json({ error: "Email not configured. Add EMAIL_USER and EMAIL_PASS to server/.env" });
   }
 
-  const transporter = nodemailer.createTransporter({
+  const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
   });
