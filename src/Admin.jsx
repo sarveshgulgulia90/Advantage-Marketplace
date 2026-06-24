@@ -80,49 +80,85 @@ function PcPriceRow({item,category,saveMsg,onSave,onDelete}){
 }
 
 /* ─── Add Part Form ──────────────────────────────────────────────── */
+/* ─── Spec fields per category ───────────────────────────────────── */
+const SPEC_FIELDS={
+  CPU:        [{key:"socket",label:"Socket",ph:"LGA1700 / AM4 / AM5"},{key:"tdp",label:"TDP (W)",ph:"65"},{key:"brand",label:"Brand",ph:"Intel / AMD"},{key:"hasIGPU",label:"Integrated GPU",type:"bool"}],
+  Motherboard:[{key:"socket",label:"Socket",ph:"LGA1700 / AM4 / AM5"},{key:"ramType",label:"RAM Type",ph:"DDR4 / DDR5"},{key:"maxRam",label:"Max RAM GB",ph:"128"}],
+  RAM:        [{key:"type",label:"Type",ph:"DDR4 / DDR5"},{key:"size",label:"Size GB",ph:"16"}],
+  Storage:    [{key:"type",label:"Type",ph:"NVMe / HDD"},{key:"size",label:"Size GB",ph:"512"}],
+  GPU:        [{key:"vram",label:"VRAM GB",ph:"8"},{key:"brand",label:"Brand",ph:"NVIDIA / AMD"}],
+  PSU:        [{key:"wattage",label:"Watts",ph:"650"},{key:"rating",label:"Rating",ph:"Gold / Bronze"}],
+  Cabinet:    [{key:"formFactor",label:"Form Factor",ph:"ATX / mATX"}],
+  Cooler:     [{key:"type",label:"Type",ph:"Air / Liquid"}],
+};
+
 function AddPartForm({onAdd}){
   const[cat,setCat]=useState("CPU");
   const[cid,setCid]=useState("");
   const[nm,setNm]=useState("");
   const[pr,setPr]=useState("");
+  const[specs,setSpecs]=useState({});
   const[msg,setMsg]=useState("");
+  const fields=SPEC_FIELDS[cat]||[];
+  function setSpec(k,v){setSpecs(s=>({...s,[k]:v}));}
   async function go(){
     if(!cat||!cid||!nm||!pr){setMsg("All fields required");return;}
-    const ok=await onAdd(cat,cid,nm,pr);
-    if(ok){setCid("");setNm("");setPr("");setMsg("Added successfully");}
-    else setMsg("Failed to add");
-    setTimeout(()=>setMsg(""),2500);
+    const parsed={};
+    for(const[k,v] of Object.entries(specs)){
+      parsed[k]=v==="true"?true:v==="false"?false:isNaN(v)||v===""?v:Number(v);
+    }
+    const ok=await onAdd(cat,cid,nm,pr,parsed);
+    if(ok){setCid("");setNm("");setPr("");setSpecs({});setMsg("Added");}
+    else setMsg("Failed");
+    setTimeout(()=>setMsg(""),2000);
   }
   return(
     <div style={{background:"#fff",border:"1px solid "+BORDER,padding:18,marginBottom:20}}>
       <div style={{fontSize:11,fontWeight:700,color:NAVY,letterSpacing:".08em",textTransform:"uppercase",marginBottom:12}}>Add New Component</div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 2fr 1fr auto",gap:10,alignItems:"end"}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 2fr 1fr",gap:10,marginBottom:fields.length?12:0}}>
         <div>
-          <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Category</label>
-          <input style={INP} placeholder="e.g. CPU" value={cat} onChange={e=>setCat(e.target.value)}
-            onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+          <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Category</label>
+          <input style={INP} placeholder="CPU" value={cat} onChange={e=>{setCat(e.target.value);setSpecs({});}} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
         </div>
         <div>
-          <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Component ID</label>
-          <input style={INP} placeholder="e.g. i5-12400" value={cid} onChange={e=>setCid(e.target.value)}
-            onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+          <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Component ID</label>
+          <input style={INP} placeholder="e.g. i5-12400" value={cid} onChange={e=>setCid(e.target.value)} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
         </div>
         <div>
-          <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Name</label>
-          <input style={INP} placeholder="Full component name" value={nm} onChange={e=>setNm(e.target.value)}
-            onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+          <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Name</label>
+          <input style={INP} placeholder="Full component name" value={nm} onChange={e=>setNm(e.target.value)} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
         </div>
         <div>
-          <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Price (Rs.)</label>
-          <input style={INP} type="number" placeholder="0" value={pr} onChange={e=>setPr(e.target.value)}
-            onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+          <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Price (Rs.)</label>
+          <input style={INP} type="number" placeholder="0" value={pr} onChange={e=>setPr(e.target.value)} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
         </div>
-        <button onClick={go}
-          style={{background:NAVY,color:"#fff",border:"none",padding:"9px 18px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",height:38}}>
-          Add
-        </button>
       </div>
-      {msg&&<div style={{marginTop:8,fontSize:12,color:msg.includes("success")?"#16a34a":RED,fontWeight:600}}>{msg}</div>}
+      {fields.length>0&&(
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>Compatibility Specs (used by PC Builder)</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+            {fields.map(f=>(
+              <div key={f.key}>
+                <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".04em"}}>{f.label}</label>
+                {f.type==="bool"?(
+                  <select value={specs[f.key]===undefined?"":String(specs[f.key])} onChange={e=>setSpec(f.key,e.target.value)}
+                    style={INP} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}>
+                    <option value="">Select</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                ):(
+                  <input style={INP} placeholder={f.ph} value={specs[f.key]||""} onChange={e=>setSpec(f.key,e.target.value)} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div style={{display:"flex",gap:10,alignItems:"center"}}>
+        <button onClick={go} style={{background:NAVY,color:"#fff",border:"none",padding:"9px 20px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Add Component</button>
+        {msg&&<span style={{fontSize:12,color:msg==="Added"?"#16a34a":RED,fontWeight:600}}>{msg}</span>}
+      </div>
     </div>
   );
 }
