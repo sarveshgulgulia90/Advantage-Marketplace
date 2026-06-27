@@ -659,6 +659,304 @@ function BulkQuoteModal({onClose}){
   );
 }
 
+// ─── COUNTDOWN TIMER ──────────────────────────────────────────────
+function CountdownTimer({targetDate, label}){
+  const[time,setTime]=useState({d:0,h:0,m:0,s:0,expired:false});
+  useEffect(()=>{
+    function calc(){
+      const diff=new Date(targetDate)-new Date();
+      if(diff<=0){setTime({d:0,h:0,m:0,s:0,expired:true});return;}
+      setTime({
+        d:Math.floor(diff/(864e5)),
+        h:Math.floor((diff%(864e5))/(36e5)),
+        m:Math.floor((diff%(36e5))/(6e4)),
+        s:Math.floor((diff%(6e4))/1e3),
+        expired:false,
+      });
+    }
+    calc();
+    const t=setInterval(calc,1000);
+    return()=>clearInterval(t);
+  },[targetDate]);
+  if(time.expired) return null;
+  return(
+    <div style={{background:RED,color:"#fff",padding:"10px 0",textAlign:"center"}}>
+      <div style={{maxWidth:1340,margin:"0 auto",padding:"0 32px",display:"flex",alignItems:"center",justifyContent:"center",gap:20,flexWrap:"wrap"}}>
+        <span style={{fontSize:13,fontWeight:600,letterSpacing:".04em"}}>{label||"Sale ends in:"}</span>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {[["d","Days"],["h","Hrs"],["m","Min"],["s","Sec"]].map(([k,l])=>(
+            <div key={k} style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+              <div style={{background:"rgba(0,0,0,.2)",padding:"4px 10px",fontWeight:800,fontSize:18,minWidth:40,textAlign:"center",fontFamily:"monospace",lineHeight:1}}>
+                {String(time[k]).padStart(2,"0")}
+              </div>
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:".08em",marginTop:2,opacity:.7}}>{l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── CUSTOMER AUTH MODAL ───────────────────────────────────────────
+function AuthModal({onClose,onLogin}){
+  const[mode,setMode]=useState("login");
+  const[form,setForm]=useState({name:"",email:"",phone:"",password:""});
+  const[loading,setLoading]=useState(false);
+  const[error,setError]=useState("");
+  const API=import.meta.env.VITE_API_URL||"http://localhost:5000/api";
+  useEffect(()=>{document.body.style.overflow="hidden";return()=>{document.body.style.overflow="";};},[]);
+
+  async function submit(){
+    if(!form.email||!form.password){setError("Email and password required");return;}
+    if(mode==="register"&&!form.name){setError("Name required");return;}
+    setLoading(true);setError("");
+    try{
+      const res=await fetch(API+"/auth/"+(mode==="login"?"login":"register"),{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(form)
+      });
+      const d=await res.json();
+      if(!res.ok) throw new Error(d.error||"Failed");
+      localStorage.setItem("advantage_token",d.token);
+      localStorage.setItem("advantage_user",JSON.stringify(d.user));
+      onLogin(d.user);
+      onClose();
+    }catch(e){setError(e.message);}
+    setLoading(false);
+  }
+
+  const inp={border:"1px solid #dde2f0",padding:"11px 13px",fontSize:14,fontFamily:"inherit",outline:"none",width:"100%",color:"#111",transition:"border-color .15s"};
+  return(
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{background:"#fff",width:"100%",maxWidth:400}}>
+        <div style={{padding:"20px 28px 16px",borderBottom:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontWeight:700,fontSize:20,color:NAVY}}>{mode==="login"?"Sign In":"Create Account"}</div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#aaa",lineHeight:1}}>×</button>
+        </div>
+        <div style={{padding:"22px 28px 28px",display:"flex",flexDirection:"column",gap:12}}>
+          {mode==="register"&&(
+            <input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="Full Name *" style={inp}
+              onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#dde2f0"}/>
+          )}
+          <input value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} placeholder="Email *" type="email" style={inp}
+            onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#dde2f0"}/>
+          {mode==="register"&&(
+            <input value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))} placeholder="Phone" style={inp}
+              onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#dde2f0"}/>
+          )}
+          <input value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} placeholder="Password *" type="password" style={inp}
+            onKeyDown={e=>e.key==="Enter"&&submit()}
+            onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#dde2f0"}/>
+          {error&&<div style={{background:"#fff0f0",border:"1px solid #fecaca",padding:"9px 12px",fontSize:12,color:"#dc2626"}}>{error}</div>}
+          <button onClick={submit} disabled={loading}
+            style={{background:NAVY,color:"#fff",border:"none",padding:"12px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"background .15s"}}
+            onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
+            {loading?"Please wait...":(mode==="login"?"Sign In":"Create Account")}
+          </button>
+          <div style={{textAlign:"center",fontSize:13,color:"#888"}}>
+            {mode==="login"?"Don't have an account? ":"Already have an account? "}
+            <span onClick={()=>{setMode(mode==="login"?"register":"login");setError("");setForm({name:"",email:"",phone:"",password:""});}}
+              style={{color:NAVY,fontWeight:600,cursor:"pointer",textDecoration:"underline"}}>
+              {mode==="login"?"Register":"Sign In"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MY ACCOUNT MODAL ─────────────────────────────────────────────
+function MyAccountModal({user,onClose,onLogout}){
+  const[enquiries,setEnquiries]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const API=import.meta.env.VITE_API_URL||"http://localhost:5000/api";
+  useEffect(()=>{
+    document.body.style.overflow="hidden";
+    loadMyEnquiries();
+    return()=>{document.body.style.overflow="";};
+  },[]);
+
+  async function loadMyEnquiries(){
+    setLoading(true);
+    try{
+      const token=localStorage.getItem("advantage_token");
+      const res=await fetch(API+"/auth/my-enquiries",{headers:{"Authorization":"Bearer "+token}});
+      if(res.ok){const d=await res.json();setEnquiries(Array.isArray(d)?d:[]);}
+    }catch{}
+    setLoading(false);
+  }
+
+  function logout(){
+    localStorage.removeItem("advantage_token");
+    localStorage.removeItem("advantage_user");
+    onLogout();
+    onClose();
+  }
+
+  return(
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20,overflowY:"auto"}}>
+      <div style={{background:"#fff",width:"100%",maxWidth:560,maxHeight:"90vh",display:"flex",flexDirection:"column"}}>
+        <div style={{background:NAVY,padding:"18px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:16,color:"#fff"}}>{user.name}</div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,.5)",marginTop:2}}>{user.email}</div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={logout} style={{background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.2)",color:"rgba(255,255,255,.7)",padding:"6px 14px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Sign Out</button>
+            <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"rgba(255,255,255,.6)",lineHeight:1}}>×</button>
+          </div>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"20px 24px"}}>
+          <div style={{fontWeight:700,fontSize:14,color:NAVY,marginBottom:14,textTransform:"uppercase",letterSpacing:".06em",fontSize:11}}>My Enquiries</div>
+          {loading&&<div style={{textAlign:"center",padding:32,color:"#aaa",fontSize:13}}>Loading...</div>}
+          {!loading&&enquiries.length===0&&(
+            <div style={{textAlign:"center",padding:"32px",background:"#f5f7fa",border:"1px solid #dde2f0"}}>
+              <div style={{fontSize:13,color:"#888",marginBottom:10}}>No enquiries yet.</div>
+              <div style={{fontSize:12,color:"#aaa"}}>When you enquire about products, they'll appear here.</div>
+            </div>
+          )}
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {enquiries.map(inq=>(
+              <div key={inq._id} style={{background:"#f5f7fa",border:"1px solid #dde2f0",padding:"12px 16px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                  <span style={{fontSize:11,color:RED,fontWeight:700,textTransform:"uppercase",letterSpacing:".04em"}}>{inq.product}</span>
+                  <span style={{fontSize:11,color:"#aaa"}}>{new Date(inq.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</span>
+                </div>
+                <div style={{fontSize:12,color:"#555",lineHeight:1.6}}>{inq.message}</div>
+                <div style={{marginTop:6}}>
+                  <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",letterSpacing:".04em",textTransform:"uppercase",background:inq.read?"#f0f2f8":"#fff0f0",color:inq.read?"#888":RED,border:"1px solid "+(inq.read?"#dde2f0":"#fecaca")}}>
+                    {inq.read?"Seen":"Pending"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── NEWSLETTER FORM ──────────────────────────────────────────────
+function NewsletterForm(){
+  const[email,setEmail]=useState("");
+  const[done,setDone]=useState(false);
+  const[loading,setLoading]=useState(false);
+  const API=import.meta.env.VITE_API_URL||"http://localhost:5000/api";
+  async function subscribe(){
+    if(!email.trim()||!email.includes("@")) return;
+    setLoading(true);
+    try{
+      await fetch(API+"/inquiries",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({name:"Newsletter",phone:"—",email,product:"Newsletter Signup",message:"Newsletter subscription: "+email})});
+      setDone(true);
+    }catch{}
+    setLoading(false);
+  }
+  if(done) return <div style={{color:"#fff",fontSize:13,fontWeight:600,padding:"10px 0"}}>Subscribed! We'll keep you updated.</div>;
+  return(
+    <div style={{display:"flex",gap:8,flexShrink:0}}>
+      <input value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&subscribe()}
+        placeholder="Your email address"
+        style={{border:"1px solid rgba(255,255,255,.2)",background:"rgba(255,255,255,.08)",color:"#fff",padding:"10px 16px",fontSize:13,fontFamily:"inherit",outline:"none",width:240}}
+        onFocus={e=>e.target.style.borderColor="rgba(255,255,255,.5)"} onBlur={e=>e.target.style.borderColor="rgba(255,255,255,.2)"}/>
+      <button onClick={subscribe} disabled={loading||!email.includes("@")}
+        style={{background:RED,color:"#fff",border:"none",padding:"10px 20px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",transition:"background .15s"}}
+        onMouseEnter={e=>e.target.style.background="#a81515"} onMouseLeave={e=>e.target.style.background=RED}>
+        {loading?"...":"Subscribe"}
+      </button>
+    </div>
+  );
+}
+
+// ─── WARRANTY CHECKER ─────────────────────────────────────────────
+function WarrantyChecker({onClose}){
+  const[serial,setSerial]=useState("");
+  const[result,setResult]=useState(null);
+  const[loading,setLoading]=useState(false);
+  const[error,setError]=useState("");
+  const API=import.meta.env.VITE_API_URL||"http://localhost:5000/api";
+
+  async function check(){
+    if(!serial.trim()) return;
+    setLoading(true); setResult(null); setError("");
+    try{
+      const res=await fetch(API+"/warranty/check/"+encodeURIComponent(serial.trim()));
+      const d=await res.json();
+      if(!res.ok) throw new Error(d.error||"Not found");
+      setResult(d);
+    }catch(e){ setError(e.message); }
+    setLoading(false);
+  }
+
+  return(
+    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{background:"#fff",width:"100%",maxWidth:480}}>
+        <div style={{padding:"20px 28px 16px",borderBottom:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#999",marginBottom:4}}>Warranty Status</div>
+            <div style={{fontWeight:700,fontSize:20,color:NAVY}}>Check Warranty</div>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#aaa",lineHeight:1}}>×</button>
+        </div>
+        <div style={{padding:"22px 28px 28px"}}>
+          <div style={{fontSize:13,color:"#666",marginBottom:16}}>Enter the serial number printed on your product or purchase receipt.</div>
+          <div style={{display:"flex",gap:10,marginBottom:20}}>
+            <input value={serial} onChange={e=>setSerial(e.target.value)} onKeyDown={e=>e.key==="Enter"&&check()}
+              placeholder="e.g. ADV-2024-SN001"
+              style={{flex:1,border:"1.5px solid #ddd",padding:"11px 14px",fontSize:14,fontFamily:"inherit",outline:"none",color:"#111",textTransform:"uppercase"}}
+              onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
+            <button onClick={check} disabled={!serial.trim()||loading}
+              style={{background:serial.trim()?NAVY:"#ccc",color:"#fff",border:"none",padding:"11px 20px",fontSize:13,fontWeight:700,cursor:serial.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>
+              {loading?"...":"Check"}
+            </button>
+          </div>
+
+          {error&&<div style={{background:"#fff0f0",border:"1px solid #fecaca",padding:"12px 16px",fontSize:13,color:"#dc2626",marginBottom:16}}>{error}</div>}
+
+          {result&&(
+            <div style={{border:"2px solid "+(result.valid?"#86efac":RED),background:result.valid?"#f0fdf4":"#fff0f0",padding:"20px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:16,color:NAVY,marginBottom:4}}>{result.productName}</div>
+                  <div style={{fontSize:12,color:"#888"}}>Serial: <strong style={{fontFamily:"monospace"}}>{result.serialNumber}</strong></div>
+                </div>
+                <span style={{background:result.valid?"#16a34a":RED,color:"#fff",fontSize:11,fontWeight:700,padding:"4px 12px",letterSpacing:".06em",textTransform:"uppercase",flexShrink:0}}>
+                  {result.valid?"Active":"Expired"}
+                </span>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:6,fontSize:13}}>
+                {[
+                  ["Customer",    result.customerName],
+                  ["Purchase Date", new Date(result.purchaseDate).toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"})],
+                  ["Warranty",    result.warrantyMonths+" months"],
+                  ["Expires",     new Date(result.expiryDate).toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"})],
+                  result.valid&&["Days Left", result.daysLeft+" days remaining"],
+                ].filter(Boolean).map(([k,v])=>(
+                  <div key={k} style={{display:"flex",gap:12,padding:"6px 0",borderBottom:"1px solid rgba(0,0,0,.06)"}}>
+                    <span style={{fontWeight:600,color:"#555",minWidth:110}}>{k}</span>
+                    <span style={{color:NAVY,fontWeight:500}}>{v}</span>
+                  </div>
+                ))}
+              </div>
+              {!result.valid&&(
+                <div style={{marginTop:12,fontSize:12,color:"#888"}}>Warranty expired. Contact us at <strong style={{color:RED}}>9435070738</strong> for extended warranty options.</div>
+              )}
+              {result.notes&&<div style={{marginTop:10,fontSize:12,color:"#666",fontStyle:"italic"}}>{result.notes}</div>}
+            </div>
+          )}
+
+          <div style={{marginTop:16,padding:"10px 14px",background:"#f0f2f8",fontSize:12,color:"#555"}}>
+            Cannot find your serial number? Call <strong style={{color:NAVY}}>9435070738</strong> with your purchase receipt.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── COMPARE BAR ───────────────────────────────────────────────────
 function CompareBar({list,onRemove,onClear,onCompare}){
   if(list.length===0)return null;
@@ -1449,6 +1747,7 @@ export default function App(){
   const[serviceTrackerOpen,setServiceTrackerOpen]=useState(false);
   const[bulkQuoteOpen,setBulkQuoteOpen]=useState(false);
   const[wishlistOpen,setWishlistOpen]=useState(false);
+  const[warrantyOpen,setWarrantyOpen]=useState(false);
   const[pwaPrompt,setPwaPrompt]=useState(null);
   const[pwaInstalled,setPwaInstalled]=useState(false);
 
@@ -1997,6 +2296,7 @@ export default function App(){
             <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
               <button onClick={()=>setRepairOpen(true)} style={{background:RED,color:"#fff",border:"none",padding:"11px 24px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit"}}>Book a Service</button>
               <button onClick={()=>setServiceTrackerOpen(true)} style={{background:"rgba(255,255,255,.08)",color:"rgba(255,255,255,.8)",border:"1px solid rgba(255,255,255,.2)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Track Repair</button>
+              <button onClick={()=>setWarrantyOpen(true)} style={{background:"rgba(255,255,255,.08)",color:"rgba(255,255,255,.8)",border:"1px solid rgba(255,255,255,.2)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Check Warranty</button>
               <a href="tel:9435070738" style={{background:"none",color:"rgba(255,255,255,.6)",border:"1px solid rgba(255,255,255,.15)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,textDecoration:"none"}}>9435070738</a>
             </div>
           </div>
@@ -2115,6 +2415,17 @@ export default function App(){
         </div>
       </div>
 
+      {/* NEWSLETTER */}
+      <div style={{background:NAVY,borderTop:"1px solid rgba(255,255,255,.1)"}}>
+        <div style={{maxWidth:1340,margin:"0 auto",padding:"32px",display:"grid",gridTemplateColumns:"1fr auto",gap:24,alignItems:"center"}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:16,color:"#fff",marginBottom:4}}>Stay updated on new arrivals and deals</div>
+            <div style={{fontSize:13,color:"rgba(255,255,255,.4)"}}>Get notified about laptop sales, new stock and exclusive offers.</div>
+          </div>
+          <NewsletterForm/>
+        </div>
+      </div>
+
       {/* FOOTER */}
       <footer className="footer">
         <div className="footer-top-strip"/>
@@ -2126,11 +2437,19 @@ export default function App(){
           {[
             {head:"Products", links:["Laptops","Desktop PCs","Printers","Keyboards & Mouse","Monitors","Accessories"]},
             {head:"Services", links:["Laptop Repair","Desktop Repair","Printer Service","Onsite Support","OS Installation"]},
+            {head:"Quick Links", links:["Check Warranty","Track Repair","Build Your PC","Bulk Quote","About Us"]},
             {head:"Visit Us", links:["Anand Arcade","Opposite Civil Hospital","Silchar – 788001","Assam, India","03842-230952","9435070738"]},
           ].map((col,i)=>(
             <div key={i} className="footer-col">
               <h4>{col.head}</h4>
-              {col.links.map(l=><a key={l}>{l}</a>)}
+              {col.links.map(l=>(
+                <a key={l} onClick={()=>{
+                  if(l==="Check Warranty") setWarrantyOpen(true);
+                  else if(l==="Track Repair") setServiceTrackerOpen(true);
+                  else if(l==="Build Your PC") setPcBuilderOpen(true);
+                  else if(l==="Bulk Quote") setBulkQuoteOpen(true);
+                }}>{l}</a>
+              ))}
             </div>
           ))}
         </div>
@@ -2210,6 +2529,7 @@ export default function App(){
       {repairOpen&&<RepairModal onClose={()=>setRepairOpen(false)}/>}
       {serviceTrackerOpen&&<ServiceTracker onClose={()=>setServiceTrackerOpen(false)}/>}
       {bulkQuoteOpen&&<BulkQuoteModal onClose={()=>setBulkQuoteOpen(false)}/>}
+      {warrantyOpen&&<WarrantyChecker onClose={()=>setWarrantyOpen(false)}/>}
     </>
   );
 }

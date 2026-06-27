@@ -22,6 +22,18 @@ router.post("/", async (req, res) => {
     if (!name || !phone)
       return res.status(400).json({ error: "Name and phone are required" });
     const doc = await Inquiry.create({ name, phone, email: email||"", product: product||"General", message: message||"" });
+
+    // WhatsApp auto-notify admin (opens link on server — works only if you want a webhook)
+    // We store the notify URL so admin can see it, but actual WA delivery needs Twilio/WATI
+    // For now: log it clearly so admin sees it in terminal
+    const adminPhone = process.env.ADMIN_PHONE || "919435070738";
+    const notifyMsg  = encodeURIComponent(
+      "New enquiry from "+name+" ("+phone+")\nProduct: "+(product||"General")+"\n"+message
+    );
+    console.log("\n📩 NEW ENQUIRY from "+name+" | "+phone);
+    console.log("   Product: "+(product||"General"));
+    console.log("   Notify URL: https://wa.me/"+adminPhone+"?text="+notifyMsg+"\n");
+
     res.status(201).json({ message: "Enquiry received", inquiry: doc });
   } catch (err) {
     res.status(500).json({ error: err.message });
