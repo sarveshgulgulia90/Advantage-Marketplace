@@ -7,7 +7,7 @@ const BORDER = "#e2e4ea";
 
 const API  = import.meta.env.VITE_API_URL    || "http://localhost:5000/api";
 const BTKN = import.meta.env.VITE_ADMIN_TOKEN || "advantage_admin_secret_2025";
-const ADMIN_PASSWORD = "advantage";
+const ADMIN_PASSWORD = "advantage1995";
 const STORAGE_KEY = "advantage_products";
 
 const CATS = ["Laptops","Desktops","Printers","Accessories","Security & CCTV"];
@@ -18,7 +18,7 @@ const SPEC_KEYS = {
   Accessories:      ["Type","Connectivity","Compatibility","Interface","Weight","Warranty"],
   "Security & CCTV":["Type","Resolution","Connectivity","Storage","Power","IR Range","Warranty"],
 };
-const EMPTY = {name:"",cat:"Laptops",price:"",icon:"💻",isNew:false,inStock:true,image:"",spec:"",specs:{},highlights:["","","",""]};
+const EMPTY = {name:"",cat:"Laptops",price:"",icon:"💻",isNew:false,inStock:true,badge:"",images:[],image:"",spec:"",specs:{},highlights:["","","",""]};
 
 function ls(){ try{ const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):null; }catch{return null;} }
 function ss(a){ localStorage.setItem(STORAGE_KEY,JSON.stringify(a)); }
@@ -261,7 +261,12 @@ function InvoiceModal({inq,onClose}){
   const NAVY="#0B1F5E",RED="#CC1A1A",BORDER="#e2e4ea";
   const API=import.meta.env.VITE_API_URL||"http://localhost:5000/api";
   const BTKN=import.meta.env.VITE_ADMIN_TOKEN||"advantage_admin_secret_2025";
-  const[items,setItems]=useState([{desc:inq.product||"",qty:1,rate:"",amount:""}]);
+  const[items,setItems]=useState([{
+    desc:inq.product||"",
+    qty:1,
+    rate:inq.estimatedCost?String(inq.estimatedCost):"",
+    amount:inq.estimatedCost?String(inq.estimatedCost):""
+  }]);
   const[invNo]=useState("INV-"+Date.now().toString().slice(-6));
   const[date]=useState(new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"}));
   const[notes,setNotes]=useState("Thank you for your business. Payment due on receipt.");
@@ -658,6 +663,21 @@ export default function Admin({defaultProducts,onExit}){
   const[bannerSaved,setBannerSaved]=useState(false);
 
   function showToast(msg,type="success"){setToast({msg,type});setTimeout(()=>setToast(null),2800);}
+
+  // Auto-load enquiries when admin logs in + update page title
+  useEffect(()=>{
+    if(authed){
+      loadInquiries();
+      loadServiceJobs();
+    }
+  },[authed]);
+
+  // Update browser tab title with unread count
+  useEffect(()=>{
+    const total = inquiries.filter(i=>!i.read).length + serviceJobs.filter(j=>!["Completed","Cancelled"].includes(j.status)).length;
+    document.title = total > 0 ? "("+total+") Advantage Admin" : "Advantage Admin";
+    return()=>{ document.title = "Advantage Silchar"; };
+  },[inquiries, serviceJobs]);
   function persist(arr){setProducts(arr);ss(arr);}
 
   /* Inquiries */
@@ -826,7 +846,32 @@ export default function Admin({defaultProducts,onExit}){
   function generateInvoice(inq){
     setInvoiceData(inq);
   }
+  async function loadAllReviews(){
+    setRevLoading(true);
+    try{
+      const res=await fetch(API+"/reviews",{headers:{"x-admin-token":BTKN}});
+      const d=await res.json();
+      if(res.ok) setAllReviews(Array.isArray(d)?d:[]);
+    }catch{}
+    setRevLoading(false);
+  }
 
+  async function deleteReview(id){
+    try{await fetch(API+"/reviews/"+id,{method:"DELETE",headers:{"x-admin-token":BTKN}});loadAllReviews();}catch{}
+  }
+
+  const[customers,setCustomers]=useState([]);
+  const[custLoading,setCustLoading]=useState(false);
+
+  async function loadCustomers(){
+    setCustLoading(true);
+    try{
+      const res=await fetch(API+"/auth/all-users",{headers:{"x-admin-token":BTKN}});
+      const d=await res.json();
+      if(res.ok) setCustomers(Array.isArray(d)?d:[]);
+    }catch{}
+    setCustLoading(false);
+  }
   function saveBanner(){localStorage.setItem("advantage_banner",bannerText);setBannerSaved(true);setTimeout(()=>setBannerSaved(false),2000);showToast("Banner saved. Refresh website to see it.");}
 
   /* Products */
@@ -844,7 +889,7 @@ export default function Admin({defaultProducts,onExit}){
     setForm(EMPTY);setEditId(null);setTab("products");
   }
   function handleEdit(p){
-    setForm({name:p.name,cat:p.cat,price:p.price,icon:p.icon||"💻",isNew:p.isNew||false,inStock:p.inStock!==false,image:p.image||"",spec:p.spec||"",specs:p.specs||{},highlights:p.highlights?.length?p.highlights:["","","",""]});
+    setForm({name:p.name,cat:p.cat,price:p.price,icon:p.icon||"💻",isNew:p.isNew||false,inStock:p.inStock!==false,badge:p.badge||"",image:p.image||"",images:p.images||(p.image?[p.image]:[]),spec:p.spec||"",specs:p.specs||{},highlights:p.highlights?.length?p.highlights:["","","",""]});
     setEditId(p.id);setTab("add");window.scrollTo({top:0,behavior:"smooth"});
   }
   function handleDelete(id){persist(products.filter(p=>p.id!==id));setDelConfirm(null);showToast("Product deleted","error");}
@@ -861,6 +906,8 @@ export default function Admin({defaultProducts,onExit}){
     {key:"inquiries",label:"Enquiries"+(newCount>0?" ("+newCount+")":""),onClick:()=>loadInquiries()},
     {key:"pcprices",label:"PC Prices",onClick:()=>loadPcPrices()},
     {key:"service",label:"Service Jobs",onClick:()=>loadServiceJobs()},
+    {key:"reviews",label:"Reviews",onClick:()=>loadAllReviews()},
+    {key:"customers",label:"Customers",onClick:()=>loadCustomers()},
     {key:"analytics",label:"Analytics",onClick:()=>loadAnalytics()},
     {key:"banner",label:"Banner"},
   ];
@@ -965,10 +1012,88 @@ export default function Admin({defaultProducts,onExit}){
                   </button>
                 ))}
               </div>
-              <button onClick={()=>window.confirm("Reset to defaults?")&&persist(defaultProducts)}
-                style={{background:"none",border:"1px solid "+BORDER,padding:"5px 14px",fontSize:11,fontWeight:600,color:"#888",cursor:"pointer",fontFamily:"inherit"}}>
-                Reset to Defaults
-              </button>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>document.getElementById("csv-import").click()}
+                  style={{background:"none",border:"1px solid "+NAVY,padding:"5px 14px",fontSize:11,fontWeight:600,color:NAVY,cursor:"pointer",fontFamily:"inherit"}}>
+                  Import CSV
+                </button>
+                <input id="csv-import" type="file" accept=".csv" style={{display:"none"}} onChange={e=>{
+                  const file=e.target.files[0];
+                  if(!file) return;
+                  const reader=new FileReader();
+                  reader.onload=ev=>{
+                    try{
+                      const text=ev.target.result;
+                      const lines=text.split("\n").filter(l=>l.trim());
+                      const headers=lines[0].split(",").map(h=>h.trim().toLowerCase());
+                      const imported=[];
+                      for(let i=1;i<lines.length;i++){
+                        // Simple CSV parse (handles quoted fields)
+                        const vals=[];
+                        let cur="",inQ=false;
+                        for(const ch of lines[i]){
+                          if(ch==='"') inQ=!inQ;
+                          else if(ch===','&&!inQ){vals.push(cur);cur="";}
+                          else cur+=ch;
+                        }
+                        vals.push(cur);
+                        const row={};
+                        headers.forEach((h,idx)=>row[h]=(vals[idx]||"").trim());
+                        if(row.name&&row.price){
+                          imported.push({
+                            id:Date.now()+i,
+                            name:row.name,
+                            cat:row.category||row.cat||"Laptops",
+                            price:row.price,
+                            icon:row.icon||"💻",
+                            isNew:row.isnew==="true"||row.isnew==="yes",
+                            inStock:row.instock!=="false"&&row.instock!=="no",
+                            image:row.image||"",
+                            images:row.image?[row.image]:[],
+                            spec:row.spec||row.summary||"",
+                            specs:{},
+                            highlights:(row.highlights||"").split("|").filter(Boolean),
+                          });
+                        }
+                      }
+                      if(imported.length>0){
+                        persist([...products,...imported]);
+                        showToast(imported.length+" products imported from CSV");
+                      }else{
+                        showToast("No valid rows found. Check CSV format.","error");
+                      }
+                    }catch(err){
+                      showToast("Failed to parse CSV: "+err.message,"error");
+                    }
+                    e.target.value="";
+                  };
+                  reader.readAsText(file);
+                }}/>
+                <button onClick={()=>{
+                  const headers=["name","category","price","icon","isNew","inStock","image","spec","highlights"];
+                  const rows=products.map(p=>[
+                    '"'+p.name.replace(/"/g,'""')+'"',
+                    p.cat, p.price, p.icon||"", p.isNew?"true":"false",
+                    p.inStock===false?"false":"true",
+                    p.image||"",
+                    '"'+(p.spec||"").replace(/"/g,'""')+'"',
+                    '"'+(p.highlights||[]).join("|")+'"'
+                  ].join(","));
+                  const csv=[headers.join(","),...rows].join("\n");
+                  const blob=new Blob([csv],{type:"text/csv"});
+                  const url=URL.createObjectURL(blob);
+                  const a=document.createElement("a");
+                  a.href=url; a.download="advantage-products.csv";
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }} style={{background:"none",border:"1px solid "+BORDER,padding:"5px 14px",fontSize:11,fontWeight:600,color:"#888",cursor:"pointer",fontFamily:"inherit"}}>
+                  Export CSV
+                </button>
+                <button onClick={()=>window.confirm("Reset to defaults?")&&persist(defaultProducts)}
+                  style={{background:"none",border:"1px solid "+BORDER,padding:"5px 14px",fontSize:11,fontWeight:600,color:"#888",cursor:"pointer",fontFamily:"inherit"}}>
+                  Reset to Defaults
+                </button>
+              </div>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
               {filtered.length===0&&<div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid "+BORDER,color:"#aaa",fontSize:13}}>No products in this category.</div>}
@@ -1030,7 +1155,7 @@ export default function Admin({defaultProducts,onExit}){
                         onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
                     </div>
                   </div>
-                  <div style={{display:"flex",gap:20}}>
+                  <div style={{display:"flex",gap:20,flexWrap:"wrap"}}>
                     <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,fontWeight:500,color:NAVY}}>
                       <input type="checkbox" checked={form.isNew} onChange={e=>setForm(f=>({...f,isNew:e.target.checked}))} style={{accentColor:RED,width:14,height:14}}/>
                       Mark as New
@@ -1040,30 +1165,94 @@ export default function Admin({defaultProducts,onExit}){
                       In Stock
                     </label>
                   </div>
+                  <div>
+                    <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>Promotional Badge</label>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                      {["","Hot Deal","Best Seller","Limited Stock","Clearance","New Arrival"].map(b=>(
+                        <button key={b} type="button" onClick={()=>setForm(f=>({...f,badge:b}))}
+                          style={{padding:"4px 12px",fontSize:11,fontWeight:600,border:"1px solid "+(form.badge===b?NAVY:BORDER),background:form.badge===b?NAVY:"#fff",color:form.badge===b?"#fff":"#555",cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}>
+                          {b||"None"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Image */}
+              {/* Image Gallery */}
               <div style={{background:"#fff",border:"1px solid "+BORDER,padding:20}}>
-                <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:14}}>Product Image</div>
-                <div style={{border:"1px dashed "+BORDER,padding:20,textAlign:"center",background:GREY,cursor:"pointer",marginBottom:10}}
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:14}}>Product Images</div>
+                <div style={{border:"1px dashed "+BORDER,padding:20,textAlign:"center",background:GREY,cursor:"pointer",marginBottom:12}}
                   onClick={()=>document.getElementById("img-up").click()}
                   onDragOver={e=>e.preventDefault()}
-                  onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f&&f.type.startsWith("image/")){const r=new FileReader();r.onload=ev=>setForm(fm=>({...fm,image:ev.target.result}));r.readAsDataURL(f);}}}>
-                  <input id="img-up" type="file" accept="image/*" style={{display:"none"}}
-                    onChange={e=>{const f=e.target.files[0];if(f){const r=new FileReader();r.onload=ev=>setForm(fm=>({...fm,image:ev.target.result}));r.readAsDataURL(f);}}}/>
-                  {form.image?(
-                    <div style={{position:"relative",display:"inline-block"}}>
-                      <img src={form.image} alt="" style={{maxHeight:100,maxWidth:"100%",objectFit:"contain"}}/>
-                      <button onClick={e=>{e.stopPropagation();setForm(f=>({...f,image:""}));}} style={{position:"absolute",top:-8,right:-8,background:RED,color:"#fff",border:"none",width:20,height:20,borderRadius:"50%",fontSize:11,cursor:"pointer",fontWeight:700}}>x</button>
-                    </div>
-                  ):(
-                    <div style={{fontSize:12,color:"#aaa"}}>Click or drag to upload image</div>
-                  )}
+                  onDrop={e=>{
+                    e.preventDefault();
+                    const files=Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith("image/"));
+                    files.forEach(f=>{
+                      const r=new FileReader();
+                      r.onload=ev=>setForm(fm=>({
+                        ...fm,
+                        image: fm.image||ev.target.result,
+                        images: [...(fm.images||[]), ev.target.result]
+                      }));
+                      r.readAsDataURL(f);
+                    });
+                  }}>
+                  <input id="img-up" type="file" accept="image/*" multiple style={{display:"none"}}
+                    onChange={e=>{
+                      const files=Array.from(e.target.files);
+                      files.forEach(f=>{
+                        const r=new FileReader();
+                        r.onload=ev=>setForm(fm=>({
+                          ...fm,
+                          image: fm.image||ev.target.result,
+                          images: [...(fm.images||[]), ev.target.result]
+                        }));
+                        r.readAsDataURL(f);
+                      });
+                    }}/>
+                  <div style={{fontSize:12,color:"#aaa"}}>Click or drag to upload — multiple images allowed</div>
                 </div>
-                <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Or paste URL</label>
-                <input className="adm-inp" placeholder="https://..." value={form.image.startsWith("data:")?"":(form.image||"")} onChange={e=>setForm(f=>({...f,image:e.target.value}))}
-                  onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+
+                {/* Thumbnail grid */}
+                {(form.images&&form.images.length>0)&&(
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
+                    {form.images.map((img,i)=>(
+                      <div key={i} style={{position:"relative",border:"2px solid "+(form.image===img?NAVY:BORDER),background:"#fff",padding:4,cursor:"pointer"}}
+                        onClick={()=>setForm(f=>({...f,image:img}))}>
+                        <img src={img} alt="" style={{width:"100%",height:60,objectFit:"contain"}}/>
+                        {form.image===img&&<div style={{position:"absolute",bottom:2,left:2,background:NAVY,color:"#fff",fontSize:8,fontWeight:700,padding:"1px 5px"}}>MAIN</div>}
+                        <button onClick={e=>{
+                          e.stopPropagation();
+                          setForm(f=>{
+                            const newImages=f.images.filter((_,idx)=>idx!==i);
+                            return {...f, images:newImages, image: f.image===img?(newImages[0]||""):f.image};
+                          });
+                        }} style={{position:"absolute",top:-6,right:-6,background:RED,color:"#fff",border:"none",width:16,height:16,borderRadius:"50%",fontSize:9,cursor:"pointer",fontWeight:700,lineHeight:1}}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{fontSize:10,color:"#aaa",marginBottom:10}}>Click a thumbnail to set it as the main image. First upload becomes main by default.</div>
+
+                <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Or paste image URL</label>
+                <div style={{display:"flex",gap:8}}>
+                  <input id="img-url-inp" className="adm-inp" placeholder="https://..." onKeyDown={e=>{
+                    if(e.key==="Enter"&&e.target.value.trim()){
+                      const url=e.target.value.trim();
+                      setForm(f=>({...f,image:f.image||url,images:[...(f.images||[]),url]}));
+                      e.target.value="";
+                    }
+                  }}/>
+                  <button onClick={()=>{
+                    const inp=document.getElementById("img-url-inp");
+                    if(inp.value.trim()){
+                      const url=inp.value.trim();
+                      setForm(f=>({...f,image:f.image||url,images:[...(f.images||[]),url]}));
+                      inp.value="";
+                    }
+                  }} style={{background:NAVY,color:"#fff",border:"none",padding:"0 16px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Add</button>
+                </div>
               </div>
 
               {/* Specs */}
@@ -1244,6 +1433,10 @@ export default function Admin({defaultProducts,onExit}){
                   </div>
                   <div style={{display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"wrap"}}>
                     <EstCostUpdate job={job} onUpdate={updateJobStatus}/>
+                    <button onClick={()=>setInvoiceData({name:job.customerName,phone:job.phone,email:"",product:"Repair: "+job.deviceType+" "+job.brand,estimatedCost:job.estimatedCost})}
+                      style={{background:NAVY,color:"#fff",border:"none",padding:"6px 12px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                      Invoice
+                    </button>
                     <a href={"https://wa.me/91"+job.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("Hi "+job.customerName+", your "+job.deviceType+" repair (Job: "+job.jobId+") status is now: "+job.status+". Call 9435070738 for details.")}
                       target="_blank" rel="noreferrer"
                       style={{background:"#25D366",color:"#fff",padding:"6px 12px",fontSize:11,fontWeight:600,textDecoration:"none",whiteSpace:"nowrap"}}>
@@ -1391,6 +1584,73 @@ export default function Admin({defaultProducts,onExit}){
 
       {/* Invoice Modal */}
       {invoiceData&&<InvoiceModal inq={invoiceData} onClose={()=>setInvoiceData(null)}/>}
+
+
+        {/* ══ REVIEWS TAB ══ */}
+        {tab==="reviews"&&(
+          <div>
+            <div style={{fontWeight:700,fontSize:15,color:NAVY,marginBottom:14}}>Customer Reviews</div>
+            {revLoading&&<div style={{textAlign:"center",padding:40,color:"#aaa",fontSize:13}}>Loading...</div>}
+            {!revLoading&&allReviews.length===0&&<div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid "+BORDER,color:"#aaa",fontSize:13}}>No reviews yet.</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {allReviews.map(r=>(
+                <div key={r._id} style={{background:"#fff",border:"1px solid "+BORDER,padding:"14px 18px",display:"flex",gap:14,alignItems:"flex-start"}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4,flexWrap:"wrap"}}>
+                      <span style={{fontWeight:700,fontSize:13,color:NAVY}}>{r.name}</span>
+                      <span style={{fontSize:11,color:"#aaa"}}>{new Date(r.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</span>
+                      <div style={{display:"flex",gap:1}}>{[1,2,3,4,5].map(n=><span key={n} style={{fontSize:12,color:r.rating>=n?"#f59e0b":"#ddd"}}>★</span>)}</div>
+                      <span style={{fontSize:11,fontWeight:700,color:r.rating>=4?"#16a34a":r.rating>=3?"#d97706":RED}}>{r.rating}/5</span>
+                    </div>
+                    <div style={{fontSize:11,color:RED,fontWeight:600,marginBottom:4,textTransform:"uppercase",letterSpacing:".04em"}}>{r.productName}</div>
+                    {r.comment&&<div style={{fontSize:13,color:"#444",lineHeight:1.6}}>{r.comment}</div>}
+                  </div>
+                  <button onClick={()=>deleteReview(r._id)}
+                    style={{background:"#fff",color:RED,border:"1px solid "+BORDER,padding:"6px 12px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ══ CUSTOMERS TAB ══ */}
+        {tab==="customers"&&(
+          <div>
+            <div style={{fontWeight:700,fontSize:15,color:NAVY,marginBottom:14}}>Registered Customers</div>
+            {custLoading&&<div style={{textAlign:"center",padding:40,color:"#aaa",fontSize:13}}>Loading...</div>}
+            {!custLoading&&customers.length===0&&<div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid "+BORDER,color:"#aaa",fontSize:13}}>No registered customers yet.</div>}
+            {customers.length>0&&(
+              <table style={{width:"100%",borderCollapse:"collapse",background:"#fff",border:"1px solid "+BORDER}}>
+                <thead>
+                  <tr style={{background:NAVY}}>
+                    {["Name","Email","Phone","Joined",""].map(h=>(
+                      <td key={h} style={{padding:"9px 14px",fontSize:10,fontWeight:700,color:"#fff",textTransform:"uppercase",letterSpacing:".06em"}}>{h}</td>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {customers.map(c=>(
+                    <tr key={c._id} style={{borderBottom:"1px solid "+BORDER}}>
+                      <td style={{padding:"10px 14px",fontSize:13,fontWeight:600,color:NAVY}}>{c.name}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#555"}}>{c.email}</td>
+                      <td style={{padding:"10px 14px",fontSize:12,color:"#555"}}>{c.phone||"—"}</td>
+                      <td style={{padding:"10px 14px",fontSize:11,color:"#aaa"}}>{new Date(c.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</td>
+                      <td style={{padding:"10px 14px"}}>
+                        <a href={"https://wa.me/91"+c.phone?.replace(/[^0-9]/g,"")} target="_blank" rel="noreferrer"
+                          style={{background:"#25D366",color:"#fff",padding:"4px 10px",fontSize:10,fontWeight:600,textDecoration:"none",display:c.phone?"inline":"none"}}>
+                          WhatsApp
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+
 
       {/* Delete Modal */}
       {delConfirm&&(

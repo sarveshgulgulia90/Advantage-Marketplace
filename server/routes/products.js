@@ -114,4 +114,3 @@ router.delete("/", adminAuth, async (req, res) => {
 });
 
 module.exports = router;
-require("dotenv").config();

@@ -217,6 +217,7 @@ function ProductCard({p,onQuote,onView,onCompare,onAddToCart,compareList=[],wish
 
         {/* Badges */}
         {p.isNew&&<div style={{position:"absolute",top:12,left:12,background:RED,color:"#fff",fontSize:9,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",padding:"3px 8px",zIndex:2}}>NEW</div>}
+        {p.badge&&<div style={{position:"absolute",top:p.isNew?34:12,left:12,background:NAVY,color:"#fff",fontSize:9,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",padding:"3px 8px",zIndex:2}}>{p.badge}</div>}
         {outOfStock&&<div style={{position:"absolute",top:12,left:p.isNew?52:12,background:"#555",color:"#fff",fontSize:9,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",padding:"3px 8px",zIndex:2}}>Out of Stock</div>}
 
         {/* Top-right actions */}
@@ -871,91 +872,6 @@ function NewsletterForm(){
   );
 }
 
-// ─── WARRANTY CHECKER ─────────────────────────────────────────────
-function WarrantyChecker({onClose}){
-  const[serial,setSerial]=useState("");
-  const[result,setResult]=useState(null);
-  const[loading,setLoading]=useState(false);
-  const[error,setError]=useState("");
-  const API=import.meta.env.VITE_API_URL||"http://localhost:5000/api";
-
-  async function check(){
-    if(!serial.trim()) return;
-    setLoading(true); setResult(null); setError("");
-    try{
-      const res=await fetch(API+"/warranty/check/"+encodeURIComponent(serial.trim()));
-      const d=await res.json();
-      if(!res.ok) throw new Error(d.error||"Not found");
-      setResult(d);
-    }catch(e){ setError(e.message); }
-    setLoading(false);
-  }
-
-  return(
-    <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{background:"#fff",width:"100%",maxWidth:480}}>
-        <div style={{padding:"20px 28px 16px",borderBottom:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div>
-            <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#999",marginBottom:4}}>Warranty Status</div>
-            <div style={{fontWeight:700,fontSize:20,color:NAVY}}>Check Warranty</div>
-          </div>
-          <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#aaa",lineHeight:1}}>×</button>
-        </div>
-        <div style={{padding:"22px 28px 28px"}}>
-          <div style={{fontSize:13,color:"#666",marginBottom:16}}>Enter the serial number printed on your product or purchase receipt.</div>
-          <div style={{display:"flex",gap:10,marginBottom:20}}>
-            <input value={serial} onChange={e=>setSerial(e.target.value)} onKeyDown={e=>e.key==="Enter"&&check()}
-              placeholder="e.g. ADV-2024-SN001"
-              style={{flex:1,border:"1.5px solid #ddd",padding:"11px 14px",fontSize:14,fontFamily:"inherit",outline:"none",color:"#111",textTransform:"uppercase"}}
-              onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor="#ddd"}/>
-            <button onClick={check} disabled={!serial.trim()||loading}
-              style={{background:serial.trim()?NAVY:"#ccc",color:"#fff",border:"none",padding:"11px 20px",fontSize:13,fontWeight:700,cursor:serial.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>
-              {loading?"...":"Check"}
-            </button>
-          </div>
-
-          {error&&<div style={{background:"#fff0f0",border:"1px solid #fecaca",padding:"12px 16px",fontSize:13,color:"#dc2626",marginBottom:16}}>{error}</div>}
-
-          {result&&(
-            <div style={{border:"2px solid "+(result.valid?"#86efac":RED),background:result.valid?"#f0fdf4":"#fff0f0",padding:"20px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-                <div>
-                  <div style={{fontWeight:700,fontSize:16,color:NAVY,marginBottom:4}}>{result.productName}</div>
-                  <div style={{fontSize:12,color:"#888"}}>Serial: <strong style={{fontFamily:"monospace"}}>{result.serialNumber}</strong></div>
-                </div>
-                <span style={{background:result.valid?"#16a34a":RED,color:"#fff",fontSize:11,fontWeight:700,padding:"4px 12px",letterSpacing:".06em",textTransform:"uppercase",flexShrink:0}}>
-                  {result.valid?"Active":"Expired"}
-                </span>
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:6,fontSize:13}}>
-                {[
-                  ["Customer",    result.customerName],
-                  ["Purchase Date", new Date(result.purchaseDate).toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"})],
-                  ["Warranty",    result.warrantyMonths+" months"],
-                  ["Expires",     new Date(result.expiryDate).toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"})],
-                  result.valid&&["Days Left", result.daysLeft+" days remaining"],
-                ].filter(Boolean).map(([k,v])=>(
-                  <div key={k} style={{display:"flex",gap:12,padding:"6px 0",borderBottom:"1px solid rgba(0,0,0,.06)"}}>
-                    <span style={{fontWeight:600,color:"#555",minWidth:110}}>{k}</span>
-                    <span style={{color:NAVY,fontWeight:500}}>{v}</span>
-                  </div>
-                ))}
-              </div>
-              {!result.valid&&(
-                <div style={{marginTop:12,fontSize:12,color:"#888"}}>Warranty expired. Contact us at <strong style={{color:RED}}>9435070738</strong> for extended warranty options.</div>
-              )}
-              {result.notes&&<div style={{marginTop:10,fontSize:12,color:"#666",fontStyle:"italic"}}>{result.notes}</div>}
-            </div>
-          )}
-
-          <div style={{marginTop:16,padding:"10px 14px",background:"#f0f2f8",fontSize:12,color:"#555"}}>
-            Cannot find your serial number? Call <strong style={{color:NAVY}}>9435070738</strong> with your purchase receipt.
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── COMPARE BAR ───────────────────────────────────────────────────
 function CompareBar({list,onRemove,onClear,onCompare}){
@@ -1564,6 +1480,10 @@ function ReviewsSection({productName}){
 function ProductPage({p,onBack,onQuote,onViewRelated}){
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[p.id]);
   const related=PRODUCTS.filter(r=>r.cat===p.cat&&r.id!==p.id).slice(0,4);
+  const gallery=(p.images&&p.images.length>0)?p.images:(p.image?[p.image]:[]);
+  const[activeImg,setActiveImg]=useState(gallery[0]||"");
+  useEffect(()=>{setActiveImg(gallery[0]||"");},[p.id]);
+
   return(
     <div style={{minHeight:"100vh",background:"#fff",fontFamily:"'DM Sans',sans-serif"}}>
       <div style={{background:"#f0f2f8",borderBottom:"1px solid #dde2f0",padding:"12px 32px"}}>
@@ -1580,13 +1500,18 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
           <div>
             <div style={{background:"#f5f5f5",border:"1px solid #e8e8e8",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",minHeight:320,overflow:"hidden"}}>
               {p.isNew&&<div style={{position:"absolute",top:16,left:16,background:RED,color:"#fff",fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",padding:"5px 14px",zIndex:1}}>NEW</div>}
-              {p.image?<img src={p.image} alt={p.name} style={{width:"100%",height:"100%",objectFit:"contain",padding:32,maxHeight:380}}/>:<span style={{fontSize:160,padding:"40px 32px",display:"block"}}>{p.icon}</span>}
+              {activeImg?<img src={activeImg} alt={p.name} style={{width:"100%",height:"100%",objectFit:"contain",padding:32,maxHeight:380}}/>:<span style={{fontSize:160,padding:"40px 32px",display:"block"}}>{p.icon}</span>}
             </div>
-            {p.image&&(
-              <div style={{display:"flex",gap:8,marginTop:10}}>
-                <div style={{flex:1,background:"#f5f5f5",border:"1.5px solid "+NAVY,height:72,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
-                  <img src={p.image} alt="" style={{width:"100%",height:"100%",objectFit:"contain",padding:4}}/>
-                </div>
+            {gallery.length>1&&(
+              <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
+                {gallery.map((img,i)=>(
+                  <div key={i} onClick={()=>setActiveImg(img)}
+                    style={{width:72,height:72,background:"#f5f5f5",border:"1.5px solid "+(activeImg===img?NAVY:"#e8e8e8"),display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",cursor:"pointer",transition:"border-color .15s",flexShrink:0}}
+                    onMouseEnter={e=>{if(activeImg!==img)e.currentTarget.style.borderColor="#aaa";}}
+                    onMouseLeave={e=>{if(activeImg!==img)e.currentTarget.style.borderColor="#e8e8e8";}}>
+                    <img src={img} alt="" style={{width:"100%",height:"100%",objectFit:"contain",padding:4}}/>
+                  </div>
+                ))}
               </div>
             )}
             <div style={{marginTop:16,background:"#f0f2f8",border:"1px solid #dde2f0",padding:"16px 18px"}}>
@@ -1747,7 +1672,11 @@ export default function App(){
   const[serviceTrackerOpen,setServiceTrackerOpen]=useState(false);
   const[bulkQuoteOpen,setBulkQuoteOpen]=useState(false);
   const[wishlistOpen,setWishlistOpen]=useState(false);
-  const[warrantyOpen,setWarrantyOpen]=useState(false);
+  const[authOpen,setAuthOpen]=useState(false);
+  const[accountOpen,setAccountOpen]=useState(false);
+  const[currentUser,setCurrentUser]=useState(()=>{
+    try{const u=localStorage.getItem("advantage_user");return u?JSON.parse(u):null;}catch{return null;}
+  });
   const[pwaPrompt,setPwaPrompt]=useState(null);
   const[pwaInstalled,setPwaInstalled]=useState(false);
 
@@ -1757,6 +1686,42 @@ export default function App(){
   const[recentlyViewed,setRecentlyViewed]=useState(()=>{
     try{const s=localStorage.getItem("advantage_recent");return s?JSON.parse(s):[];}catch{return[];}
   });
+  const[cart,setCart]=useState(()=>{
+    try{const s=localStorage.getItem("advantage_cart");return s?JSON.parse(s):[];}catch{return[];}
+  });
+  const[cartOpen,setCartOpen]=useState(false);
+
+  function addToCart(p){
+    setCart(prev=>{
+      const exists=prev.find(c=>c.id===p.id);
+      const updated=exists
+        ? prev.map(c=>c.id===p.id?{...c,qty:c.qty+1}:c)
+        : [...prev,{...p,qty:1}];
+      localStorage.setItem("advantage_cart",JSON.stringify(updated));
+      return updated;
+    });
+    showToast(p.name+" added to cart");
+  }
+  function updateCartQty(id,qty){
+    setCart(prev=>{
+      const updated = qty<=0
+        ? prev.filter(c=>c.id!==id)
+        : prev.map(c=>c.id===id?{...c,qty}:c);
+      localStorage.setItem("advantage_cart",JSON.stringify(updated));
+      return updated;
+    });
+  }
+  function removeFromCart(id){
+    setCart(prev=>{
+      const updated=prev.filter(c=>c.id!==id);
+      localStorage.setItem("advantage_cart",JSON.stringify(updated));
+      return updated;
+    });
+  }
+  function clearCart(){
+    localStorage.removeItem("advantage_cart");
+    setCart([]);
+  }
 
   function toggleWishlist(p){
     setWishlist(prev=>{
@@ -2032,6 +1997,9 @@ export default function App(){
         </div>
       )}
 
+      {/* SALE COUNTDOWN — remove or change date when sale ends */}
+      <CountdownTimer targetDate="2026-07-15T23:59:59" label="Mid-Year Sale ends in:"/>
+
       {/* PROMO BANNER */}
       {(()=>{
         const txt=localStorage.getItem("advantage_banner")||"🔥 Summer Sale — Up to ₹5,000 off on Laptops &nbsp;|&nbsp; 🎓 Student Discount Available &nbsp;|&nbsp; 💻 Free OS Installation on all Desktops &nbsp;|&nbsp; 📞 Call 9435070738 for Best Deals";
@@ -2080,6 +2048,12 @@ export default function App(){
               <button className="nav-icon-btn" onClick={()=>{if(searchOpen&&!searchQuery)setSearchOpen(false);else{setSearchOpen(true);setActiveMenu(null);}}} style={{color:searchOpen?NAVY:"#333",fontSize:12,fontWeight:600}}>Search</button>
             </div>
             <button className="nav-icon-btn" onClick={()=>window.open("https://wa.me/919435070738","_blank")} style={{fontSize:12,fontWeight:600}}>WhatsApp</button>
+            <button className="nav-icon-btn" onClick={()=>currentUser?setAccountOpen(true):setAuthOpen(true)} style={{fontSize:12,fontWeight:600,position:"relative"}}>
+              {currentUser?currentUser.name.split(" ")[0]:"Sign In"}
+            </button>
+            <button className="nav-icon-btn" onClick={()=>setCartOpen(true)} style={{fontSize:12,fontWeight:600,position:"relative"}}>
+              Cart{cart.length>0&&<span style={{position:"absolute",top:-4,right:-6,background:RED,color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{cart.reduce((s,c)=>s+c.qty,0)}</span>}
+            </button>
             <button className="nav-icon-btn" onClick={()=>setWishlistOpen(true)} style={{fontSize:12,fontWeight:600,position:"relative"}}>
               Wishlist{wishlist.length>0&&<span style={{position:"absolute",top:-4,right:-6,background:RED,color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{wishlist.length}</span>}
             </button>
@@ -2263,7 +2237,7 @@ export default function App(){
             </div>
           ):(
             <div className="product-grid">
-              {displayed.map((p,i)=><ProductCard key={p.id} p={p} onQuote={setModal} onView={p=>{setSelectedProduct(p);addRecentlyViewed(p);}} onCompare={handleCompare} onAddToCart={()=>showToast("Contact us to purchase — call 9435070738")} compareList={compareList} wishlist={wishlist} onWishlist={toggleWishlist} delay={i*.04}/>)}
+              {displayed.map((p,i)=><ProductCard key={p.id} p={p} onQuote={setModal} onView={p=>{setSelectedProduct(p);addRecentlyViewed(p);}} onCompare={handleCompare} onAddToCart={addToCart} compareList={compareList} wishlist={wishlist} onWishlist={toggleWishlist} delay={i*.04}/>)}
             </div>
           )}
         </div>
@@ -2296,7 +2270,6 @@ export default function App(){
             <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
               <button onClick={()=>setRepairOpen(true)} style={{background:RED,color:"#fff",border:"none",padding:"11px 24px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit"}}>Book a Service</button>
               <button onClick={()=>setServiceTrackerOpen(true)} style={{background:"rgba(255,255,255,.08)",color:"rgba(255,255,255,.8)",border:"1px solid rgba(255,255,255,.2)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Track Repair</button>
-              <button onClick={()=>setWarrantyOpen(true)} style={{background:"rgba(255,255,255,.08)",color:"rgba(255,255,255,.8)",border:"1px solid rgba(255,255,255,.2)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Check Warranty</button>
               <a href="tel:9435070738" style={{background:"none",color:"rgba(255,255,255,.6)",border:"1px solid rgba(255,255,255,.15)",padding:"11px 20px",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6,textDecoration:"none"}}>9435070738</a>
             </div>
           </div>
@@ -2437,14 +2410,14 @@ export default function App(){
           {[
             {head:"Products", links:["Laptops","Desktop PCs","Printers","Keyboards & Mouse","Monitors","Accessories"]},
             {head:"Services", links:["Laptop Repair","Desktop Repair","Printer Service","Onsite Support","OS Installation"]},
-            {head:"Quick Links", links:["Check Warranty","Track Repair","Build Your PC","Bulk Quote","About Us"]},
+            {head:"Quick Links", links:["Track Repair","Track Repair","Build Your PC","Bulk Quote","About Us"]},
             {head:"Visit Us", links:["Anand Arcade","Opposite Civil Hospital","Silchar – 788001","Assam, India","03842-230952","9435070738"]},
           ].map((col,i)=>(
             <div key={i} className="footer-col">
               <h4>{col.head}</h4>
               {col.links.map(l=>(
                 <a key={l} onClick={()=>{
-                  if(l==="Check Warranty") setWarrantyOpen(true);
+                  if(l==="Track Repair") setServiceTrackerOpen(true);
                   else if(l==="Track Repair") setServiceTrackerOpen(true);
                   else if(l==="Build Your PC") setPcBuilderOpen(true);
                   else if(l==="Bulk Quote") setBulkQuoteOpen(true);
@@ -2471,6 +2444,83 @@ export default function App(){
       <CompareBar list={compareList} onRemove={id=>setCompareList(l=>l.filter(p=>p.id!==id))} onClear={()=>setCompareList([])} onCompare={()=>setCompareOpen(true)}/>
 
       {/* MODALS */}
+      {/* CART DRAWER */}
+      {cartOpen&&(
+        <>
+          <div onClick={()=>setCartOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1099}}/>
+          <div style={{position:"fixed",top:0,right:0,height:"100vh",width:380,maxWidth:"90%",background:"#fff",zIndex:1100,display:"flex",flexDirection:"column",boxShadow:"-2px 0 16px rgba(0,0,0,.1)"}}>
+            <div style={{padding:"18px 24px",borderBottom:"1px solid #e8e8e8",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+              <div style={{fontWeight:700,fontSize:17,color:NAVY}}>Cart <span style={{fontSize:13,fontWeight:400,color:"#aaa"}}>({cart.reduce((s,c)=>s+c.qty,0)} items)</span></div>
+              <button onClick={()=>setCartOpen(false)} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#aaa",lineHeight:1}}>×</button>
+            </div>
+            {cart.length===0?(
+              <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:"#aaa",gap:12}}>
+                <div style={{fontSize:13}}>Your cart is empty.</div>
+                <button onClick={()=>setCartOpen(false)} style={{background:NAVY,color:"#fff",border:"none",padding:"10px 24px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Browse Products</button>
+              </div>
+            ):(
+              <>
+                <div style={{flex:1,overflowY:"auto",padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
+                  {cart.map(item=>{
+                    const price=parseFloat((item.price||"").replace(/[₹,]/g,""))||0;
+                    return(
+                      <div key={item.id} style={{background:"#f5f7fa",border:"1px solid #e8e8e8",padding:"12px 14px",display:"flex",gap:12,alignItems:"center"}}>
+                        <div style={{width:48,height:48,background:"#fff",border:"1px solid #e8e8e8",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
+                          {item.image?<img src={item.image} alt="" style={{width:"100%",height:"100%",objectFit:"contain",padding:4}}/>:<span style={{fontSize:22}}>{item.icon}</span>}
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:600,fontSize:12,color:NAVY,marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.name}</div>
+                          <div style={{display:"flex",alignItems:"center",gap:8}}>
+                            <button onClick={()=>updateCartQty(item.id,item.qty-1)} style={{width:22,height:22,border:"1px solid #ddd",background:"#fff",cursor:"pointer",fontSize:13,lineHeight:1,color:"#555"}}>−</button>
+                            <span style={{fontSize:13,fontWeight:600,minWidth:18,textAlign:"center"}}>{item.qty}</span>
+                            <button onClick={()=>updateCartQty(item.id,item.qty+1)} style={{width:22,height:22,border:"1px solid #ddd",background:"#fff",cursor:"pointer",fontSize:13,lineHeight:1,color:"#555"}}>+</button>
+                          </div>
+                        </div>
+                        <div style={{textAlign:"right",flexShrink:0}}>
+                          <div style={{fontWeight:700,fontSize:13,color:NAVY}}>₹{(price*item.qty).toLocaleString()}</div>
+                          <button onClick={()=>removeFromCart(item.id)} style={{background:"none",border:"none",color:RED,fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit",padding:"4px 0"}}>Remove</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{padding:"14px 16px",borderTop:"1px solid #e8e8e8",flexShrink:0}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:12,fontSize:15,fontWeight:700,color:NAVY}}>
+                    <span>Estimated Total</span>
+                    <span>₹{cart.reduce((s,c)=>s+(parseFloat((c.price||"").replace(/[₹,]/g,""))||0)*c.qty,0).toLocaleString()}</span>
+                  </div>
+                  <button onClick={()=>{
+                    const total=cart.reduce((s,c)=>s+(parseFloat((c.price||"").replace(/[₹,]/g,""))||0)*c.qty,0);
+                    const rows=cart.map((c,i)=>{
+                      const price=parseFloat((c.price||"").replace(/[₹,]/g,""))||0;
+                      return"<tr><td style='padding:10px 14px;border:1px solid #ddd;'>"+(i+1)+"</td><td style='padding:10px 14px;border:1px solid #ddd;'>"+c.name+"</td><td style='padding:10px 14px;border:1px solid #ddd;text-align:center;'>"+c.qty+"</td><td style='padding:10px 14px;border:1px solid #ddd;text-align:right;'>₹"+price.toLocaleString()+"</td><td style='padding:10px 14px;border:1px solid #ddd;text-align:right;font-weight:600;'>₹"+(price*c.qty).toLocaleString()+"</td></tr>";
+                    }).join("");
+                    const html="<!DOCTYPE html><html><head><title>Quotation</title><style>body{font-family:Arial,sans-serif;padding:40px;max-width:700px;margin:0 auto;}h2{color:#0B1F5E;margin-bottom:4px;}table{width:100%;border-collapse:collapse;margin-top:20px;}th{background:#0B1F5E;color:#fff;padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;}.total{text-align:right;margin-top:16px;font-size:20px;font-weight:800;color:#0B1F5E;}.footer{margin-top:32px;font-size:11px;color:#aaa;border-top:1px solid #ddd;padding-top:14px;}@media print{button{display:none;}}</style></head><body><div style='border-left:5px solid #CC1A1A;padding-left:16px;margin-bottom:24px;'><h2>ADVANTAGE SILCHAR</h2><p style='margin:0;font-size:13px;color:#666;'>Anand Arcade, Opp. Civil Hospital, Hospital Road, Silchar – 788001<br/>Phone: 9435070738 | Email: advantage.it@gmail.com</p></div><h3 style='color:#CC1A1A;'>QUOTATION</h3><p style='font-size:12px;color:#888;'>Date: "+new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"})+"</p><table><thead><tr><th>#</th><th style='text-align:left;'>Product</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>"+rows+"</tbody></table><div class='total'>Total: ₹"+total.toLocaleString()+"</div><div class='footer'><p>This is a system-generated quotation, not a tax invoice. Prices subject to change — please confirm in-store.</p><p>Advantage Silchar — Est. 1995 | Mon–Sat, 10AM–8PM</p></div><button onclick='window.print()' style='margin-top:20px;background:#0B1F5E;color:#fff;border:none;padding:11px 28px;font-size:14px;cursor:pointer;'>Print / Save as PDF</button></body></html>";
+                    const w=window.open("","_blank");
+                    w.document.write(html);
+                    w.document.close();
+                    setTimeout(()=>w.print(),500);
+                  }}
+                    style={{width:"100%",background:"#f0f2f8",color:NAVY,border:"1.5px solid "+NAVY,padding:"11px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:8}}>
+                    Print Quotation PDF
+                  </button>
+                  <button onClick={()=>{
+                    const total=cart.reduce((s,c)=>s+(parseFloat((c.price||"").replace(/[₹,]/g,""))||0)*c.qty,0);
+                    setModal({name:"Cart Items",price:"",msg:"Hi, I'm interested in the following items:\n\n"+cart.map(c=>"- "+c.name+" x"+c.qty).join("\n")+"\n\nEstimated Total: ₹"+total.toLocaleString()+"\n\nPlease confirm availability and best price."});
+                    setCartOpen(false);
+                  }}
+                    style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"12px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em",textTransform:"uppercase",marginBottom:8,transition:"background .15s"}}
+                    onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
+                    Enquire for All Items
+                  </button>
+                  <button onClick={clearCart} style={{width:"100%",background:"none",border:"none",color:"#aaa",fontSize:11,cursor:"pointer",fontFamily:"inherit",padding:"4px 0"}}>Clear cart</button>
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
+
       {/* WISHLIST DRAWER */}
       {wishlistOpen&&(
         <>
@@ -2529,7 +2579,8 @@ export default function App(){
       {repairOpen&&<RepairModal onClose={()=>setRepairOpen(false)}/>}
       {serviceTrackerOpen&&<ServiceTracker onClose={()=>setServiceTrackerOpen(false)}/>}
       {bulkQuoteOpen&&<BulkQuoteModal onClose={()=>setBulkQuoteOpen(false)}/>}
-      {warrantyOpen&&<WarrantyChecker onClose={()=>setWarrantyOpen(false)}/>}
+      {authOpen&&<AuthModal onClose={()=>setAuthOpen(false)} onLogin={u=>{setCurrentUser(u);setAuthOpen(false);}}/>}
+      {accountOpen&&currentUser&&<MyAccountModal user={currentUser} onClose={()=>setAccountOpen(false)} onLogout={()=>setCurrentUser(null)}/>}
     </>
   );
 }
