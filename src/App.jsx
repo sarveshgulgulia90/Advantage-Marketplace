@@ -217,8 +217,9 @@ function ProductCard({p,onQuote,onView,onCompare,onAddToCart,compareList=[],wish
 
         {/* Badges */}
         {p.isNew&&<div style={{position:"absolute",top:12,left:12,background:RED,color:"#fff",fontSize:9,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",padding:"3px 8px",zIndex:2}}>NEW</div>}
-        {p.badge&&<div style={{position:"absolute",top:p.isNew?34:12,left:12,background:NAVY,color:"#fff",fontSize:9,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",padding:"3px 8px",zIndex:2}}>{p.badge}</div>}
-        {outOfStock&&<div style={{position:"absolute",top:12,left:p.isNew?52:12,background:"#555",color:"#fff",fontSize:9,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",padding:"3px 8px",zIndex:2}}>Out of Stock</div>}
+        {p.badge&&!p.onOrder&&<div style={{position:"absolute",top:p.isNew?34:12,left:12,background:NAVY,color:"#fff",fontSize:9,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",padding:"3px 8px",zIndex:2}}>{p.badge}</div>}
+        {p.onOrder&&<div style={{position:"absolute",top:12,left:p.isNew?52:12,background:"#d97706",color:"#fff",fontSize:9,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",padding:"3px 8px",zIndex:2}}>Order: {p.orderDays||"3-5"} days</div>}
+        {outOfStock&&!p.onOrder&&<div style={{position:"absolute",top:12,left:p.isNew?52:12,background:"#555",color:"#fff",fontSize:9,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",padding:"3px 8px",zIndex:2}}>Out of Stock</div>}
 
         {/* Top-right actions */}
         <div style={{position:"absolute",top:10,right:10,zIndex:2,display:"flex",flexDirection:"column",gap:4}}>
@@ -254,22 +255,26 @@ function ProductCard({p,onQuote,onView,onCompare,onAddToCart,compareList=[],wish
             </div>
           )}
           <div style={{fontSize:11,color:"#888",lineHeight:1.55,marginBottom:10}}>{p.spec}</div>
-          <div style={{fontWeight:800,fontSize:19,color:NAVY,marginBottom:12}}>{p.price}</div>
-          <div style={{display:"flex",gap:6}}>
+          <div style={{marginBottom:12}}>
+            {p.priceHistory&&p.priceHistory.length>0&&(
+              <div style={{fontSize:12,color:"#aaa",marginBottom:2}}>
+                <span style={{textDecoration:"line-through"}}>{p.priceHistory[0].price}</span>
+                <span style={{fontSize:10,color:RED,fontWeight:700,marginLeft:6,letterSpacing:".04em"}}>PRICE DROP</span>
+              </div>
+            )}
+            <div style={{fontWeight:800,fontSize:19,color:NAVY}}>{p.price}</div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
             <button onClick={()=>onView(p)}
-              style={{flex:1,background:"#fff",color:NAVY,border:"1.5px solid "+NAVY,padding:"8px 0",fontSize:11,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
+              style={{flex:1,background:"#fff",color:NAVY,border:"1.5px solid "+NAVY,padding:"9px 0",fontSize:12,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
               onMouseEnter={e=>{e.target.style.background=NAVY;e.target.style.color="#fff";}} onMouseLeave={e=>{e.target.style.background="#fff";e.target.style.color=NAVY;}}>
-              View
+              View Details
             </button>
-            <button onClick={()=>!outOfStock&&onAddToCart&&onAddToCart(p)} disabled={outOfStock}
-              style={{flex:1,background:outOfStock?"#eee":RED,color:outOfStock?"#aaa":"#fff",border:"none",padding:"8px 0",fontSize:11,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:outOfStock?"not-allowed":"pointer",fontFamily:"inherit",transition:"background .15s"}}
-              onMouseEnter={e=>{if(!outOfStock)e.target.style.background="#a81515";}} onMouseLeave={e=>{if(!outOfStock)e.target.style.background=RED;}}>
-              {outOfStock?"Unavailable":"Add to Cart"}
-            </button>
-            <button onClick={()=>onQuote(p)}
-              style={{flex:1,background:NAVY,color:"#fff",border:"none",padding:"8px 0",fontSize:11,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"background .15s"}}
-              onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
-              Enquire
+            <button onClick={()=>window.open("https://wa.me/919435070738?text="+encodeURIComponent("Hi, I'm interested in:\n"+p.name+" — "+p.price+"\n\nIs it available?"),"_blank")}
+              style={{background:"#25D366",color:"#fff",border:"none",padding:"9px 14px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0,transition:"opacity .15s"}}
+              onMouseEnter={e=>e.target.style.opacity=".85"} onMouseLeave={e=>e.target.style.opacity="1"}
+              title="Ask about this product on WhatsApp">
+              WhatsApp
             </button>
           </div>
         </div>
@@ -660,44 +665,6 @@ function BulkQuoteModal({onClose}){
   );
 }
 
-// ─── COUNTDOWN TIMER ──────────────────────────────────────────────
-function CountdownTimer({targetDate, label}){
-  const[time,setTime]=useState({d:0,h:0,m:0,s:0,expired:false});
-  useEffect(()=>{
-    function calc(){
-      const diff=new Date(targetDate)-new Date();
-      if(diff<=0){setTime({d:0,h:0,m:0,s:0,expired:true});return;}
-      setTime({
-        d:Math.floor(diff/(864e5)),
-        h:Math.floor((diff%(864e5))/(36e5)),
-        m:Math.floor((diff%(36e5))/(6e4)),
-        s:Math.floor((diff%(6e4))/1e3),
-        expired:false,
-      });
-    }
-    calc();
-    const t=setInterval(calc,1000);
-    return()=>clearInterval(t);
-  },[targetDate]);
-  if(time.expired) return null;
-  return(
-    <div style={{background:RED,color:"#fff",padding:"10px 0",textAlign:"center"}}>
-      <div style={{maxWidth:1340,margin:"0 auto",padding:"0 32px",display:"flex",alignItems:"center",justifyContent:"center",gap:20,flexWrap:"wrap"}}>
-        <span style={{fontSize:13,fontWeight:600,letterSpacing:".04em"}}>{label||"Sale ends in:"}</span>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          {[["d","Days"],["h","Hrs"],["m","Min"],["s","Sec"]].map(([k,l])=>(
-            <div key={k} style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
-              <div style={{background:"rgba(0,0,0,.2)",padding:"4px 10px",fontWeight:800,fontSize:18,minWidth:40,textAlign:"center",fontFamily:"monospace",lineHeight:1}}>
-                {String(time[k]).padStart(2,"0")}
-              </div>
-              <div style={{fontSize:9,fontWeight:700,letterSpacing:".08em",marginTop:2,opacity:.7}}>{l}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── CUSTOMER AUTH MODAL ───────────────────────────────────────────
 function AuthModal({onClose,onLogin}){
@@ -731,9 +698,11 @@ function AuthModal({onClose,onLogin}){
   return(
     <div onClick={e=>e.target===e.currentTarget&&onClose()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{background:"#fff",width:"100%",maxWidth:400}}>
-        <div style={{padding:"20px 28px 16px",borderBottom:"1px solid #eee",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontWeight:700,fontSize:20,color:NAVY}}>{mode==="login"?"Sign In":"Create Account"}</div>
-          <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#aaa",lineHeight:1}}>×</button>
+        <div style={{background:NAVY,padding:"20px 28px"}}>
+          <div style={{fontWeight:800,fontSize:18,color:"#fff",marginBottom:4}}>{mode==="login"?"Welcome Back":"Create Account"}</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,.5)"}}>
+            {mode==="login"?"Sign in to track your enquiries and repairs":"Get personalised service and track your orders"}
+          </div>
         </div>
         <div style={{padding:"22px 28px 28px",display:"flex",flexDirection:"column",gap:12}}>
           {mode==="register"&&(
@@ -762,6 +731,9 @@ function AuthModal({onClose,onLogin}){
               {mode==="login"?"Register":"Sign In"}
             </span>
           </div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#aaa",fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:"4px 0"}}>
+            Continue without signing in
+          </button>
         </div>
       </div>
     </div>
@@ -871,6 +843,7 @@ function NewsletterForm(){
     </div>
   );
 }
+
 
 
 // ─── COMPARE BAR ───────────────────────────────────────────────────
@@ -1309,6 +1282,25 @@ function Stars({rating, size=16, interactive=false, onRate}){
   );
 }
 
+// ─── FAQ ITEM (accordion) ─────────────────────────────────────────
+function FaqItem({faq}){
+  const[open,setOpen]=useState(false);
+  return(
+    <div style={{border:"1px solid #e8e8e8",background:"#fff",overflow:"hidden"}}>
+      <button onClick={()=>setOpen(o=>!o)}
+        style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 18px",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",gap:16}}>
+        <span style={{fontWeight:600,fontSize:14,color:NAVY,lineHeight:1.4}}>{faq.q}</span>
+        <span style={{color:NAVY,fontWeight:700,fontSize:18,flexShrink:0,lineHeight:1,transform:open?"rotate(45deg)":"none",transition:"transform .2s"}}>+</span>
+      </button>
+      {open&&(
+        <div style={{padding:"0 18px 16px",fontSize:13,color:"#444",lineHeight:1.7,borderTop:"1px solid #f0f0f0",paddingTop:12}}>
+          {faq.a}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── REVIEWS SECTION ───────────────────────────────────────────────
 function ReviewsSection({productName}){
   const[reviews,setReviews]=useState([]);
@@ -1479,7 +1471,15 @@ function ReviewsSection({productName}){
 // ─── PRODUCT PAGE ──────────────────────────────────────────────────
 function ProductPage({p,onBack,onQuote,onViewRelated}){
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[p.id]);
-  const related=PRODUCTS.filter(r=>r.cat===p.cat&&r.id!==p.id).slice(0,4);
+  const related=(()=>{
+    // Same brand first (match brand in name), then same category, exclude current
+    const sameBrand=PRODUCTS.filter(r=>r.id!==p.id&&r.cat===p.cat&&p.name.split(" ")[0]===r.name.split(" ")[0]);
+    const sameCat=PRODUCTS.filter(r=>r.id!==p.id&&r.cat===p.cat&&!sameBrand.find(b=>b.id===r.id));
+    return [...sameBrand,...sameCat].slice(0,4);
+  })();
+  const accessories=["Laptops","Desktops"].includes(p.cat)
+    ? PRODUCTS.filter(r=>r.cat==="Accessories"&&r.inStock!==false).slice(0,4)
+    : [];
   const gallery=(p.images&&p.images.length>0)?p.images:(p.image?[p.image]:[]);
   const[activeImg,setActiveImg]=useState(gallery[0]||"");
   useEffect(()=>{setActiveImg(gallery[0]||"");},[p.id]);
@@ -1527,17 +1527,45 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
             <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:24}}>
               {p.spec.split("·").map((s,i)=><span key={i} style={{background:"#f0f2f8",border:"1px solid #dde2f0",padding:"5px 12px",fontSize:12,fontWeight:500,color:"#444"}}>{s.trim()}</span>)}
             </div>
+            {p.priceHistory&&p.priceHistory.length>0&&(
+              <div style={{fontSize:14,color:"#aaa",marginBottom:4}}>
+                <span style={{textDecoration:"line-through"}}>{p.priceHistory[0].price}</span>
+                <span style={{fontSize:11,fontWeight:700,color:RED,marginLeft:8,background:"#fff0f0",padding:"2px 8px",border:"1px solid #fecaca",letterSpacing:".04em"}}>PRICE REDUCED</span>
+              </div>
+            )}
             <div style={{fontSize:42,fontWeight:800,color:NAVY,letterSpacing:"-.02em",lineHeight:1,marginBottom:6}}>{p.price}</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:28}}>💬 Walk in or call us to check current availability and get the best price.</div>
+            <div style={{fontSize:13,color:"#888",marginBottom:28}}>Walk in or call us to check current availability and get the best price.</div>
             <div style={{display:"flex",gap:12,marginBottom:32,flexWrap:"wrap"}}>
               <button onClick={()=>onQuote(p)}
                 style={{flex:1,minWidth:150,background:NAVY,color:"#fff",border:"none",padding:"14px 0",fontSize:14,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"background .15s"}}
                 onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
                 Enquire Now
               </button>
-              <button onClick={()=>window.open("https://wa.me/919435070738?text=Hi%2C+I'm+interested+in+"+encodeURIComponent(p.name)+"_"+encodeURIComponent(p.price)+". Please confirm availability.","_blank")}
+              <button onClick={()=>window.open("https://wa.me/919435070738?text="+encodeURIComponent(
+                "Hi, I'm interested in:\n\n"+
+                p.name+" — "+p.price+"\n"+
+                (p.spec?p.spec+"\n":"")+
+                "\nIs it available? Please share best price."
+              ),"_blank")}
                 style={{flex:1,minWidth:150,background:"#25D366",color:"#fff",border:"none",padding:"14px 0",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                WhatsApp
+                Ask on WhatsApp
+              </button>
+              <button onClick={()=>{
+                const txt=p.name+" — "+p.price+"\n"+
+                  (p.spec?p.spec+"\n":"")+
+                  "\nAvailable at Advantage Silchar, Silchar\n"+
+                  "Anand Arcade, Opp. Civil Hospital\n"+
+                  "Call: 9435070738";
+                if(navigator.share){
+                  navigator.share({title:p.name,text:txt}).catch(()=>{});
+                } else {
+                  window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank");
+                }
+              }}
+                style={{background:"#f0f2f8",color:NAVY,border:"1.5px solid #dde2f0",padding:"14px 18px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"all .15s"}}
+                onMouseEnter={e=>{e.currentTarget.style.background=NAVY;e.currentTarget.style.color="#fff";}}
+                onMouseLeave={e=>{e.currentTarget.style.background="#f0f2f8";e.currentTarget.style.color=NAVY;}}>
+                Share
               </button>
               <button onClick={()=>{
                 const html=`<!DOCTYPE html><html><head><title>Quote — ${p.name}</title>
@@ -1626,7 +1654,14 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
               ))}
               <tr style={{background:Object.keys(p.specs||{}).length%2===0?"#f9f9fb":"#fff",borderBottom:"1px solid #f0f0f0"}}>
                 <td style={{padding:"14px 24px",fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777"}}>Availability</td>
-                <td style={{padding:"14px 24px",fontSize:14,fontWeight:700,color:"#16a34a"}}> Available — Anand Arcade, Silchar</td>
+                <td style={{padding:"14px 24px",fontSize:14,fontWeight:700,color:p.onOrder?"#d97706":p.inStock===false?"#dc2626":"#16a34a"}}>
+                  {p.onOrder
+                    ? "Available on Order — "+( p.orderDays||"3-5")+" working days"
+                    : p.inStock===false
+                    ? "Currently Out of Stock — call to check"
+                    : "In Stock — Anand Arcade, Silchar"
+                  }
+                </td>
               </tr>
               <tr>
                 <td style={{padding:"14px 24px",fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",color:"#777"}}>Price</td>
@@ -1636,17 +1671,70 @@ function ProductPage({p,onBack,onQuote,onViewRelated}){
           </table>
         </div>
 
+        {/* ACCESSORIES STRIP */}
+        {accessories.length>0&&(
+          <div style={{marginTop:40,borderTop:"1px solid #eee",paddingTop:32}}>
+            <div style={{fontWeight:700,fontSize:16,color:NAVY,marginBottom:4}}>You might also need</div>
+            <div style={{fontSize:12,color:"#888",marginBottom:16}}>Popular accessories for your {p.cat.slice(0,-1).toLowerCase()}</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+              {accessories.map(acc=>(
+                <div key={acc.id} onClick={()=>onViewRelated(acc)}
+                  style={{background:"#f5f7fa",border:"1px solid #e8e8e8",padding:"12px",cursor:"pointer",transition:"all .15s"}}
+                  onMouseEnter={e=>{e.currentTarget.style.background="#fff";e.currentTarget.style.borderColor=NAVY;}}
+                  onMouseLeave={e=>{e.currentTarget.style.background="#f5f7fa";e.currentTarget.style.borderColor="#e8e8e8";}}>
+                  <div style={{height:60,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:8,overflow:"hidden"}}>
+                    {acc.image?<img src={acc.image} alt={acc.name} style={{maxHeight:60,maxWidth:"100%",objectFit:"contain"}}/>:<span style={{fontSize:32}}>{acc.icon}</span>}
+                  </div>
+                  <div style={{fontSize:12,fontWeight:600,color:NAVY,marginBottom:3,lineHeight:1.3}}>{acc.name}</div>
+                  <div style={{fontSize:11,color:"#888",marginBottom:4}}>{acc.spec}</div>
+                  <div style={{fontWeight:700,fontSize:13,color:RED}}>{acc.price}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* FAQ */}
+        {p.faqs&&p.faqs.filter(f=>f.q&&f.a).length>0&&(
+          <div style={{marginTop:40,borderTop:"1px solid #eee",paddingTop:32}}>
+            <h2 style={{fontWeight:800,fontSize:18,color:NAVY,marginBottom:20}}>Frequently Asked Questions</h2>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {p.faqs.filter(f=>f.q&&f.a).map((faq,i)=>(
+                <FaqItem key={i} faq={faq}/>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* REVIEWS */}
         <ReviewsSection productName={p.name}/>
 
         {related.length>0&&(
           <div style={{marginTop:56,borderTop:"2px solid #dde2f0",paddingTop:40}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:28}}>
-              <h2 style={{fontSize:22,fontWeight:800,color:NAVY,letterSpacing:"-.01em"}}>More {p.cat}</h2>
-              <span style={{fontSize:13,fontWeight:600,color:RED,cursor:"pointer"}} onClick={onBack}>View All →</span>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24}}>
+              <div>
+                <h2 style={{fontSize:20,fontWeight:800,color:NAVY,letterSpacing:"-.01em",marginBottom:4}}>You May Also Like</h2>
+                <div style={{fontSize:12,color:"#888"}}>More products from {p.cat}</div>
+              </div>
+              <span style={{fontSize:12,fontWeight:700,color:RED,cursor:"pointer",letterSpacing:".04em",textTransform:"uppercase"}} onClick={onBack}>View All {p.cat} →</span>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"1px",background:"#dde2f0",border:"1px solid #dde2f0"}}>
-              {related.map((r,i)=><ProductCard key={r.id} p={r} onQuote={onQuote} onView={onViewRelated} onCompare={()=>{}} compareList={[]} delay={i*.05}/>)}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+              {related.map((r,i)=>(
+                <div key={r.id} onClick={()=>onViewRelated(r)}
+                  style={{background:"#fff",border:"1px solid #e8e8e8",padding:0,cursor:"pointer",transition:"border-color .15s"}}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor=NAVY}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor="#e8e8e8"}>
+                  <div style={{background:"#f5f5f5",height:140,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+                    {r.image?<img src={r.image} alt={r.name} style={{width:"100%",height:"100%",objectFit:"contain",padding:12}}/>:<span style={{fontSize:56}}>{r.icon}</span>}
+                  </div>
+                  <div style={{padding:"12px 14px"}}>
+                    {r.isNew&&<span style={{background:RED,color:"#fff",fontSize:9,fontWeight:700,padding:"2px 6px",letterSpacing:".06em",textTransform:"uppercase",marginBottom:4,display:"inline-block"}}>NEW</span>}
+                    <div style={{fontWeight:700,fontSize:13,color:NAVY,marginBottom:4,lineHeight:1.3}}>{r.name}</div>
+                    <div style={{fontSize:11,color:"#888",marginBottom:8,lineHeight:1.5}}>{r.spec}</div>
+                    <div style={{fontWeight:800,fontSize:16,color:NAVY}}>{r.price}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -1686,42 +1774,6 @@ export default function App(){
   const[recentlyViewed,setRecentlyViewed]=useState(()=>{
     try{const s=localStorage.getItem("advantage_recent");return s?JSON.parse(s):[];}catch{return[];}
   });
-  const[cart,setCart]=useState(()=>{
-    try{const s=localStorage.getItem("advantage_cart");return s?JSON.parse(s):[];}catch{return[];}
-  });
-  const[cartOpen,setCartOpen]=useState(false);
-
-  function addToCart(p){
-    setCart(prev=>{
-      const exists=prev.find(c=>c.id===p.id);
-      const updated=exists
-        ? prev.map(c=>c.id===p.id?{...c,qty:c.qty+1}:c)
-        : [...prev,{...p,qty:1}];
-      localStorage.setItem("advantage_cart",JSON.stringify(updated));
-      return updated;
-    });
-    showToast(p.name+" added to cart");
-  }
-  function updateCartQty(id,qty){
-    setCart(prev=>{
-      const updated = qty<=0
-        ? prev.filter(c=>c.id!==id)
-        : prev.map(c=>c.id===id?{...c,qty}:c);
-      localStorage.setItem("advantage_cart",JSON.stringify(updated));
-      return updated;
-    });
-  }
-  function removeFromCart(id){
-    setCart(prev=>{
-      const updated=prev.filter(c=>c.id!==id);
-      localStorage.setItem("advantage_cart",JSON.stringify(updated));
-      return updated;
-    });
-  }
-  function clearCart(){
-    localStorage.removeItem("advantage_cart");
-    setCart([]);
-  }
 
   function toggleWishlist(p){
     setWishlist(prev=>{
@@ -1765,8 +1817,18 @@ export default function App(){
     return()=>window.removeEventListener("hashchange",fn);
   },[]);
 
-  // PWA install prompt
+  // Show sign-in prompt on first visit
   useEffect(()=>{
+    if(!currentUser){
+      const seen = localStorage.getItem("advantage_seen");
+      if(!seen){
+        setTimeout(()=>{
+          setAuthOpen(true);
+          localStorage.setItem("advantage_seen","1");
+        }, 2500);
+      }
+    }
+  },[]);
     const handler=e=>{e.preventDefault();setPwaPrompt(e);};
     window.addEventListener("beforeinstallprompt",handler);
     window.addEventListener("appinstalled",()=>{setPwaInstalled(true);setPwaPrompt(null);});
@@ -1776,7 +1838,24 @@ export default function App(){
   const q=searchQuery.trim().toLowerCase();
   const displayed=(()=>{
     let base=activeCat==="All"?liveProducts:liveProducts.filter(p=>p.cat===activeCat);
-    if(q) base=liveProducts.filter(p=>p.name.toLowerCase().includes(q)||p.spec.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q));
+    if(q){
+      // Multi-term search — split by space, every term must match somewhere
+      const terms=q.split(/\s+/).filter(Boolean);
+      base=liveProducts.filter(p=>{
+        // Build one big searchable string from all product fields
+        const specValues=Object.values(p.specs||{}).join(" ").toLowerCase();
+        const haystack=[
+          p.name,
+          p.spec,
+          p.cat,
+          specValues,
+          p.highlights?.join(" ")||"",
+          p.price,
+        ].join(" ").toLowerCase();
+        // Every search term must appear somewhere in the haystack
+        return terms.every(term=>haystack.includes(term));
+      });
+    }
     if(filterTag&&!q){
       if(filterTag.startsWith("brand:")){
         const brand=filterTag.replace("brand:","").toLowerCase();
@@ -1785,10 +1864,19 @@ export default function App(){
         const[mn,mx]=filterTag.replace("price:","").split("-").map(Number);
         base=base.filter(p=>{ const pr=parseFloat((p.price||"").replace(/[₹,]/g,"")); return pr>=mn&&(mx===0||pr<=mx); });
       } else if(filterTag.startsWith("use:")){
-        const use=filterTag.replace("use:","").toLowerCase();
-        if(use==="gaming") base=base.filter(p=>{ const g=(p.specs?.Graphics||"").toLowerCase(); return g.includes("rtx")||g.includes("gtx")||g.includes("rx ")||p.spec.toLowerCase().includes("gaming"); });
-        else if(use==="student"||use==="home") base=base.filter(p=>{ const pr=parseFloat((p.price||"").replace(/[₹,]/g,"")); return pr<50000; });
-        else if(use==="work") base=base.filter(p=>p.cat==="Laptops"||p.cat==="Desktops");
+        const use=filterTag.replace("use:","");
+        base=base.filter(p=>{
+          // First check admin-tagged useCases
+          if(p.useCases&&p.useCases.length>0) return p.useCases.includes(use);
+          // Fallback: auto-detect from specs
+          const useLow=use.toLowerCase();
+          if(useLow==="gaming"){ const g=(p.specs?.Graphics||"").toLowerCase(); return g.includes("rtx")||g.includes("gtx")||g.includes("rx ")||p.spec.toLowerCase().includes("gaming"); }
+          if(useLow==="student"||useLow==="home"){ const pr=parseFloat((p.price||"").replace(/[₹,]/g,"")); return pr<55000; }
+          if(useLow==="office work") return p.cat==="Laptops"||p.cat==="Desktops"||p.cat==="Printers";
+          if(useLow==="video editing"){ const g=(p.specs?.Graphics||p.specs?.RAM||"").toLowerCase(); return g.includes("rtx")||g.includes("16gb")||g.includes("32gb"); }
+          if(useLow==="general use") return true;
+          return false;
+        });
       }
     }
     return base;
@@ -1997,19 +2085,25 @@ export default function App(){
         </div>
       )}
 
-      {/* SALE COUNTDOWN — remove or change date when sale ends */}
-      <CountdownTimer targetDate="2026-07-15T23:59:59" label="Mid-Year Sale ends in:"/>
 
-      {/* PROMO BANNER */}
-      {(()=>{
-        const txt=localStorage.getItem("advantage_banner")||"🔥 Summer Sale — Up to ₹5,000 off on Laptops &nbsp;|&nbsp; 🎓 Student Discount Available &nbsp;|&nbsp; 💻 Free OS Installation on all Desktops &nbsp;|&nbsp; 📞 Call 9435070738 for Best Deals";
-        return(
-          <div style={{background:RED,overflow:"hidden",height:32,display:"flex",alignItems:"center"}}>
-            <style>{`@keyframes marquee{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}.marquee-txt{display:inline-block;animation:marquee 35s linear infinite;white-space:nowrap;}`}</style>
-            <div className="marquee-txt" style={{fontSize:12,fontWeight:600,color:"#fff",letterSpacing:".02em"}} dangerouslySetInnerHTML={{__html:txt}}/>
+
+
+      {/* PWA INSTALL BANNER */}
+      {pwaPrompt&&!pwaInstalled&&(
+        <div style={{background:NAVY,color:"#fff",padding:"10px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap",position:"relative",zIndex:10}}>
+          <span style={{fontSize:13,fontWeight:500}}>Install Advantage Silchar on your phone for quick access — no app store needed.</span>
+          <div style={{display:"flex",gap:8,flexShrink:0}}>
+            <button onClick={()=>{pwaPrompt.prompt();pwaPrompt.userChoice.then(()=>setPwaPrompt(null));}}
+              style={{background:RED,color:"#fff",border:"none",padding:"7px 18px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em"}}>
+              Install App
+            </button>
+            <button onClick={()=>setPwaPrompt(null)}
+              style={{background:"none",border:"1px solid rgba(255,255,255,.3)",color:"rgba(255,255,255,.7)",padding:"7px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+              Not now
+            </button>
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       {/* UTIL BAR */}
       <div className="util-bar">
@@ -2040,19 +2134,15 @@ export default function App(){
           <div className="nav-right">
             <div className="search-bar-wrap">
               <div className={"search-expand"+(searchOpen?" open":" closed")}>
-                <input ref={searchRef} className="search-inp" placeholder="Search laptops, printers..." value={searchQuery}
+                <input ref={searchRef} className="search-inp" placeholder="Search by name, spec, price... e.g. i5 8GB 512" value={searchQuery}
                   onChange={e=>setSearchQuery(e.target.value)}
                   onKeyDown={e=>{if(e.key==="Escape"){setSearchOpen(false);setSearchQuery("");}if(e.key==="Enter"&&searchQuery.trim())scroll("products-section");}}/>
                 {searchQuery&&<button className="search-clear" onClick={()=>setSearchQuery("")}>×</button>}
               </div>
               <button className="nav-icon-btn" onClick={()=>{if(searchOpen&&!searchQuery)setSearchOpen(false);else{setSearchOpen(true);setActiveMenu(null);}}} style={{color:searchOpen?NAVY:"#333",fontSize:12,fontWeight:600}}>Search</button>
             </div>
-            <button className="nav-icon-btn" onClick={()=>window.open("https://wa.me/919435070738","_blank")} style={{fontSize:12,fontWeight:600}}>WhatsApp</button>
             <button className="nav-icon-btn" onClick={()=>currentUser?setAccountOpen(true):setAuthOpen(true)} style={{fontSize:12,fontWeight:600,position:"relative"}}>
               {currentUser?currentUser.name.split(" ")[0]:"Sign In"}
-            </button>
-            <button className="nav-icon-btn" onClick={()=>setCartOpen(true)} style={{fontSize:12,fontWeight:600,position:"relative"}}>
-              Cart{cart.length>0&&<span style={{position:"absolute",top:-4,right:-6,background:RED,color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{cart.reduce((s,c)=>s+c.qty,0)}</span>}
             </button>
             <button className="nav-icon-btn" onClick={()=>setWishlistOpen(true)} style={{fontSize:12,fontWeight:600,position:"relative"}}>
               Wishlist{wishlist.length>0&&<span style={{position:"absolute",top:-4,right:-6,background:RED,color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{wishlist.length}</span>}
@@ -2063,7 +2153,6 @@ export default function App(){
               onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color=NAVY;}}>
               Build Your PC
             </button>
-            <button className="nav-cta" onClick={()=>{setModal("contact");setActiveMenu(null);}}>Get Quote</button>
             <button className={"hamburger"+(mobileMenuOpen?" open":"")} onClick={()=>setMobileMenuOpen(o=>!o)} aria-label="Menu">
               <span/><span/><span/>
             </button>
@@ -2227,21 +2316,103 @@ export default function App(){
               {(activeCat!=="All"&&!q)&&<span className="section-view-all" onClick={()=>setActiveCat("All")}>View All →</span>}
               {q&&<span className="section-view-all" onClick={()=>{setSearchQuery("");setSearchOpen(false);}}>✕ Clear</span>}
             </div>
+
+            {/* Use-case filter strip */}
+            {!q&&(
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
+                {["","Student","Office Work","Gaming","Video Editing","General Use","Home"].map(u=>{
+                  const active=filterTag===(u?"use:"+u:"");
+                  return(
+                    <button key={u} onClick={()=>setFilterTag(u?"use:"+u:"")}
+                      style={{padding:"6px 16px",fontSize:12,fontWeight:600,border:"1px solid "+(active?NAVY:"#dde2f0"),background:active?NAVY:"#fff",color:active?"#fff":"#555",cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
+                      onMouseEnter={e=>{if(!active){e.target.style.borderColor=NAVY;e.target.style.color=NAVY;}}}
+                      onMouseLeave={e=>{if(!active){e.target.style.borderColor="#dde2f0";e.target.style.color="#555";}}}>
+                      {u||"All"}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </Fade>
           {displayed.length===0?(
-            <div style={{textAlign:"center",padding:"72px 20px",border:"1px solid #dde2f0"}}>
-              <div style={{fontSize:48,marginBottom:16}}></div>
+            <div style={{textAlign:"center",padding:"56px 24px",border:"1px solid #dde2f0",background:"#fff"}}>
               <div style={{fontWeight:700,fontSize:18,color:NAVY,marginBottom:8}}>No results for "{searchQuery}"</div>
-              <p style={{fontSize:14,color:"#888",marginBottom:24}}>Try a brand name, product type, or spec.</p>
-              <button onClick={()=>{setSearchQuery("");setSearchOpen(false);}} style={{background:NAVY,color:"#fff",border:"none",padding:"11px 28px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer"}}>View All Products</button>
+              <p style={{fontSize:13,color:"#888",marginBottom:20,lineHeight:1.7}}>
+                You can search by spec — try:
+              </p>
+              <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap",marginBottom:24}}>
+                {["i5 8GB","RTX 4060","512 SSD","inkjet printer","16GB DDR4","Core i7"].map(term=>(
+                  <button key={term} onClick={()=>setSearchQuery(term)}
+                    style={{background:"#f0f2f8",color:NAVY,border:"1px solid #dde2f0",padding:"6px 14px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}
+                    onMouseEnter={e=>{e.currentTarget.style.background=NAVY;e.currentTarget.style.color="#fff";}}
+                    onMouseLeave={e=>{e.currentTarget.style.background="#f0f2f8";e.currentTarget.style.color=NAVY;}}>
+                    {term}
+                  </button>
+                ))}
+              </div>
+              <button onClick={()=>{setSearchQuery("");setSearchOpen(false);}} style={{background:NAVY,color:"#fff",border:"none",padding:"11px 28px",fontSize:13,fontWeight:700,letterSpacing:".04em",textTransform:"uppercase",cursor:"pointer",transition:"background .15s"}}
+                onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
+                Browse All Products
+              </button>
             </div>
           ):(
             <div className="product-grid">
-              {displayed.map((p,i)=><ProductCard key={p.id} p={p} onQuote={setModal} onView={p=>{setSelectedProduct(p);addRecentlyViewed(p);}} onCompare={handleCompare} onAddToCart={addToCart} compareList={compareList} wishlist={wishlist} onWishlist={toggleWishlist} delay={i*.04}/>)}
+              {displayed.map((p,i)=><ProductCard key={p.id} p={p} onQuote={setModal} onView={p=>{setSelectedProduct(p);addRecentlyViewed(p);}} onCompare={handleCompare} compareList={compareList} wishlist={wishlist} onWishlist={toggleWishlist} delay={i*.04}/>)}
             </div>
           )}
         </div>
       </div>
+
+      {/* STUDENT PICKS */}
+      {(()=>{
+        const picks=PRODUCTS.filter(p=>p.studentPick&&p.inStock!==false);
+        if(!picks.length) return null;
+        return(
+          <div style={{background:"linear-gradient(135deg,#0B1F5E 0%,#1a3a8f 100%)",padding:"48px 0"}}>
+            <div className="section">
+              <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginBottom:24,flexWrap:"wrap",gap:12}}>
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",textTransform:"uppercase",color:"rgba(255,255,255,.4)",marginBottom:8}}>NIT Silchar · Assam University · Cachar Medical College</div>
+                  <h2 style={{fontSize:26,fontWeight:800,color:"#fff",letterSpacing:"-.01em",lineHeight:1}}>Recommended for Students</h2>
+                  <div style={{fontSize:13,color:"rgba(255,255,255,.45)",marginTop:8}}>Handpicked — reliable, affordable, campus-ready</div>
+                </div>
+                <button onClick={()=>{setActiveCat("Laptops");scroll("products-section");}}
+                  style={{background:"rgba(255,255,255,.1)",color:"rgba(255,255,255,.8)",border:"1px solid rgba(255,255,255,.2)",padding:"10px 20px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",flexShrink:0,transition:"all .15s"}}
+                  onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.2)";}}
+                  onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,.1)";}}>
+                  View All Laptops →
+                </button>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+                {picks.slice(0,4).map(p=>(
+                  <div key={p.id} onClick={()=>{setSelectedProduct(p);addRecentlyViewed(p);window.scrollTo({top:0});}}
+                    style={{background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",cursor:"pointer",transition:"all .2s"}}
+                    onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.12)";e.currentTarget.style.borderColor="rgba(255,255,255,.25)";}}
+                    onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,.06)";e.currentTarget.style.borderColor="rgba(255,255,255,.1)";}}>
+                    <div style={{background:"rgba(255,255,255,.06)",height:160,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",position:"relative"}}>
+                      <div style={{position:"absolute",top:8,left:8,background:"#7c3aed",color:"#fff",fontSize:9,fontWeight:700,padding:"3px 8px",letterSpacing:".06em",textTransform:"uppercase"}}>Student Pick</div>
+                      {p.image?<img src={p.image} alt={p.name} style={{maxHeight:140,maxWidth:"100%",objectFit:"contain",padding:12}}/>:<span style={{fontSize:60}}>{p.icon}</span>}
+                    </div>
+                    <div style={{padding:"14px 16px"}}>
+                      <div style={{fontSize:10,color:"rgba(255,255,255,.35)",fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",marginBottom:4}}>{p.cat}</div>
+                      <div style={{fontWeight:700,fontSize:14,color:"#fff",marginBottom:4,lineHeight:1.3}}>{p.name}</div>
+                      <div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginBottom:6,lineHeight:1.5}}>{p.spec}</div>
+                      {p.studentNote&&<div style={{fontSize:11,color:"#a78bfa",marginBottom:8,fontStyle:"italic"}}>{p.studentNote}</div>}
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8}}>
+                        <div style={{fontWeight:800,fontSize:16,color:"#fff"}}>{p.price}</div>
+                        <button onClick={e=>{e.stopPropagation();window.open("https://wa.me/919435070738?text="+encodeURIComponent("Hi, I'm a student interested in:\n"+p.name+" — "+p.price+"\nIs it available?"),"_blank");}}
+                          style={{background:"#25D366",color:"#fff",border:"none",padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                          WhatsApp
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* SERVICES */}
       <div className="srv-section">
@@ -2444,82 +2615,6 @@ export default function App(){
       <CompareBar list={compareList} onRemove={id=>setCompareList(l=>l.filter(p=>p.id!==id))} onClear={()=>setCompareList([])} onCompare={()=>setCompareOpen(true)}/>
 
       {/* MODALS */}
-      {/* CART DRAWER */}
-      {cartOpen&&(
-        <>
-          <div onClick={()=>setCartOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:1099}}/>
-          <div style={{position:"fixed",top:0,right:0,height:"100vh",width:380,maxWidth:"90%",background:"#fff",zIndex:1100,display:"flex",flexDirection:"column",boxShadow:"-2px 0 16px rgba(0,0,0,.1)"}}>
-            <div style={{padding:"18px 24px",borderBottom:"1px solid #e8e8e8",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-              <div style={{fontWeight:700,fontSize:17,color:NAVY}}>Cart <span style={{fontSize:13,fontWeight:400,color:"#aaa"}}>({cart.reduce((s,c)=>s+c.qty,0)} items)</span></div>
-              <button onClick={()=>setCartOpen(false)} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#aaa",lineHeight:1}}>×</button>
-            </div>
-            {cart.length===0?(
-              <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:"#aaa",gap:12}}>
-                <div style={{fontSize:13}}>Your cart is empty.</div>
-                <button onClick={()=>setCartOpen(false)} style={{background:NAVY,color:"#fff",border:"none",padding:"10px 24px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Browse Products</button>
-              </div>
-            ):(
-              <>
-                <div style={{flex:1,overflowY:"auto",padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
-                  {cart.map(item=>{
-                    const price=parseFloat((item.price||"").replace(/[₹,]/g,""))||0;
-                    return(
-                      <div key={item.id} style={{background:"#f5f7fa",border:"1px solid #e8e8e8",padding:"12px 14px",display:"flex",gap:12,alignItems:"center"}}>
-                        <div style={{width:48,height:48,background:"#fff",border:"1px solid #e8e8e8",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
-                          {item.image?<img src={item.image} alt="" style={{width:"100%",height:"100%",objectFit:"contain",padding:4}}/>:<span style={{fontSize:22}}>{item.icon}</span>}
-                        </div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:600,fontSize:12,color:NAVY,marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{item.name}</div>
-                          <div style={{display:"flex",alignItems:"center",gap:8}}>
-                            <button onClick={()=>updateCartQty(item.id,item.qty-1)} style={{width:22,height:22,border:"1px solid #ddd",background:"#fff",cursor:"pointer",fontSize:13,lineHeight:1,color:"#555"}}>−</button>
-                            <span style={{fontSize:13,fontWeight:600,minWidth:18,textAlign:"center"}}>{item.qty}</span>
-                            <button onClick={()=>updateCartQty(item.id,item.qty+1)} style={{width:22,height:22,border:"1px solid #ddd",background:"#fff",cursor:"pointer",fontSize:13,lineHeight:1,color:"#555"}}>+</button>
-                          </div>
-                        </div>
-                        <div style={{textAlign:"right",flexShrink:0}}>
-                          <div style={{fontWeight:700,fontSize:13,color:NAVY}}>₹{(price*item.qty).toLocaleString()}</div>
-                          <button onClick={()=>removeFromCart(item.id)} style={{background:"none",border:"none",color:RED,fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit",padding:"4px 0"}}>Remove</button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div style={{padding:"14px 16px",borderTop:"1px solid #e8e8e8",flexShrink:0}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:12,fontSize:15,fontWeight:700,color:NAVY}}>
-                    <span>Estimated Total</span>
-                    <span>₹{cart.reduce((s,c)=>s+(parseFloat((c.price||"").replace(/[₹,]/g,""))||0)*c.qty,0).toLocaleString()}</span>
-                  </div>
-                  <button onClick={()=>{
-                    const total=cart.reduce((s,c)=>s+(parseFloat((c.price||"").replace(/[₹,]/g,""))||0)*c.qty,0);
-                    const rows=cart.map((c,i)=>{
-                      const price=parseFloat((c.price||"").replace(/[₹,]/g,""))||0;
-                      return"<tr><td style='padding:10px 14px;border:1px solid #ddd;'>"+(i+1)+"</td><td style='padding:10px 14px;border:1px solid #ddd;'>"+c.name+"</td><td style='padding:10px 14px;border:1px solid #ddd;text-align:center;'>"+c.qty+"</td><td style='padding:10px 14px;border:1px solid #ddd;text-align:right;'>₹"+price.toLocaleString()+"</td><td style='padding:10px 14px;border:1px solid #ddd;text-align:right;font-weight:600;'>₹"+(price*c.qty).toLocaleString()+"</td></tr>";
-                    }).join("");
-                    const html="<!DOCTYPE html><html><head><title>Quotation</title><style>body{font-family:Arial,sans-serif;padding:40px;max-width:700px;margin:0 auto;}h2{color:#0B1F5E;margin-bottom:4px;}table{width:100%;border-collapse:collapse;margin-top:20px;}th{background:#0B1F5E;color:#fff;padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;}.total{text-align:right;margin-top:16px;font-size:20px;font-weight:800;color:#0B1F5E;}.footer{margin-top:32px;font-size:11px;color:#aaa;border-top:1px solid #ddd;padding-top:14px;}@media print{button{display:none;}}</style></head><body><div style='border-left:5px solid #CC1A1A;padding-left:16px;margin-bottom:24px;'><h2>ADVANTAGE SILCHAR</h2><p style='margin:0;font-size:13px;color:#666;'>Anand Arcade, Opp. Civil Hospital, Hospital Road, Silchar – 788001<br/>Phone: 9435070738 | Email: advantage.it@gmail.com</p></div><h3 style='color:#CC1A1A;'>QUOTATION</h3><p style='font-size:12px;color:#888;'>Date: "+new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"})+"</p><table><thead><tr><th>#</th><th style='text-align:left;'>Product</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>"+rows+"</tbody></table><div class='total'>Total: ₹"+total.toLocaleString()+"</div><div class='footer'><p>This is a system-generated quotation, not a tax invoice. Prices subject to change — please confirm in-store.</p><p>Advantage Silchar — Est. 1995 | Mon–Sat, 10AM–8PM</p></div><button onclick='window.print()' style='margin-top:20px;background:#0B1F5E;color:#fff;border:none;padding:11px 28px;font-size:14px;cursor:pointer;'>Print / Save as PDF</button></body></html>";
-                    const w=window.open("","_blank");
-                    w.document.write(html);
-                    w.document.close();
-                    setTimeout(()=>w.print(),500);
-                  }}
-                    style={{width:"100%",background:"#f0f2f8",color:NAVY,border:"1.5px solid "+NAVY,padding:"11px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:8}}>
-                    Print Quotation PDF
-                  </button>
-                  <button onClick={()=>{
-                    const total=cart.reduce((s,c)=>s+(parseFloat((c.price||"").replace(/[₹,]/g,""))||0)*c.qty,0);
-                    setModal({name:"Cart Items",price:"",msg:"Hi, I'm interested in the following items:\n\n"+cart.map(c=>"- "+c.name+" x"+c.qty).join("\n")+"\n\nEstimated Total: ₹"+total.toLocaleString()+"\n\nPlease confirm availability and best price."});
-                    setCartOpen(false);
-                  }}
-                    style={{width:"100%",background:NAVY,color:"#fff",border:"none",padding:"12px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em",textTransform:"uppercase",marginBottom:8,transition:"background .15s"}}
-                    onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
-                    Enquire for All Items
-                  </button>
-                  <button onClick={clearCart} style={{width:"100%",background:"none",border:"none",color:"#aaa",fontSize:11,cursor:"pointer",fontFamily:"inherit",padding:"4px 0"}}>Clear cart</button>
-                </div>
-              </>
-            )}
-          </div>
-        </>
-      )}
 
       {/* WISHLIST DRAWER */}
       {wishlistOpen&&(

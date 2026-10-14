@@ -11,6 +11,7 @@ const ADMIN_PASSWORD = "advantage1995";
 const STORAGE_KEY = "advantage_products";
 
 const CATS = ["Laptops","Desktops","Printers","Accessories","Security & CCTV"];
+const USE_CASES = ["Student","Office Work","Gaming","Video Editing","General Use","Home"];
 const SPEC_KEYS = {
   Laptops:          ["Processor","RAM","Storage","Display","Graphics","Operating System","Battery","Ports","Connectivity","Weight","Warranty"],
   Desktops:         ["Processor","RAM","Storage","Form Factor","Graphics","Operating System","Ports","Connectivity","Warranty"],
@@ -18,7 +19,7 @@ const SPEC_KEYS = {
   Accessories:      ["Type","Connectivity","Compatibility","Interface","Weight","Warranty"],
   "Security & CCTV":["Type","Resolution","Connectivity","Storage","Power","IR Range","Warranty"],
 };
-const EMPTY = {name:"",cat:"Laptops",price:"",icon:"💻",isNew:false,inStock:true,badge:"",images:[],image:"",spec:"",specs:{},highlights:["","","",""]};
+const EMPTY = {name:"",cat:"Laptops",price:"",icon:"💻",isNew:false,inStock:true,badge:"",useCases:[],quantity:"",lowStockAt:"3",images:[],image:"",spec:"",specs:{},highlights:["","","",""],faqs:[{q:"",a:""},{q:"",a:""}]};
 
 function ls(){ try{ const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):null; }catch{return null;} }
 function ss(a){ localStorage.setItem(STORAGE_KEY,JSON.stringify(a)); }
@@ -215,6 +216,52 @@ function EstCostUpdate({job,onUpdate}){
           <button onClick={save}
             style={{flex:1,background:NAVY,color:"#fff",border:"none",padding:"8px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
             Save
+          </button>
+          <button onClick={()=>setOpen(false)}
+            style={{background:"#fff",color:"#888",border:"1px solid "+BORDER,padding:"8px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Add Tech Note (without changing status) ────────────────────── */
+function AddNoteBtn({job,onAddNote}){
+  const[open,setOpen]=useState(false);
+  const[note,setNote]=useState("");
+  const[saving,setSaving]=useState(false);
+  const BORDER="#e2e4ea",NAVY="#0B1F5E";
+
+  async function save(){
+    if(!note.trim()) return;
+    setSaving(true);
+    await onAddNote(job.jobId, note.trim());
+    setNote(""); setOpen(false); setSaving(false);
+  }
+
+  if(!open) return(
+    <button onClick={()=>setOpen(true)}
+      style={{background:"#fff",color:"#555",border:"1px solid "+BORDER,padding:"6px 12px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+      Add Note
+    </button>
+  );
+
+  return(
+    <div style={{position:"relative"}}>
+      <div style={{position:"fixed",inset:0,zIndex:100}} onClick={()=>setOpen(false)}/>
+      <div style={{position:"absolute",right:0,top:32,background:"#fff",border:"1px solid "+BORDER,padding:14,zIndex:200,minWidth:260,boxShadow:"0 4px 16px rgba(0,0,0,.1)"}}>
+        <div style={{fontSize:11,fontWeight:700,color:NAVY,letterSpacing:".06em",textTransform:"uppercase",marginBottom:8}}>Technician Note</div>
+        <textarea value={note} onChange={e=>setNote(e.target.value)} rows={3}
+          placeholder="e.g. RAM faulty — ordered replacement&#10;Part arrived — testing in progress&#10;Fixed and ready"
+          style={{width:"100%",border:"1px solid "+BORDER,padding:"8px 10px",fontSize:12,fontFamily:"inherit",outline:"none",resize:"vertical",marginBottom:10,color:"#111"}}
+          onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}
+          autoFocus/>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={save} disabled={!note.trim()||saving}
+            style={{flex:1,background:NAVY,color:"#fff",border:"none",padding:"8px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            {saving?"Saving...":"Add Note"}
           </button>
           <button onClick={()=>setOpen(false)}
             style={{background:"#fff",color:"#888",border:"1px solid "+BORDER,padding:"8px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
@@ -636,6 +683,441 @@ ${gst?"<tfoot><tr style='background:#f5f7fa;'><td colspan='5' style='padding:8px
   );
 }
 
+
+/* ─── Inline Price Editor ────────────────────────────────────────── */
+function InlinePrice({product,onSave}){
+  const[editing,setEditing]=useState(false);
+  const[val,setVal]=useState(product.price);
+  const[saved,setSaved]=useState(false);
+  const NAVY="#0B1F5E",BORDER="#e2e4ea",RED="#CC1A1A";
+
+  function save(){
+    if(!val.trim()){setEditing(false);return;}
+    onSave(val.trim());
+    setSaved(true);
+    setEditing(false);
+    setTimeout(()=>setSaved(false),1500);
+  }
+
+  if(!editing) return(
+    <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}
+      onClick={()=>{setVal(product.price);setEditing(true);}}>
+      <span style={{fontWeight:700,fontSize:14,color:saved?"#16a34a":NAVY,cursor:"pointer",borderBottom:"1px dashed "+(saved?"#16a34a":"#bbb"),transition:"color .2s"}}
+        title="Click to edit price">
+        {product.price}
+      </span>
+      <span style={{fontSize:9,color:"#bbb",fontWeight:600,letterSpacing:".04em"}}>EDIT</span>
+    </div>
+  );
+
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}} onClick={e=>e.stopPropagation()}>
+      <input value={val} onChange={e=>setVal(e.target.value)} autoFocus
+        onKeyDown={e=>{if(e.key==="Enter")save();if(e.key==="Escape"){setEditing(false);setVal(product.price);}}}
+        style={{width:110,border:"1.5px solid "+NAVY,padding:"4px 8px",fontSize:13,fontWeight:700,color:NAVY,fontFamily:"inherit",outline:"none"}}/>
+      <button onClick={save} style={{background:NAVY,color:"#fff",border:"none",padding:"4px 10px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
+      <button onClick={()=>{setEditing(false);setVal(product.price);}} style={{background:"none",border:"1px solid "+BORDER,color:"#888",padding:"4px 8px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>×</button>
+    </div>
+  );
+}
+
+/* ─── Institutional Quotation Generator ─────────────────────────── */
+function InstitutionalQuotation(){
+  const NAVY="#0B1F5E",RED="#CC1A1A",BORDER="#e2e4ea";
+  const[org,setOrg]=useState({name:"",type:"School",address:"",contact:"",phone:"",email:"",gstin:""});
+  const[items,setItems]=useState([{desc:"",qty:1,unit:"Nos",rate:"",amount:""}]);
+  const[quoteNo]=useState("QTN-"+new Date().getFullYear()+"-"+String(Math.floor(Math.random()*9000)+1000));
+  const[date]=useState(new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"}));
+  const[validDays,setValidDays]=useState("15");
+  const[gst,setGst]=useState(true);
+  const[notes,setNotes]=useState("Prices are subject to change without prior notice. Delivery charges extra if applicable.");
+  const[terms]=useState([
+    "This quotation is valid for "+validDays+" days from the date of issue.",
+    "Payment: 100% advance or as mutually agreed.",
+    "Delivery: 3–7 working days after order confirmation.",
+    "Warranty as per manufacturer terms.",
+    "All disputes subject to Silchar jurisdiction only.",
+  ]);
+
+  function updateItem(i,field,val){
+    setItems(prev=>{
+      const updated=[...prev];
+      updated[i]={...updated[i],[field]:val};
+      if(field==="qty"||field==="rate"){
+        const qty=parseFloat(updated[i].qty)||0;
+        const rate=parseFloat(updated[i].rate)||0;
+        updated[i].amount=(qty*rate).toFixed(2);
+      }
+      return updated;
+    });
+  }
+  function addItem(){setItems(p=>[...p,{desc:"",qty:1,unit:"Nos",rate:"",amount:""}]);}
+  function removeItem(i){setItems(p=>p.filter((_,idx)=>idx!==i));}
+
+  const subtotal=items.reduce((s,it)=>s+(parseFloat(it.amount)||0),0);
+  const cgst=gst?(subtotal*0.09):0;
+  const sgst=gst?(subtotal*0.09):0;
+  const total=subtotal+cgst+sgst;
+
+  function toWords(n){
+    const ones=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+    const tens=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+    if(n===0)return"Zero";
+    if(n<20)return ones[n];
+    if(n<100)return tens[Math.floor(n/10)]+(n%10?" "+ones[n%10]:"");
+    if(n<1000)return ones[Math.floor(n/100)]+" Hundred"+(n%100?" "+toWords(n%100):"");
+    if(n<100000)return toWords(Math.floor(n/1000))+" Thousand"+(n%1000?" "+toWords(n%1000):"");
+    if(n<10000000)return toWords(Math.floor(n/100000))+" Lakh"+(n%100000?" "+toWords(n%100000):"");
+    return toWords(Math.floor(n/10000000))+" Crore"+(n%10000000?" "+toWords(n%10000000):"");
+  }
+
+  function printQuotation(){
+    const rows=items.filter(it=>it.desc).map((it,i)=>`
+      <tr>
+        <td style="padding:9px 12px;border:1px solid #ddd;text-align:center;">${i+1}</td>
+        <td style="padding:9px 12px;border:1px solid #ddd;">${it.desc}</td>
+        <td style="padding:9px 12px;border:1px solid #ddd;text-align:center;">${it.qty}</td>
+        <td style="padding:9px 12px;border:1px solid #ddd;text-align:center;">${it.unit}</td>
+        <td style="padding:9px 12px;border:1px solid #ddd;text-align:right;">Rs.${parseFloat(it.rate||0).toLocaleString("en-IN")}</td>
+        <td style="padding:9px 12px;border:1px solid #ddd;text-align:right;font-weight:600;">Rs.${parseFloat(it.amount||0).toLocaleString("en-IN")}</td>
+      </tr>`).join("");
+
+    const html=`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/><title>Quotation ${quoteNo}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:24px;}
+  .outer{border:2px solid #0B1F5E;max-width:820px;margin:0 auto;}
+  .header{display:flex;justify-content:space-between;align-items:stretch;border-bottom:2px solid #0B1F5E;}
+  .header-left{padding:16px 20px;flex:1;border-right:1px solid #ddd;}
+  .header-right{padding:16px 20px;width:220px;}
+  .store-name{font-size:20px;font-weight:900;color:#0B1F5E;letter-spacing:-.01em;}
+  .store-name span{color:#CC1A1A;}
+  .store-sub{font-size:10px;color:#666;margin-top:4px;line-height:1.7;}
+  .qtn-title{font-size:22px;font-weight:900;color:#CC1A1A;letter-spacing:.06em;text-align:right;}
+  .qtn-meta{font-size:11px;color:#666;text-align:right;margin-top:6px;line-height:1.8;}
+  .to-from{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #ddd;}
+  .box{padding:12px 20px;}
+  .box-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px;}
+  .box-name{font-size:14px;font-weight:700;color:#0B1F5E;}
+  .box-detail{font-size:11px;color:#555;line-height:1.7;margin-top:3px;}
+  .box-right{border-left:1px solid #ddd;}
+  table{width:100%;border-collapse:collapse;}
+  .tbl-wrap{padding:0 20px 0;}
+  thead td{background:#0B1F5E;color:#fff;padding:9px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+  .totals-row{display:flex;border-top:1px solid #ddd;}
+  .words{flex:1;padding:14px 20px;border-right:1px solid #ddd;}
+  .words .w-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:4px;}
+  .words .w-val{font-size:12px;font-weight:700;color:#0B1F5E;}
+  .totals{width:260px;padding:0;}
+  .totals table{border-collapse:collapse;}
+  .totals td{padding:7px 14px;border-bottom:1px solid #eee;font-size:12px;}
+  .totals td:last-child{text-align:right;font-weight:600;}
+  .grand td{background:#0B1F5E;color:#fff;font-weight:700;font-size:14px;border:none;padding:10px 14px;}
+  .grand td:last-child{text-align:right;}
+  .footer-section{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #ddd;}
+  .terms-box{padding:14px 20px;border-right:1px solid #ddd;}
+  .terms-box h4{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:8px;}
+  .terms-box ol{padding-left:14px;font-size:10px;color:#555;line-height:1.9;}
+  .stamp-box{padding:14px 20px;display:flex;flex-direction:column;justify-content:space-between;}
+  .stamp-line{border-top:1px solid #333;margin-top:48px;padding-top:4px;font-size:10px;color:#888;}
+  .sub-footer{background:#0B1F5E;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;}
+  .sub-footer span{font-size:10px;color:rgba(255,255,255,.5);}
+  @media print{body{padding:0;} button{display:none!important;} .outer{border:2px solid #0B1F5E;}}
+</style>
+</head>
+<body>
+<div class="outer">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="store-name">AD<span>V</span>ANTAGE <span style="font-size:13px;font-weight:700;color:#666;">SILCHAR</span></div>
+      <div class="store-sub">
+        Anand Arcade, Opposite Civil Hospital, Hospital Road, Silchar – 788001, Assam<br/>
+        Phone: 03842-230952 / 9435070738 &nbsp;|&nbsp; Email: advantage.it@gmail.com<br/>
+        Mon–Sat: 10:00 AM – 8:00 PM
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="qtn-title">QUOTATION</div>
+      <div class="qtn-meta">
+        <strong>Ref No:</strong> ${quoteNo}<br/>
+        <strong>Date:</strong> ${date}<br/>
+        <strong>Valid for:</strong> ${validDays} days
+      </div>
+    </div>
+  </div>
+
+  <!-- To / From -->
+  <div class="to-from">
+    <div class="box">
+      <div class="box-title">Quotation For</div>
+      <div class="box-name">${org.name||"Organisation Name"}</div>
+      <div class="box-detail">
+        ${org.type}<br/>
+        ${org.address?org.address+"<br/>":""}
+        ${org.contact?"Attn: "+org.contact+"<br/>":""}
+        ${org.phone?org.phone+"<br/>":""}
+        ${org.email?org.email+"<br/>":""}
+        ${org.gstin?"GSTIN: "+org.gstin:""}
+      </div>
+    </div>
+    <div class="box box-right">
+      <div class="box-title">Issued By</div>
+      <div class="box-name">Advantage Silchar</div>
+      <div class="box-detail">
+        Computer Sales &amp; Service<br/>
+        Anand Arcade, Opp. Civil Hospital<br/>
+        Hospital Road, Silchar – 788001<br/>
+        Assam, India<br/>
+        9435070738
+      </div>
+    </div>
+  </div>
+
+  <!-- Items Table -->
+  <div class="tbl-wrap">
+    <table style="margin:0;">
+      <thead>
+        <tr>
+          <td style="width:5%;">#</td>
+          <td style="width:42%;text-align:left;">Description of Goods / Services</td>
+          <td style="width:8%;text-align:center;">Qty</td>
+          <td style="width:8%;text-align:center;">Unit</td>
+          <td style="width:16%;text-align:right;">Rate (Rs.)</td>
+          <td style="width:16%;text-align:right;">Amount (Rs.)</td>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+        ${items.filter(it=>it.desc).length<6?Array(6-items.filter(it=>it.desc).length).fill('<tr><td style="padding:9px 12px;border:1px solid #ddd;height:32px;">&nbsp;</td><td style="border:1px solid #ddd;"></td><td style="border:1px solid #ddd;"></td><td style="border:1px solid #ddd;"></td><td style="border:1px solid #ddd;"></td><td style="border:1px solid #ddd;"></td></tr>').join(""):""}
+        ${gst?`
+        <tr style="background:#f5f7fa;">
+          <td colspan="5" style="padding:8px 12px;border:1px solid #ddd;text-align:right;font-weight:600;">Taxable Amount</td>
+          <td style="padding:8px 12px;border:1px solid #ddd;text-align:right;font-weight:600;">Rs.${subtotal.toLocaleString("en-IN")}</td>
+        </tr>
+        <tr style="background:#f5f7fa;">
+          <td colspan="5" style="padding:8px 12px;border:1px solid #ddd;text-align:right;">CGST @ 9%</td>
+          <td style="padding:8px 12px;border:1px solid #ddd;text-align:right;">Rs.${cgst.toFixed(2)}</td>
+        </tr>
+        <tr style="background:#f5f7fa;">
+          <td colspan="5" style="padding:8px 12px;border:1px solid #ddd;text-align:right;">SGST @ 9%</td>
+          <td style="padding:8px 12px;border:1px solid #ddd;text-align:right;">Rs.${sgst.toFixed(2)}</td>
+        </tr>`:""}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Totals + Amount in Words -->
+  <div class="totals-row">
+    <div class="words">
+      <div class="w-label">Total Amount in Words</div>
+      <div class="w-val">Rupees ${toWords(Math.floor(total))} Only</div>
+      ${notes?`<div style="margin-top:10px;font-size:11px;color:#666;"><strong>Note:</strong> ${notes}</div>`:""}
+    </div>
+    <div class="totals">
+      <table>
+        <tr><td>Sub Total</td><td>Rs.${subtotal.toLocaleString("en-IN")}</td></tr>
+        ${gst?`<tr><td>CGST (9%)</td><td>Rs.${cgst.toFixed(2)}</td></tr><tr><td>SGST (9%)</td><td>Rs.${sgst.toFixed(2)}</td></tr>`:""}
+        <tr class="grand"><td colspan="2" style="padding:0;">
+          <table style="width:100%;border:none;"><tr>
+            <td style="padding:10px 14px;border:none;color:#fff;font-weight:700;font-size:14px;">GRAND TOTAL</td>
+            <td style="padding:10px 14px;border:none;color:#fff;font-weight:700;font-size:14px;text-align:right;">Rs.${total.toLocaleString("en-IN")}</td>
+          </tr></table>
+        </td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Terms + Stamp -->
+  <div class="footer-section">
+    <div class="terms-box">
+      <h4>Terms &amp; Conditions</h4>
+      <ol>
+        <li>This quotation is valid for ${validDays} days from date of issue.</li>
+        <li>Payment: 100% advance or as mutually agreed.</li>
+        <li>Delivery: 3–7 working days after order confirmation.</li>
+        <li>Warranty as per manufacturer terms and conditions.</li>
+        <li>Prices subject to change without prior notice.</li>
+        <li>All disputes subject to Silchar jurisdiction only.</li>
+      </ol>
+    </div>
+    <div class="stamp-box">
+      <div>
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;">For Advantage Silchar</div>
+        <div class="stamp-line">Authorised Signatory &amp; Stamp</div>
+      </div>
+      <div>
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;">Accepted By (${org.name||"Organisation"})</div>
+        <div class="stamp-line">Name, Designation &amp; Stamp</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sub-footer">
+    <span>Advantage Silchar — Est. 1995 | Silchar's trusted computer store</span>
+    <span>9435070738 | advantage.it@gmail.com</span>
+  </div>
+
+</div>
+<br/>
+<button onclick="window.print()" style="display:block;margin:16px auto;background:#0B1F5E;color:#fff;border:none;padding:12px 32px;font-size:13px;font-family:Arial;font-weight:700;cursor:pointer;">Print / Save as PDF</button>
+</body></html>`;
+
+    const w=window.open("","_blank");
+    w.document.write(html);
+    w.document.close();
+    setTimeout(()=>w.print(),600);
+  }
+
+  const INP={border:"1px solid "+BORDER,padding:"8px 11px",fontSize:13,fontFamily:"inherit",outline:"none",width:"100%",color:"#111",background:"#fff"};
+
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:20}}>
+
+        {/* Organisation Details */}
+        <div style={{background:"#fff",border:"1px solid "+BORDER,padding:20}}>
+          <div style={{fontSize:11,fontWeight:700,color:NAVY,textTransform:"uppercase",letterSpacing:".08em",marginBottom:14}}>Organisation Details</div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <div>
+              <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Organisation Name *</label>
+              <input style={INP} value={org.name} onChange={e=>setOrg(o=>({...o,name:e.target.value}))} placeholder="e.g. Silchar Medical College"
+                onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div>
+                <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Type</label>
+                <select style={INP} value={org.type} onChange={e=>setOrg(o=>({...o,type:e.target.value}))}
+                  onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}>
+                  {["School","College","Government Office","Hospital","NGO","Private Company","Other"].map(t=><option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>GSTIN (if applicable)</label>
+                <input style={INP} value={org.gstin} onChange={e=>setOrg(o=>({...o,gstin:e.target.value}))} placeholder="18XXXXXXXXXXXXX"
+                  onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+              </div>
+            </div>
+            <div>
+              <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Address</label>
+              <input style={INP} value={org.address} onChange={e=>setOrg(o=>({...o,address:e.target.value}))} placeholder="Full address"
+                onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div>
+                <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Contact Person</label>
+                <input style={INP} value={org.contact} onChange={e=>setOrg(o=>({...o,contact:e.target.value}))} placeholder="Name"
+                  onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+              </div>
+              <div>
+                <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Phone</label>
+                <input style={INP} value={org.phone} onChange={e=>setOrg(o=>({...o,phone:e.target.value}))} placeholder="Phone Number"
+                  onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+              </div>
+            </div>
+            <div>
+              <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Email</label>
+              <input style={INP} type="email" value={org.email} onChange={e=>setOrg(o=>({...o,email:e.target.value}))} placeholder="contact@organisation.com"
+                onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+            </div>
+          </div>
+        </div>
+
+        {/* Quotation Settings */}
+        <div style={{background:"#fff",border:"1px solid "+BORDER,padding:20}}>
+          <div style={{fontSize:11,fontWeight:700,color:NAVY,textTransform:"uppercase",letterSpacing:".08em",marginBottom:14}}>Quotation Settings</div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div>
+                <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Reference No</label>
+                <input style={{...INP,background:"#f5f7fa",color:"#888"}} value={quoteNo} readOnly/>
+              </div>
+              <div>
+                <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Valid for (days)</label>
+                <input style={INP} type="number" value={validDays} onChange={e=>setValidDays(e.target.value)} placeholder="15"
+                  onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+              </div>
+            </div>
+            <div>
+              <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Notes</label>
+              <textarea style={{...INP,resize:"vertical"}} rows={3} value={notes} onChange={e=>setNotes(e.target.value)}
+                onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+            </div>
+            <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,fontWeight:500,color:NAVY}}>
+              <input type="checkbox" checked={gst} onChange={e=>setGst(e.target.checked)} style={{accentColor:NAVY,width:14,height:14}}/>
+              Apply GST (CGST 9% + SGST 9% = 18%)
+            </label>
+            <div style={{background:"#f5f7fa",border:"1px solid "+BORDER,padding:"14px 16px",marginTop:4}}>
+              <div style={{fontSize:11,color:"#888",marginBottom:6}}>Estimated Total</div>
+              <div style={{fontSize:22,fontWeight:800,color:NAVY}}>Rs.{total.toLocaleString("en-IN")}</div>
+              {gst&&<div style={{fontSize:11,color:"#888",marginTop:3}}>Incl. GST · Subtotal: Rs.{subtotal.toLocaleString("en-IN")}</div>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Items */}
+      <div style={{background:"#fff",border:"1px solid "+BORDER,padding:20,marginBottom:16}}>
+        <div style={{fontSize:11,fontWeight:700,color:NAVY,textTransform:"uppercase",letterSpacing:".08em",marginBottom:14}}>Items / Products</div>
+        <table style={{width:"100%",borderCollapse:"collapse",marginBottom:10}}>
+          <thead>
+            <tr style={{background:NAVY}}>
+              {["#","Description","Qty","Unit","Rate (Rs.)","Amount (Rs.)",""].map(h=>(
+                <td key={h} style={{padding:"8px 10px",fontSize:10,fontWeight:700,color:"#fff",textTransform:"uppercase",letterSpacing:".05em",textAlign:h==="Amount (Rs.)"||h==="Rate (Rs.)"?"right":h==="Qty"||h==="Unit"?"center":"left"}}>{h}</td>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((it,i)=>(
+              <tr key={i} style={{borderBottom:"1px solid "+BORDER}}>
+                <td style={{padding:"7px 10px",fontSize:12,color:"#888",textAlign:"center",width:32}}>{i+1}</td>
+                <td style={{padding:"7px 6px",width:"40%"}}>
+                  <input value={it.desc} onChange={e=>updateItem(i,"desc",e.target.value)} placeholder="Product / service description" style={{...INP,fontSize:12,padding:"6px 8px"}}
+                    onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+                </td>
+                <td style={{padding:"7px 6px",width:"7%"}}>
+                  <input type="number" value={it.qty} onChange={e=>updateItem(i,"qty",e.target.value)} style={{...INP,fontSize:12,padding:"6px 8px",textAlign:"center"}}
+                    onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+                </td>
+                <td style={{padding:"7px 6px",width:"8%"}}>
+                  <select value={it.unit} onChange={e=>updateItem(i,"unit",e.target.value)} style={{...INP,fontSize:12,padding:"6px 8px"}}
+                    onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}>
+                    {["Nos","Set","Box","Pair","Unit"].map(u=><option key={u}>{u}</option>)}
+                  </select>
+                </td>
+                <td style={{padding:"7px 6px",width:"15%"}}>
+                  <input type="number" value={it.rate} onChange={e=>updateItem(i,"rate",e.target.value)} placeholder="0" style={{...INP,fontSize:12,padding:"6px 8px",textAlign:"right"}}
+                    onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+                </td>
+                <td style={{padding:"7px 6px",width:"15%"}}>
+                  <input value={it.amount?("Rs."+parseFloat(it.amount).toLocaleString("en-IN")):""} readOnly style={{...INP,fontSize:12,padding:"6px 8px",textAlign:"right",background:"#f5f7fa",color:NAVY,fontWeight:700,cursor:"default"}}/>
+                </td>
+                <td style={{padding:"7px 6px",textAlign:"center",width:32}}>
+                  {items.length>1&&<button onClick={()=>removeItem(i)} style={{background:"none",border:"none",color:RED,fontSize:16,cursor:"pointer",fontWeight:700,lineHeight:1}}>×</button>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <button onClick={addItem} style={{background:"#fff",border:"1px dashed "+BORDER,color:"#888",padding:"7px 16px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>+ Add Item</button>
+      </div>
+
+      <div style={{display:"flex",gap:10}}>
+        <button onClick={printQuotation}
+          style={{background:NAVY,color:"#fff",border:"none",padding:"12px 32px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",letterSpacing:".04em",transition:"background .15s"}}
+          onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
+          Generate &amp; Print Quotation
+        </button>
+        <div style={{fontSize:12,color:"#888",display:"flex",alignItems:"center",paddingLeft:8}}>
+          Opens a print-ready PDF. Save as PDF or print directly.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    MAIN ADMIN
 ═══════════════════════════════════════════════════════════════════ */
@@ -657,6 +1139,7 @@ export default function Admin({defaultProducts,onExit}){
   const[pcSaveMsg,setPcSaveMsg]=useState({});
   const[serviceJobs,setServiceJobs]=useState([]);
   const[serviceLoading,setServiceLoading]=useState(false);
+  const[svcSearch,setSvcSearch]=useState("");
   const[analytics,setAnalytics]=useState(null);
   const[analyticsLoading,setAnalyticsLoading]=useState(false);
   const[bannerText,setBannerText]=useState(()=>localStorage.getItem("advantage_banner")||"Summer Sale — Up to Rs.5,000 off on Laptops | Student Discount Available | Free OS Installation on all Desktops | Call 9435070738 for Best Deals");
@@ -796,6 +1279,19 @@ export default function Admin({defaultProducts,onExit}){
     try{await fetch(API+"/service/"+jobId,{method:"DELETE",headers:{"x-admin-token":BTKN}});loadServiceJobs();}catch{}
   }
 
+  async function addNoteToJob(jobId, note){
+    try{
+      const res=await fetch(API+"/service/"+jobId+"/note",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-admin-token":BTKN},
+        body:JSON.stringify({note})
+      });
+      if(!res.ok) throw new Error("Failed");
+      showToast("Note added");
+      loadServiceJobs();
+    }catch(e){showToast(e.message,"error");}
+  }
+
   /* Analytics */
   async function loadAnalytics(){
     setAnalyticsLoading(true);
@@ -889,7 +1385,7 @@ export default function Admin({defaultProducts,onExit}){
     setForm(EMPTY);setEditId(null);setTab("products");
   }
   function handleEdit(p){
-    setForm({name:p.name,cat:p.cat,price:p.price,icon:p.icon||"💻",isNew:p.isNew||false,inStock:p.inStock!==false,badge:p.badge||"",image:p.image||"",images:p.images||(p.image?[p.image]:[]),spec:p.spec||"",specs:p.specs||{},highlights:p.highlights?.length?p.highlights:["","","",""]});
+    setForm({name:p.name,cat:p.cat,price:p.price,icon:p.icon||"💻",isNew:p.isNew||false,inStock:p.inStock!==false,badge:p.badge||"",quantity:p.quantity||"",lowStockAt:p.lowStockAt||"3",image:p.image||"",images:p.images||(p.image?[p.image]:[]),spec:p.spec||"",specs:p.specs||{},highlights:p.highlights?.length?p.highlights:["","","",""],faqs:p.faqs?.length?p.faqs:[{q:"",a:""},{q:"",a:""}],useCases:p.useCases||[]});
     setEditId(p.id);setTab("add");window.scrollTo({top:0,behavior:"smooth"});
   }
   function handleDelete(id){persist(products.filter(p=>p.id!==id));setDelConfirm(null);showToast("Product deleted","error");}
@@ -908,6 +1404,7 @@ export default function Admin({defaultProducts,onExit}){
     {key:"service",label:"Service Jobs",onClick:()=>loadServiceJobs()},
     {key:"reviews",label:"Reviews",onClick:()=>loadAllReviews()},
     {key:"customers",label:"Customers",onClick:()=>loadCustomers()},
+    {key:"quotation",label:"Quotation",},
     {key:"analytics",label:"Analytics",onClick:()=>loadAnalytics()},
     {key:"banner",label:"Banner"},
   ];
@@ -1110,7 +1607,7 @@ export default function Admin({defaultProducts,onExit}){
                     </div>
                     <div style={{fontSize:11,color:"#aaa"}}>{p.cat} &nbsp;·&nbsp; {p.spec}</div>
                   </div>
-                  <div style={{fontWeight:700,fontSize:14,color:NAVY,flexShrink:0}}>{p.price}</div>
+                  <InlinePrice product={p} onSave={newPrice=>{persist(products.map(x=>x.id===p.id?{...x,price:newPrice}:x));showToast("Price updated");}} />
                   <div style={{display:"flex",gap:6,flexShrink:0}}>
                     <button onClick={()=>toggleNew(p.id)} style={{padding:"4px 10px",fontSize:11,fontWeight:600,border:"1px solid "+BORDER,background:"#fff",color:p.isNew?RED:"#888",cursor:"pointer",fontFamily:"inherit"}}>
                       {p.isNew?"Remove New":"Mark New"}
@@ -1165,6 +1662,22 @@ export default function Admin({defaultProducts,onExit}){
                       In Stock
                     </label>
                   </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                    <div>
+                      <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Stock Quantity</label>
+                      <input className="adm-inp" type="number" min="0" placeholder="e.g. 5" value={form.quantity}
+                        onChange={e=>setForm(f=>({...f,quantity:e.target.value,inStock:e.target.value===""?f.inStock:Number(e.target.value)>0}))}
+                        onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+                      <div style={{fontSize:10,color:"#aaa",marginTop:3}}>Leave blank if not tracking quantity</div>
+                    </div>
+                    <div>
+                      <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Low Stock Alert Below</label>
+                      <input className="adm-inp" type="number" min="1" placeholder="3" value={form.lowStockAt}
+                        onChange={e=>setForm(f=>({...f,lowStockAt:e.target.value}))}
+                        onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+                      <div style={{fontSize:10,color:"#aaa",marginTop:3}}>Show warning when stock falls below this</div>
+                    </div>
+                  </div>
                   <div>
                     <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:6,textTransform:"uppercase",letterSpacing:".05em"}}>Promotional Badge</label>
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -1176,6 +1689,23 @@ export default function Admin({defaultProducts,onExit}){
                       ))}
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Use Cases */}
+              <div style={{background:"#fff",border:"1px solid "+BORDER,padding:20}}>
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:6}}>Best For (Use Cases)</div>
+                <div style={{fontSize:11,color:"#aaa",marginBottom:12}}>Tag this product so customers can filter by what they need it for.</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {USE_CASES.map(u=>{
+                    const sel=(form.useCases||[]).includes(u);
+                    return(
+                      <button key={u} type="button" onClick={()=>setForm(f=>({...f,useCases:sel?(f.useCases||[]).filter(x=>x!==u):[...(f.useCases||[]),u]}))}
+                        style={{padding:"5px 14px",fontSize:12,fontWeight:600,border:"1px solid "+(sel?NAVY:BORDER),background:sel?NAVY:"#fff",color:sel?"#fff":"#555",cursor:"pointer",fontFamily:"inherit",transition:"all .15s"}}>
+                        {u}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1283,6 +1813,31 @@ export default function Admin({defaultProducts,onExit}){
                       onChange={e=>{const h=[...form.highlights];h[i]=e.target.value;setForm(f=>({...f,highlights:h}));}}
                       onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
                   ))}
+                </div>
+              </div>
+
+
+              {/* FAQ */}
+              <div style={{background:"#fff",border:"1px solid "+BORDER,padding:20}}>
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:NAVY,marginBottom:4}}>FAQ — Common Questions</div>
+                <div style={{fontSize:11,color:"#aaa",marginBottom:12}}>Shown on product page. Reduces "does this have Windows?" messages on WhatsApp.</div>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {(form.faqs||[]).map((faq,i)=>(
+                    <div key={i} style={{background:"#f5f7fa",border:"1px solid "+BORDER,padding:"12px 14px",position:"relative"}}>
+                      <button type="button" onClick={()=>setForm(f=>({...f,faqs:f.faqs.filter((_,idx)=>idx!==i)}))}
+                        style={{position:"absolute",top:8,right:8,background:"none",border:"none",color:"#bbb",fontSize:14,cursor:"pointer",fontWeight:700}}>×</button>
+                      <input className="adm-inp" placeholder="Question e.g. Does it come with Windows?" value={faq.q}
+                        onChange={e=>{const fs=[...form.faqs];fs[i]={...fs[i],q:e.target.value};setForm(fm=>({...fm,faqs:fs}));}}
+                        style={{marginBottom:8}} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+                      <textarea className="adm-inp" placeholder="Answer e.g. Yes, comes with Windows 11 Home." value={faq.a} rows={2}
+                        onChange={e=>{const fs=[...form.faqs];fs[i]={...fs[i],a:e.target.value};setForm(fm=>({...fm,faqs:fs}));}}
+                        style={{resize:"vertical"}} onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+                    </div>
+                  ))}
+                  <button type="button" onClick={()=>setForm(f=>({...f,faqs:[...(f.faqs||[]),{q:"",a:""}]}))}
+                    style={{background:"none",border:"1px dashed "+BORDER,color:"#888",padding:"8px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                    + Add Question
+                  </button>
                 </div>
               </div>
 
@@ -1411,41 +1966,77 @@ export default function Admin({defaultProducts,onExit}){
             <div style={{background:"#fffbeb",border:"1px solid #fde047",padding:"10px 16px",marginBottom:16,fontSize:12,color:"#854d0e"}}>
               Service jobs are created automatically when customers book a repair. Update status and notify customers here.
             </div>
+            {/* Search bar */}
+            <div style={{marginBottom:14}}>
+              <input
+                placeholder="Search by customer name or phone number..."
+                onChange={e=>setSvcSearch(e.target.value)}
+                style={{width:"100%",border:"1px solid "+BORDER,padding:"10px 14px",fontSize:13,fontFamily:"inherit",outline:"none",color:"#111",transition:"border-color .15s"}}
+                onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+            </div>
             {serviceLoading&&<div style={{textAlign:"center",padding:40,color:"#aaa",fontSize:13}}>Loading...</div>}
             {!serviceLoading&&serviceJobs.length===0&&<div style={{textAlign:"center",padding:"48px",background:"#fff",border:"1px solid "+BORDER,color:"#aaa",fontSize:13}}>No service jobs yet.</div>}
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {serviceJobs.map(job=>(
-                <div key={job._id} style={{background:"#fff",border:"1px solid "+BORDER,padding:"14px 16px",display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
-                  <div style={{flex:1,minWidth:200}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
-                      <span style={{fontWeight:700,fontSize:14,color:NAVY}}>{job.customerName}</span>
-                      <span style={{fontSize:12,color:"#888"}}>{job.phone}</span>
-                      <span style={{background:GREY,color:NAVY,fontSize:10,fontWeight:700,padding:"2px 8px",fontFamily:"monospace",border:"1px solid "+BORDER}}>{job.jobId}</span>
+              {(svcSearch.trim()
+                ? serviceJobs.filter(j=>
+                    j.customerName?.toLowerCase().includes(svcSearch.toLowerCase())||
+                    j.phone?.includes(svcSearch)||
+                    j.jobId?.toLowerCase().includes(svcSearch.toLowerCase())
+                  )
+                : serviceJobs
+              ).map(job=>(
+                <div key={job._id} style={{background:"#fff",border:"1px solid "+BORDER,padding:"14px 16px",transition:"border-color .15s"}}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor=NAVY}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor=BORDER}>
+                  <div style={{display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
+                    <div style={{flex:1,minWidth:200}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
+                        <span style={{fontWeight:700,fontSize:14,color:NAVY}}>{job.customerName}</span>
+                        <span style={{fontSize:12,color:"#888"}}>{job.phone}</span>
+                        <span style={{background:GREY,color:NAVY,fontSize:10,fontWeight:700,padding:"2px 8px",fontFamily:"monospace",border:"1px solid "+BORDER}}>{job.jobId}</span>
+                      </div>
+                      <div style={{fontSize:12,color:"#555",marginBottom:3}}>{job.deviceType} {job.brand} {job.model}</div>
+                      <div style={{fontSize:11,color:"#888",marginBottom:6}}>{job.issue}</div>
+                      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                        <span style={{background:STATUS_COLOR[job.status]||"#888",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 8px",letterSpacing:".06em",textTransform:"uppercase"}}>{job.status}</span>
+                        <span style={{fontSize:10,color:"#bbb"}}>{new Date(job.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</span>
+                        {job.serviceType&&<span style={{fontSize:10,color:"#aaa"}}>{job.serviceType}</span>}
+                        {job.estimatedCost>0&&<span style={{fontSize:11,fontWeight:700,color:NAVY,background:"#f0f2f8",padding:"1px 8px",border:"1px solid #dde2f0"}}>Est. Rs.{job.estimatedCost.toLocaleString()}</span>}
+                      </div>
+
+                      {/* Timeline / Notes */}
+                      {job.timeline&&job.timeline.length>0&&(
+                        <div style={{marginTop:12,borderLeft:"2px solid #dde2f0",paddingLeft:12}}>
+                          {job.timeline.map((t,i)=>(
+                            <div key={i} style={{marginBottom:6,position:"relative"}}>
+                              <div style={{position:"absolute",left:-17,top:4,width:8,height:8,borderRadius:"50%",background:i===job.timeline.length-1?NAVY:"#dde2f0",border:"2px solid "+(i===job.timeline.length-1?NAVY:"#bbb")}}/>
+                              <div style={{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap"}}>
+                                <span style={{fontSize:11,fontWeight:700,color:i===job.timeline.length-1?NAVY:"#888"}}>{t.status}</span>
+                                <span style={{fontSize:10,color:"#bbb"}}>{new Date(t.date).toLocaleDateString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>
+                              </div>
+                              {t.note&&<div style={{fontSize:11,color:"#555",marginTop:1,fontStyle:"italic"}}>{t.note}</div>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div style={{fontSize:12,color:"#555",marginBottom:3}}>{job.deviceType} {job.brand} {job.model}</div>
-                    <div style={{fontSize:11,color:"#888",marginBottom:6}}>{job.issue}</div>
-                    <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                      <span style={{background:STATUS_COLOR[job.status]||"#888",color:"#fff",fontSize:9,fontWeight:700,padding:"2px 8px",letterSpacing:".06em",textTransform:"uppercase"}}>{job.status}</span>
-                      <span style={{fontSize:10,color:"#bbb"}}>{new Date(job.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</span>
-                      {job.serviceType&&<span style={{fontSize:10,color:"#aaa"}}>{job.serviceType}</span>}
-                      {job.estimatedCost>0&&<span style={{fontSize:11,fontWeight:700,color:NAVY,background:"#f0f2f8",padding:"1px 8px",border:"1px solid #dde2f0"}}>Est. Rs.{job.estimatedCost.toLocaleString()}</span>}
+                    <div style={{display:"flex",gap:6,flexShrink:0,alignItems:"flex-start",flexWrap:"wrap"}}>
+                      <EstCostUpdate job={job} onUpdate={updateJobStatus}/>
+                      <AddNoteBtn job={job} onAddNote={addNoteToJob}/>
+                      <button onClick={()=>setInvoiceData({name:job.customerName,phone:job.phone,email:"",product:"Repair: "+job.deviceType+" "+job.brand,estimatedCost:job.estimatedCost})}
+                        style={{background:NAVY,color:"#fff",border:"none",padding:"6px 12px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                        Invoice
+                      </button>
+                      <a href={"https://wa.me/91"+job.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("Hi "+job.customerName+", your "+job.deviceType+" repair (Job: "+job.jobId+") status is now: "+job.status+". Call 9435070738 for details.")}
+                        target="_blank" rel="noreferrer"
+                        style={{background:"#25D366",color:"#fff",padding:"6px 12px",fontSize:11,fontWeight:600,textDecoration:"none",whiteSpace:"nowrap"}}>
+                        Notify
+                      </a>
+                      <button onClick={()=>window.confirm("Delete job "+job.jobId+"?")&&deleteServiceJob(job.jobId)}
+                        style={{background:"#fff",color:RED,border:"1px solid "+BORDER,padding:"6px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                        Delete
+                      </button>
                     </div>
-                  </div>
-                  <div style={{display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"wrap"}}>
-                    <EstCostUpdate job={job} onUpdate={updateJobStatus}/>
-                    <button onClick={()=>setInvoiceData({name:job.customerName,phone:job.phone,email:"",product:"Repair: "+job.deviceType+" "+job.brand,estimatedCost:job.estimatedCost})}
-                      style={{background:NAVY,color:"#fff",border:"none",padding:"6px 12px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                      Invoice
-                    </button>
-                    <a href={"https://wa.me/91"+job.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("Hi "+job.customerName+", your "+job.deviceType+" repair (Job: "+job.jobId+") status is now: "+job.status+". Call 9435070738 for details.")}
-                      target="_blank" rel="noreferrer"
-                      style={{background:"#25D366",color:"#fff",padding:"6px 12px",fontSize:11,fontWeight:600,textDecoration:"none",whiteSpace:"nowrap"}}>
-                      Notify
-                    </a>
-                    <button onClick={()=>window.confirm("Delete job "+job.jobId+"?")&&deleteServiceJob(job.jobId)}
-                      style={{background:"#fff",color:RED,border:"1px solid "+BORDER,padding:"6px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
-                      Delete
-                    </button>
                   </div>
                 </div>
               ))}
@@ -1651,6 +2242,9 @@ export default function Admin({defaultProducts,onExit}){
           </div>
         )}
 
+
+        {/* ══ QUOTATION TAB ══ */}
+        {tab==="quotation"&&<InstitutionalQuotation btkn={BTKN}/>}
 
       {/* Delete Modal */}
       {delConfirm&&(

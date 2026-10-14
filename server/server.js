@@ -21,6 +21,7 @@ function adminAuth(req, res, next){
   next();
 }
 
+
 /* ── Debug route ── */
 app.get("/api/debug-token", (req, res) => {
   const sent = (req.headers["x-admin-token"] || "").trim();
@@ -81,6 +82,7 @@ app.post("/api/service/create", async (req, res) => {
       status: "Received",
       timeline: [{ status: "Received", date: new Date(), note: "Device received at store" }],
     });
+
     res.status(201).json(job);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -94,6 +96,19 @@ app.put("/api/service/:jobId/status", adminAuth, async (req, res) => {
     job.status = status;
     if (estimatedCost !== undefined) job.estimatedCost = Number(estimatedCost);
     job.timeline.push({ status, date: new Date(), note: note||"" });
+    await job.save();
+    res.json(job);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ADMIN — add technician note without changing status
+app.post("/api/service/:jobId/note", adminAuth, async (req, res) => {
+  try {
+    const { note } = req.body;
+    if (!note||!note.trim()) return res.status(400).json({ error: "Note required" });
+    const job = await ServiceJob.findOne({ jobId: req.params.jobId.toUpperCase() });
+    if (!job) return res.status(404).json({ error: "Job not found" });
+    job.timeline.push({ status: job.status, date: new Date(), note: note.trim() });
     await job.save();
     res.json(job);
   } catch (err) { res.status(500).json({ error: err.message }); }
