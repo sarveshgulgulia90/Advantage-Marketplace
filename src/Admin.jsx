@@ -19,7 +19,7 @@ const SPEC_KEYS = {
   Accessories:      ["Type","Connectivity","Compatibility","Interface","Weight","Warranty"],
   "Security & CCTV":["Type","Resolution","Connectivity","Storage","Power","IR Range","Warranty"],
 };
-const EMPTY = {name:"",cat:"Laptops",price:"",icon:"💻",isNew:false,inStock:true,badge:"",useCases:[],quantity:"",lowStockAt:"3",images:[],image:"",spec:"",specs:{},highlights:["","","",""],faqs:[{q:"",a:""},{q:"",a:""}]};
+const EMPTY = {name:"",cat:"Laptops",price:"",icon:"💻",isNew:false,inStock:true,onOrder:false,orderDays:"3-5",badge:"",useCases:[],studentPick:false,studentNote:"",quantity:"",lowStockAt:"3",images:[],image:"",spec:"",specs:{},highlights:["","","",""],faqs:[{q:"",a:""},{q:"",a:""}]};
 
 function ls(){ try{ const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):null; }catch{return null;} }
 function ss(a){ localStorage.setItem(STORAGE_KEY,JSON.stringify(a)); }
@@ -1279,6 +1279,124 @@ export default function Admin({defaultProducts,onExit}){
     try{await fetch(API+"/service/"+jobId,{method:"DELETE",headers:{"x-admin-token":BTKN}});loadServiceJobs();}catch{}
   }
 
+  function printServiceReport(jobs){
+    const now=new Date();
+    const monthStart=new Date(now.getFullYear(),now.getMonth(),1);
+    const monthName=now.toLocaleString("en-IN",{month:"long",year:"numeric"});
+    const thisMonth=jobs.filter(j=>new Date(j.createdAt)>=monthStart);
+    const completed=thisMonth.filter(j=>j.status==="Completed");
+    const pending=thisMonth.filter(j=>!["Completed","Cancelled"].includes(j.status));
+    const cancelled=thisMonth.filter(j=>j.status==="Cancelled");
+    const revenue=completed.reduce((s,j)=>s+(j.estimatedCost||0),0);
+
+    // Issue frequency
+    const issueCounts={};
+    thisMonth.forEach(j=>{
+      const key=(j.deviceType||"Other")+" — "+(j.issue||"General");
+      issueCounts[key]=(issueCounts[key]||0)+1;
+    });
+    const topIssues=Object.entries(issueCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+    // Device breakdown
+    const deviceCounts={};
+    thisMonth.forEach(j=>{ deviceCounts[j.deviceType]=(deviceCounts[j.deviceType]||0)+1; });
+
+    const rows=thisMonth.map(j=>`
+      <tr>
+        <td style="padding:7px 10px;border-bottom:1px solid #eee;font-family:monospace;font-size:11px;">${j.jobId}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #eee;">${j.customerName}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #eee;">${j.deviceType} ${j.brand||""}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:11px;">${j.issue||"—"}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #eee;text-align:center;">
+          <span style="background:${j.status==="Completed"?"#dcfce7":j.status==="Cancelled"?"#fee2e2":"#fef9c3"};color:${j.status==="Completed"?"#15803d":j.status==="Cancelled"?"#dc2626":"#854d0e"};padding:2px 8px;font-size:10px;font-weight:700;">${j.status}</span>
+        </td>
+        <td style="padding:7px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">${j.estimatedCost>0?"Rs."+j.estimatedCost.toLocaleString("en-IN"):"—"}</td>
+      </tr>`).join("");
+
+    const html=`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/><title>Service Report — ${monthName}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:28px;}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0B1F5E;padding-bottom:14px;margin-bottom:20px;}
+  .store-name{font-size:20px;font-weight:900;color:#0B1F5E;}
+  .store-name span{color:#CC1A1A;}
+  h2{color:#0B1F5E;font-size:16px;margin-bottom:4px;}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+  .kpi{border:1px solid #e2e4ea;padding:14px;text-align:center;}
+  .kpi .num{font-size:28px;font-weight:800;color:#0B1F5E;}
+  .kpi .lbl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-top:4px;}
+  .kpi.green .num{color:#16a34a;}
+  .kpi.red .num{color:#CC1A1A;}
+  .section{margin-bottom:20px;}
+  .section h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:10px;border-bottom:1px solid #eee;padding-bottom:6px;}
+  table{width:100%;border-collapse:collapse;}
+  th{background:#0B1F5E;color:#fff;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;}
+  @media print{button{display:none;}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="store-name">AD<span>V</span>ANTAGE SILCHAR</div>
+    <div style="font-size:11px;color:#666;margin-top:4px;">Anand Arcade, Opp. Civil Hospital, Silchar</div>
+  </div>
+  <div style="text-align:right;">
+    <h2>Service Department Report</h2>
+    <div style="font-size:13px;color:#888;">${monthName}</div>
+    <div style="font-size:11px;color:#aaa;">Generated: ${now.toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="num">${thisMonth.length}</div><div class="lbl">Total Jobs</div></div>
+  <div class="kpi green"><div class="num">${completed.length}</div><div class="lbl">Completed</div></div>
+  <div class="kpi"><div class="num">${pending.length}</div><div class="lbl">Pending</div></div>
+  <div class="kpi ${revenue>0?"green":""}"><div class="num">${revenue>0?"Rs."+revenue.toLocaleString("en-IN"):"—"}</div><div class="lbl">Est. Revenue</div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+  <div class="section">
+    <h3>Top Issues</h3>
+    ${topIssues.map(([issue,count])=>`
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:12px;">
+        <span>${issue}</span><strong>${count}</strong>
+      </div>`).join("")||"<div style='color:#aaa;font-size:12px;'>No data</div>"}
+  </div>
+  <div class="section">
+    <h3>By Device Type</h3>
+    ${Object.entries(deviceCounts).map(([dev,cnt])=>`
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:12px;">
+        <span>${dev}</span><strong>${cnt}</strong>
+      </div>`).join("")||"<div style='color:#aaa;font-size:12px;'>No data</div>"}
+  </div>
+</div>
+
+<div class="section">
+  <h3>All Jobs This Month (${thisMonth.length})</h3>
+  ${thisMonth.length>0?`
+  <table>
+    <thead><tr>
+      <th>Job ID</th><th style="text-align:left;">Customer</th><th style="text-align:left;">Device</th><th style="text-align:left;">Issue</th><th>Status</th><th style="text-align:right;">Est. Cost</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`:"<div style='color:#aaa;padding:20px;text-align:center;'>No jobs this month</div>"}
+</div>
+
+<div style="margin-top:24px;padding:14px;background:#f5f7fa;border:1px solid #e2e4ea;display:flex;justify-content:space-between;font-size:12px;">
+  <span><strong>Completed:</strong> ${completed.length} &nbsp;|&nbsp; <strong>Pending:</strong> ${pending.length} &nbsp;|&nbsp; <strong>Cancelled:</strong> ${cancelled.length}</span>
+  <span><strong>Estimated Revenue:</strong> ${revenue>0?"Rs."+revenue.toLocaleString("en-IN"):"Not recorded"}</span>
+</div>
+
+<button onclick="window.print()" style="margin-top:20px;background:#0B1F5E;color:#fff;border:none;padding:10px 28px;font-size:13px;cursor:pointer;">Print / Save as PDF</button>
+</body></html>`;
+
+    const w=window.open("","_blank");
+    w.document.write(html);
+    w.document.close();
+    setTimeout(()=>w.print(),500);
+  }
+
   async function addNoteToJob(jobId, note){
     try{
       const res=await fetch(API+"/service/"+jobId+"/note",{
@@ -1376,16 +1494,22 @@ export default function Admin({defaultProducts,onExit}){
     const spec=form.spec.trim()||Object.values(form.specs).filter(Boolean).slice(0,4).join(" · ");
     const highlights=form.highlights.filter(h=>h.trim());
     if(editId!==null){
-      persist(products.map(p=>p.id===editId?{...form,id:editId,spec,highlights}:p));
+      const existing=products.find(p=>p.id===editId);
+      // Save price history if price changed
+      const priceHistory=existing?.priceHistory||[];
+      if(existing&&existing.price!==form.price.trim()){
+        priceHistory.unshift({price:existing.price,date:new Date().toISOString()});
+      }
+      persist(products.map(p=>p.id===editId?{...form,id:editId,spec,highlights,priceHistory:priceHistory.slice(0,5)}:p));
       showToast('"'+form.name+'" updated');
     }else{
-      persist([...products,{...form,id:Date.now(),spec,highlights}]);
+      persist([...products,{...form,id:Date.now(),spec,highlights,priceHistory:[]}]);
       showToast('"'+form.name+'" added');
     }
     setForm(EMPTY);setEditId(null);setTab("products");
   }
   function handleEdit(p){
-    setForm({name:p.name,cat:p.cat,price:p.price,icon:p.icon||"💻",isNew:p.isNew||false,inStock:p.inStock!==false,badge:p.badge||"",quantity:p.quantity||"",lowStockAt:p.lowStockAt||"3",image:p.image||"",images:p.images||(p.image?[p.image]:[]),spec:p.spec||"",specs:p.specs||{},highlights:p.highlights?.length?p.highlights:["","","",""],faqs:p.faqs?.length?p.faqs:[{q:"",a:""},{q:"",a:""}],useCases:p.useCases||[]});
+    setForm({name:p.name,cat:p.cat,price:p.price,icon:p.icon||"💻",isNew:p.isNew||false,inStock:p.inStock!==false,onOrder:p.onOrder||false,orderDays:p.orderDays||"3-5",badge:p.badge||"",useCases:p.useCases||[],quantity:p.quantity||"",lowStockAt:p.lowStockAt||"3",image:p.image||"",images:p.images||(p.image?[p.image]:[]),spec:p.spec||"",specs:p.specs||{},highlights:p.highlights?.length?p.highlights:["","","",""],faqs:p.faqs?.length?p.faqs:[{q:"",a:""},{q:"",a:""}]});
     setEditId(p.id);setTab("add");window.scrollTo({top:0,behavior:"smooth"});
   }
   function handleDelete(id){persist(products.filter(p=>p.id!==id));setDelConfirm(null);showToast("Product deleted","error");}
@@ -1607,13 +1731,26 @@ export default function Admin({defaultProducts,onExit}){
                     </div>
                     <div style={{fontSize:11,color:"#aaa"}}>{p.cat} &nbsp;·&nbsp; {p.spec}</div>
                   </div>
-                  <InlinePrice product={p} onSave={newPrice=>{persist(products.map(x=>x.id===p.id?{...x,price:newPrice}:x));showToast("Price updated");}} />
+                  <InlinePrice product={p} onSave={newPrice=>{
+                    const priceHistory=p.priceHistory||[];
+                    if(p.price!==newPrice) priceHistory.unshift({price:p.price,date:new Date().toISOString()});
+                    persist(products.map(x=>x.id===p.id?{...x,price:newPrice,priceHistory:priceHistory.slice(0,5)}:x));
+                    showToast("Price updated");
+                  }}/>
                   <div style={{display:"flex",gap:6,flexShrink:0}}>
                     <button onClick={()=>toggleNew(p.id)} style={{padding:"4px 10px",fontSize:11,fontWeight:600,border:"1px solid "+BORDER,background:"#fff",color:p.isNew?RED:"#888",cursor:"pointer",fontFamily:"inherit"}}>
                       {p.isNew?"Remove New":"Mark New"}
                     </button>
-                    <button onClick={()=>toggleStock(p.id)} style={{padding:"4px 10px",fontSize:11,fontWeight:600,border:"1px solid "+BORDER,background:"#fff",color:p.inStock===false?"#d97706":"#16a34a",cursor:"pointer",fontFamily:"inherit"}}>
-                      {p.inStock===false?"Mark In Stock":"Mark Out"}
+                    <button onClick={()=>toggleStock(p.id)} style={{padding:"4px 10px",fontSize:11,fontWeight:600,border:"1px solid "+BORDER,background:"#fff",color:p.inStock===false&&!p.onOrder?"#d97706":p.onOrder?"#d97706":"#16a34a",cursor:"pointer",fontFamily:"inherit"}}>
+                      {p.onOrder?"On Order":p.inStock===false?"Mark In Stock":"Mark Out"}
+                    </button>
+                    <button onClick={()=>{
+                      const dup={...p,id:Date.now(),name:p.name+" (Copy)",isNew:false};
+                      persist([...products,dup]);
+                      handleEdit(dup);
+                      showToast("Duplicated — edit and save");
+                    }} style={{padding:"4px 10px",fontSize:11,fontWeight:600,border:"1px solid "+BORDER,background:"#fff",color:"#555",cursor:"pointer",fontFamily:"inherit"}}>
+                      Duplicate
                     </button>
                     <button onClick={()=>handleEdit(p)} style={{padding:"4px 12px",fontSize:11,fontWeight:600,border:"1px solid "+NAVY,background:"#fff",color:NAVY,cursor:"pointer",fontFamily:"inherit"}}>Edit</button>
                     <button onClick={()=>setDelConfirm(p.id)} style={{padding:"4px 12px",fontSize:11,fontWeight:600,border:"1px solid "+BORDER,background:"#fff",color:RED,cursor:"pointer",fontFamily:"inherit"}}>Delete</button>
@@ -1658,10 +1795,33 @@ export default function Admin({defaultProducts,onExit}){
                       Mark as New
                     </label>
                     <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,fontWeight:500,color:"#16a34a"}}>
-                      <input type="checkbox" checked={form.inStock!==false} onChange={e=>setForm(f=>({...f,inStock:e.target.checked}))} style={{accentColor:"#16a34a",width:14,height:14}}/>
+                      <input type="checkbox" checked={form.inStock!==false&&!form.onOrder} onChange={e=>setForm(f=>({...f,inStock:e.target.checked,onOrder:false}))} style={{accentColor:"#16a34a",width:14,height:14}}/>
                       In Stock
                     </label>
+                    <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,fontWeight:500,color:"#d97706"}}>
+                      <input type="checkbox" checked={!!form.onOrder} onChange={e=>setForm(f=>({...f,onOrder:e.target.checked,inStock:e.target.checked?false:f.inStock}))} style={{accentColor:"#d97706",width:14,height:14}}/>
+                      Available on Order
+                    </label>
+                    {form.onOrder&&(
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:12,color:"#888"}}>Days:</span>
+                        <input value={form.orderDays||"3-5"} onChange={e=>setForm(f=>({...f,orderDays:e.target.value}))}
+                          placeholder="3-5" style={{width:60,border:"1px solid #dde2f0",padding:"3px 8px",fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+                      </div>
+                    )}
+                    <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:13,fontWeight:500,color:"#7c3aed"}}>
+                      <input type="checkbox" checked={!!form.studentPick} onChange={e=>setForm(f=>({...f,studentPick:e.target.checked}))} style={{accentColor:"#7c3aed",width:14,height:14}}/>
+                      Student Pick
+                    </label>
                   </div>
+                  {form.studentPick&&(
+                    <div style={{marginTop:8}}>
+                      <label style={{fontSize:10,color:"#888",fontWeight:700,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Student Note (optional)</label>
+                      <input className="adm-inp" value={form.studentNote||""} onChange={e=>setForm(f=>({...f,studentNote:e.target.value}))}
+                        placeholder="e.g. Approved for NIT CSE labs · Good for Assam University students"
+                        onFocus={e=>e.target.style.borderColor=NAVY} onBlur={e=>e.target.style.borderColor=BORDER}/>
+                    </div>
+                  )}
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                     <div>
                       <label style={{fontSize:11,color:"#888",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:".05em"}}>Stock Quantity</label>
@@ -1963,8 +2123,15 @@ export default function Admin({defaultProducts,onExit}){
         {/* ══ SERVICE JOBS ══ */}
         {tab==="service"&&(
           <div>
-            <div style={{background:"#fffbeb",border:"1px solid #fde047",padding:"10px 16px",marginBottom:16,fontSize:12,color:"#854d0e"}}>
-              Service jobs are created automatically when customers book a repair. Update status and notify customers here.
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:10}}>
+              <div style={{background:"#fffbeb",border:"1px solid #fde047",padding:"10px 16px",fontSize:12,color:"#854d0e",flex:1}}>
+                Service jobs are created automatically when customers book a repair.
+              </div>
+              <button onClick={()=>printServiceReport(serviceJobs)}
+                style={{background:NAVY,color:"#fff",border:"none",padding:"10px 20px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",transition:"background .15s"}}
+                onMouseEnter={e=>e.target.style.background=RED} onMouseLeave={e=>e.target.style.background=NAVY}>
+                Monthly Report
+              </button>
             </div>
             {/* Search bar */}
             <div style={{marginBottom:14}}>

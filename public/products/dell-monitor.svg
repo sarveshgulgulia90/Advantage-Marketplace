@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <defs>
+    <linearGradient id="mon_disp" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="50%" stop-color="#0369a1"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="200" cy="275" rx="130" ry="10" fill="#0b1f5e" opacity="0.16"/>
+  <g>
+    <!-- Stand Base -->
+    <ellipse cx="200" cy="265" rx="55" ry="14" fill="#334155" stroke="#64748b" stroke-width="1.5"/>
+    <!-- Stand Neck -->
+    <polygon points="194,190 206,190 208,265 192,265" fill="#475569"/>
+    <!-- Monitor Outer Frame -->
+    <rect x="65" y="30" width="270" height="175" rx="8" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+    <!-- Screen -->
+    <rect x="72" y="37" width="256" height="150" rx="3" fill="url(#mon_disp)"/>
+    <!-- Graphic Elements on screen -->
+    <circle cx="200" cy="110" r="40" fill="#ffffff" opacity="0.2"/>
+    <path d="M120 160 L180 100 L240 140 L300 80" fill="none" stroke="#38bdf8" stroke-width="3"/>
+    <!-- Bottom Chin & Dell Logo -->
+    <rect x="65" y="187" width="270" height="18" rx="2" fill="#0f172a"/>
+    <circle cx="200" cy="196" r="5" fill="#0284c7"/>
+    <text x="200" y="198.5" font-family="sans-serif" font-size="4" font-weight="900" fill="#fff" text-anchor="middle">DELL</text>
+  </g>
+</svg>

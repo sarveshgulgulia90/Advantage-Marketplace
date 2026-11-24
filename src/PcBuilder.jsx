@@ -114,6 +114,17 @@ export default function PCBuilder({onClose, onEnquire}){
   /* ─── Fetch all components from DB ─── */
   useEffect(()=>{
     fetchComponents();
+    // Restore saved build if exists
+    try{
+      const saved=localStorage.getItem("advantage_saved_build");
+      if(saved){
+        const{selected:savedSel}=JSON.parse(saved);
+        if(savedSel&&Object.keys(savedSel).length>0){
+          // Will be applied after components load
+          window._restoredBuild=savedSel;
+        }
+      }
+    }catch{}
   },[]);
 
   async function fetchComponents(){
@@ -135,6 +146,22 @@ export default function PCBuilder({onClose, onEnquire}){
       if(data.Cooler){
         const freeCooler = data.Cooler.find(c=>c.price===0);
         if(freeCooler) defaults.Cooler = freeCooler;
+      }
+      // Restore previously saved build
+      if(window._restoredBuild){
+        const restored={};
+        for(const[cat,savedItem] of Object.entries(window._restoredBuild)){
+          if(data[cat]){
+            const match=data[cat].find(i=>i.componentId===savedItem.componentId);
+            if(match) restored[cat]=match;
+          }
+        }
+        if(Object.keys(restored).length>0){
+          setSelected({...defaults,...restored});
+          delete window._restoredBuild;
+          setLoading(false);
+          return;
+        }
       }
       setSelected(defaults);
     }catch(e){
@@ -406,9 +433,33 @@ export default function PCBuilder({onClose, onEnquire}){
                         onMouseEnter={e=>{if(form.name&&form.phone)e.target.style.background=RED;}} onMouseLeave={e=>{if(form.name&&form.phone)e.target.style.background=NAVY;}}>
                         {sending?"Sending...":"Send Build Enquiry"}
                       </button>
-                      <button onClick={()=>window.open("https://wa.me/919435070738?text="+encodeURIComponent("Hi, Custom PC Build enquiry:\n\n"+Object.entries(selected).filter(([,v])=>v&&v.price>0).map(([c,v])=>(CAT_META[c]?.label||c)+": "+v.name).join("\n")+"\n\nTotal: Rs."+total.toLocaleString()),"_blank")}
+                      <button onClick={()=>{
+                        // Save build to localStorage so it persists
+                        const buildData={selected,total,savedAt:new Date().toISOString()};
+                        localStorage.setItem("advantage_saved_build",JSON.stringify(buildData));
+
+                        const buildText=
+                          "My Custom PC Build — Advantage Silchar\n\n"+
+                          Object.entries(selected).filter(([,v])=>v).map(([cat,v])=>
+                            (CAT_META[cat]?.label||cat)+": "+v.name+(v.price>0?" — Rs."+v.price.toLocaleString():" (Included)")
+                          ).join("\n")+
+                          "\n\nEstimated Total: Rs."+total.toLocaleString()+
+                          "\n\nTo order or enquire:\nAdvantage Silchar, Anand Arcade, Opp. Civil Hospital, Silchar\nCall: 9435070738";
+
+                        if(navigator.share){
+                          navigator.share({title:"My PC Build — Advantage Silchar",text:buildText}).catch(()=>{
+                            window.open("https://wa.me/?text="+encodeURIComponent(buildText),"_blank");
+                          });
+                        } else {
+                          window.open("https://wa.me/?text="+encodeURIComponent(buildText),"_blank");
+                        }
+                      }}
                         style={{flex:1,background:"#25D366",color:"#fff",border:"none",padding:"13px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                        WhatsApp Build
+                        Share This Build
+                      </button>
+                      <button onClick={()=>window.open("https://wa.me/919435070738?text="+encodeURIComponent("Hi, I want to order this custom PC build:\n\n"+Object.entries(selected).filter(([,v])=>v&&v.price>0).map(([c,v])=>(CAT_META[c]?.label||c)+": "+v.name).join("\n")+"\n\nTotal: Rs."+total.toLocaleString()),"_blank")}
+                        style={{flex:1,background:"rgba(37,211,102,.15)",color:"#16a34a",border:"1.5px solid #25D366",padding:"13px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                        Order via WhatsApp
                       </button>
                     </div>
                   </div>
